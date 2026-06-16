@@ -1,55 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum } from 'class-validator';
-
-export enum ActionType {
-  LIST = 'list',
-  VIEW = 'view',
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  CLEAN = 'clean',
-  CLEAR = 'clear',
-  IMPORT = 'import',
-  EXPORT = 'export',
-  SCAN = 'scan',
-  UPDATE_USERS = 'update-users',
-  UPDATE_ROLES = 'update-roles',
-  UPDATE_PERMISSIONS = 'update-permissions',
-  UPDATE_DATA_SCOPE = 'update-data-scope',
-  RESET_PASSWORD = 'reset-password',
-}
-
-export enum PermissionType {
-  DIRECTORY = 'DIRECTORY',
-  MENU = 'MENU',
-  BUTTON = 'BUTTON',
-  API = 'API',
-}
-
-export class CreateMenuMetaDto {
-  @ApiPropertyOptional({ description: '菜单路径' })
-  @IsOptional()
-  @IsString({ message: '菜单路径必须是字符串' })
-  path?: string;
-
-  @ApiPropertyOptional({ description: '菜单图标' })
-  @IsOptional()
-  @IsString({ message: '菜单图标必须是字符串' })
-  icon?: string;
-
-  @ApiPropertyOptional({ description: '菜单是否隐藏' })
-  @IsOptional()
-  hidden?: boolean;
-
-  @ApiPropertyOptional({ description: '组件标识' })
-  @IsOptional()
-  @IsString({ message: '菜单组件必须是字符串' })
-  component?: string;
-
-  @ApiPropertyOptional({ description: '排序' })
-  @IsOptional()
-  sort?: number;
-}
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreatePermissionDto {
   @ApiProperty({ description: '权限名称' })
@@ -60,37 +10,17 @@ export class CreatePermissionDto {
   @IsString({ message: '权限代码必须是字符串' })
   code: string;
 
-  @ApiProperty({ description: '权限类型', enum: PermissionType })
-  @IsEnum(PermissionType, { message: '权限类型必须是有效的枚举值' })
-  type: PermissionType;
+  @ApiProperty({ description: '操作类型' })
+  @IsString({ message: '操作类型必须是字符串' })
+  action: string;
 
-  @ApiPropertyOptional({ description: '父级菜单的权限ID（仅非菜单时需要）' })
+  @ApiPropertyOptional({ description: 'HTTP 方法' })
   @IsOptional()
-  @IsString({ message: '父级权限ID必须是字符串' })
-  parentPermissionId?: string;
-
-  @ApiPropertyOptional({
-    description: '操作类型（菜单默认为list或view）',
-    enum: ActionType,
-  })
-  @IsOptional()
-  @IsEnum(ActionType, { message: '操作类型必须是有效的枚举值' })
-  action?: ActionType;
+  @IsString({ message: 'HTTP 方法必须是字符串' })
+  httpMethod?: string;
 
   @ApiPropertyOptional({ description: '权限描述' })
   @IsOptional()
   @IsString({ message: '权限描述必须是字符串' })
   description?: string;
-
-  @ApiPropertyOptional({ description: '备注信息' })
-  @IsOptional()
-  @IsString({ message: '备注信息必须是字符串' })
-  remark?: string;
-
-  @ApiPropertyOptional({
-    description: '菜单元信息（仅菜单）',
-    type: CreateMenuMetaDto,
-  })
-  @IsOptional()
-  menuMeta?: CreateMenuMetaDto;
 }

@@ -7,11 +7,10 @@ import { LoginLogsService } from '@/modules/system/login-logs/login-logs.service
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
-import { MenuResponseDto } from './dto/menu-response.dto';
+import { AuthMenuResponseDto } from './dto/menu-response.dto';
 // no unified response types needed in service
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
-import { PermissionType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
@@ -261,7 +260,6 @@ export class AuthService {
                         permissionId: true,
                         name: true,
                         code: true,
-                        type: true,
                         action: true,
                         description: true,
                       },
@@ -350,14 +348,20 @@ export class AuthService {
     // refresh token 已在数据库中标记为撤销
   }
 
-  async getMenus(userId: string): Promise<MenuResponseDto[]> {
+  async getMenus(userId: string): Promise<AuthMenuResponseDto[]> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
       include: {
         userRoles: {
           include: {
             role: {
-              include: { rolePermissions: true },
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -366,102 +370,96 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
-    const assignedPermissionIds = Array.from(
-      new Set(
-        (user.userRoles || [])
-          .flatMap((ur) => ur.role?.rolePermissions || [])
-          .map((rp) => rp.permissionId)
-          .filter(
-            (id): id is string => typeof id === 'string' && id.length > 0,
-          ),
-      ),
+
+    // 获取用户拥有的所有权限 code
+    const userPermissionCodes = new Set<string>(
+      (user.userRoles || [])
+        .flatMap((ur) => ur.role?.rolePermissions || [])
+        .map((rp) => rp.permission?.code)
+        .filter((code): code is string => typeof code === 'string' && code.length > 0),
     );
-    if (assignedPermissionIds.length === 0) return [];
-    const perms = await this.prisma.permission.findMany({
-      where: {
-        permissionId: { in: assignedPermissionIds },
-        type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] },
-      },
-      select: {
-        permissionId: true,
-        parentPermissionId: true,
-        name: true,
-        code: true,
-        type: true,
-        action: true,
-        menuMeta: {
-          select: {
-            path: true,
-            icon: true,
-            hidden: true,
-            component: true,
-            sort: true,
-          },
-        },
-      },
-      orderBy: [{ code: 'asc' }],
+
+    // 查询所有启用的菜单
+    const allMenus = await this.prisma.menu.findMany({
+      where: { status: 'enabled' },
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
     });
-    const menus = perms.map((p) => ({
-      permissionId: p.permissionId,
-      parentPermissionId: p.parentPermissionId ?? null,
-      name: p.name,
-      code: p.code,
-      type: p.type,
-      action: p.action,
-      meta: p.menuMeta
-        ? {
-            path: p.menuMeta.path ?? null,
-            icon: p.menuMeta.icon ?? null,
-            hidden: p.menuMeta.hidden,
-            component: p.menuMeta.component ?? null,
-            sort: p.menuMeta.sort ?? 0,
-          }
-        : null,
-    }));
+
+    if (allMenus.length === 0) return [];
+
+    // 构建菜单映射
+    const menuMap = new Map(allMenus.map((m) => [m.menuId, m]));
+
+    // 判断菜单是否可见
+    const isVisible = (menu: typeof allMenus[0]): boolean => {
+      if (!menu.permissionCode) return true;
+      return userPermissionCodes.has(menu.permissionCode);
+    };
+
+    // 收集所有可见菜单ID（包括子菜单和必要的父级）
+    const visibleMenuIds = new Set<string>();
+
+    // 先标记所有直接可见的菜单
+    for (const menu of allMenus) {
+      if (isVisible(menu)) {
+        visibleMenuIds.add(menu.menuId);
+      }
+    }
+
+    // 确保可见子菜单的所有父级 CATALOG 也在结果中
+    const ensureParents = (menuId: string) => {
+      const menu = menuMap.get(menuId);
+      if (!menu || !menu.parentMenuId || menu.parentMenuId === '00000000-0000-0000-0000-000000000000') return;
+      visibleMenuIds.add(menu.parentMenuId);
+      ensureParents(menu.parentMenuId);
+    };
+
+    for (const menuId of Array.from(visibleMenuIds)) {
+      ensureParents(menuId);
+    }
+
+    // 过滤出可见菜单
+    const visibleMenus = allMenus.filter((m) => visibleMenuIds.has(m.menuId));
+
     type Node = {
-      permissionId: string;
-      parentPermissionId: string | null;
+      menuId: string;
+      parentMenuId: string | null;
       name: string;
-      code: string;
       type: string;
-      action: string;
-      meta?: {
-        path: string | null;
-        icon: string | null;
-        hidden: boolean;
-        component: string | null;
-        sort: number;
-      } | null;
+      permissionCode: string | null;
+      path: string | null;
+      icon: string | null;
+      hidden: boolean;
+      sort: number;
+      status: string;
       children?: Node[];
     };
-    const map = new Map<string, Node>();
+
+    const nodeMap = new Map<string, Node>();
     const roots: Node[] = [];
-    menus.forEach((m) => {
-      map.set(m.permissionId, {
-        permissionId: m.permissionId,
-        parentPermissionId: m.parentPermissionId ?? null,
+
+    visibleMenus.forEach((m) => {
+      nodeMap.set(m.menuId, {
+        menuId: m.menuId,
+        parentMenuId: m.parentMenuId,
         name: m.name,
-        code: m.code,
         type: m.type,
-        action: m.action,
-        meta: m.meta
-          ? {
-              path: m.meta.path ?? null,
-              icon: m.meta.icon ?? null,
-              hidden: m.meta.hidden ?? false,
-              component: m.meta.component ?? null,
-              sort: m.meta?.sort ?? 0,
-            }
-          : null,
+        permissionCode: m.permissionCode,
+        path: m.path,
+        icon: m.icon,
+        hidden: m.hidden,
+        sort: m.sort,
+        status: m.status,
         children: [],
       });
     });
-    menus.forEach((m) => {
-      const node = map.get(m.permissionId);
+
+    visibleMenus.forEach((m) => {
+      const node = nodeMap.get(m.menuId);
       if (!node) return;
-      const pid = m.parentPermissionId;
-      if (pid) {
-        const parent = map.get(pid);
+      const pid = m.parentMenuId;
+      if (pid && pid !== '00000000-0000-0000-0000-000000000000') {
+        const parent = nodeMap.get(pid);
         if (parent) {
           parent.children = parent.children || [];
           parent.children.push(node);
@@ -472,22 +470,23 @@ export class AuthService {
         roots.push(node);
       }
     });
-    const sortByMeta = (nodes: Node[]) => {
+
+    const sortNodes = (nodes: Node[]) => {
       nodes.sort((a, b) => {
-        const as = a.meta?.sort ?? 0;
-        const bs = b.meta?.sort ?? 0;
-        if (as !== bs) return as - bs;
+        if (a.sort !== b.sort) return a.sort - b.sort;
         return a.name.localeCompare(b.name);
       });
       nodes.forEach((n) => {
-        if (n.children && n.children.length > 0) sortByMeta(n.children);
+        if (n.children && n.children.length > 0) sortNodes(n.children);
+        else delete n.children;
       });
     };
-    sortByMeta(roots);
-    const result = plainToInstance(MenuResponseDto, roots, {
+
+    sortNodes(roots);
+
+    return plainToInstance(AuthMenuResponseDto, roots, {
       excludeExtraneousValues: true,
     });
-    return result;
   }
 
   private getClientIp(req?: RequestWithHeaders): string {

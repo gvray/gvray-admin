@@ -24,17 +24,14 @@ export class UserPermissionSimpleDto {
   @ApiProperty({ description: '权限代码' })
   code: string;
 
-  @ApiProperty({ description: '权限类型' })
-  type: string;
-
   @ApiProperty({ description: '操作动作' })
   action: string;
 
+  @ApiProperty({ description: 'HTTP 方法' })
+  httpMethod: string;
+
   @ApiPropertyOptional({ description: '权限描述' })
   description: string | null;
-
-  @ApiPropertyOptional({ description: '父权限ID' })
-  parentPermissionId: string | null;
 }
 
 export class UserPermissionsResponseDto {

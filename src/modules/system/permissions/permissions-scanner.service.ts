@@ -1,13 +1,15 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap, RequestMethod } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
+import { METHOD_METADATA } from '@nestjs/common/constants';
 import { PrismaService } from '@/prisma/prisma.service';
 import { PERMISSIONS_KEY } from '@/core/decorators/permissions.decorator';
-import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { SUPER_ROLE_KEY, GUEST_ROLE_KEY } from '@/shared/constants/role.constant';
 
 interface ScannedPermission {
   code: string;
   name: string;
-  method: string;
+  action: string;
+  httpMethod: string;
   path: string;
   controller: string;
 }
@@ -28,21 +30,24 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
   }
 
   /**
-   * 扫描所有控制器，提取 API 权限
+   * 扫描所有控制器，提取权限
    */
   async scanControllers(): Promise<{
     scanned: number;
     created: number;
     updated: number;
     deleted: number;
-    assigned: { newAssigned: number; apiTotal: number };
+    assigned: {
+      superAdmin: { newAssigned: number; total: number };
+      admin: { newAssigned: number; total: number };
+      guest: { newAssigned: number; total: number };
+    };
   }> {
     this.logger.log('🔍 开始扫描控制器权限...');
 
     const controllers = this.discoveryService.getControllers();
     const scannedPermissions: ScannedPermission[] = [];
 
-    // 扫描所有控制器
     for (const wrapper of controllers) {
       const { instance, metatype } = wrapper;
       if (!instance || !metatype) continue;
@@ -52,7 +57,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
       const controllerName = metatype.name;
 
-      // 扫描控制器中的所有方法
       const methodNames = this.metadataScanner.getAllMethodNames(
         Object.getPrototypeOf(instance),
       );
@@ -61,7 +65,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
         const method = instance[methodName];
         if (!method) continue;
 
-        // 获取方法上的权限装饰器
         const permissions = this.reflector.get<string[]>(
           PERMISSIONS_KEY,
           method,
@@ -69,7 +72,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
         if (!permissions || permissions.length === 0) continue;
 
-        // 获取 HTTP 方法和路径
         const httpMethod = this.getHttpMethod(instance, methodName);
         const methodPath = this.getMethodPath(instance, methodName);
 
@@ -77,15 +79,12 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
         const fullPath = this.buildFullPath(controllerPath, methodPath);
 
-        // 为每个权限代码创建记录
         for (const permissionCode of permissions) {
-          // 跳过非 api: 前缀的权限（这些是按钮权限）
-          if (!permissionCode.startsWith('api:')) continue;
-
           scannedPermissions.push({
             code: permissionCode,
             name: this.generatePermissionName(permissionCode, httpMethod),
-            method: httpMethod,
+            action: this.extractAction(permissionCode),
+            httpMethod,
             path: fullPath,
             controller: controllerName,
           });
@@ -95,10 +94,9 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
     const uniqueCodes = new Set(scannedPermissions.map((p) => p.code));
     this.logger.log(
-      `📊 扫描到 ${scannedPermissions.length} 个 API 权限（去重后 ${uniqueCodes.size} 个唯一 code）`,
+      `📊 扫描到 ${scannedPermissions.length} 个权限（去重后 ${uniqueCodes.size} 个唯一 code）`,
     );
 
-    // 同步到数据库
     const stats = await this.syncPermissions(scannedPermissions);
 
     this.logger.log('✅ 权限扫描完成');
@@ -106,13 +104,14 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     this.logger.log(`   - 更新: ${stats.updated} 个`);
     this.logger.log(`   - 删除: ${stats.deleted} 个`);
     this.logger.log(
-      `   - 超级角色 API 权限: 已绑定 ${stats.assigned.apiTotal} 个，本次新增 ${stats.assigned.newAssigned} 个`,
+      `   - 超级管理员: 已绑定 ${stats.assigned.superAdmin.total} 个，本次新增 ${stats.assigned.superAdmin.newAssigned} 个`,
     );
-    if (stats.assigned.apiTotal !== scannedPermissions.length) {
-      this.logger.warn(
-        `   ⚠️  超级角色 API 权限数量不一致: 已绑定 ${stats.assigned.apiTotal} 个，扫描到 ${scannedPermissions.length} 个`,
-      );
-    }
+    this.logger.log(
+      `   - 管理员: 已绑定 ${stats.assigned.admin.total} 个，本次新增 ${stats.assigned.admin.newAssigned} 个`,
+    );
+    this.logger.log(
+      `   - 游客: 已绑定 ${stats.assigned.guest.total} 个，本次新增 ${stats.assigned.guest.newAssigned} 个`,
+    );
 
     return {
       scanned: scannedPermissions.length,
@@ -129,15 +128,17 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     created: number;
     updated: number;
     deleted: number;
-    assigned: { newAssigned: number; apiTotal: number };
+    assigned: {
+      superAdmin: { newAssigned: number; total: number };
+      admin: { newAssigned: number; total: number };
+      guest: { newAssigned: number; total: number };
+    };
   }> {
     let created = 0;
     let updated = 0;
 
-    // 获取所有现有的 SYSTEM 来源的 API 权限
     const existingPermissions = await this.prisma.permission.findMany({
       where: {
-        type: 'API',
         origin: 'SYSTEM',
         deletedAt: null,
       },
@@ -146,49 +147,39 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
         code: true,
         name: true,
         action: true,
+        httpMethod: true,
       },
     });
 
     const scannedCodes = new Set(scannedPermissions.map((p) => p.code));
 
-    // 预加载所有菜单/目录的 code → permissionId 映射，用于解析父节点
-    const menuPermissions = await this.prisma.permission.findMany({
-      where: { type: { in: ['MENU', 'DIRECTORY'] }, deletedAt: null },
-      select: { permissionId: true, code: true },
-    });
-    const menuMap = new Map(
-      menuPermissions.map((m) => [m.code, m.permissionId]),
-    );
-
-    // 创建或更新权限（使用 upsert 避免唯一约束冲突）
     for (const perm of scannedPermissions) {
       const existing = existingPermissions.find((p) => p.code === perm.code);
-      const parentPermissionId = this.resolveParentId(perm.code, menuMap);
 
       await this.prisma.permission.upsert({
         where: { code: perm.code },
         update: {
           name: perm.name,
-          action: perm.method,
-          description: `${perm.method} ${perm.path}`,
+          action: perm.action,
+          httpMethod: perm.httpMethod,
           origin: 'SYSTEM',
-          type: 'API',
-          parentPermissionId,
           deletedAt: null,
         },
         create: {
           code: perm.code,
           name: perm.name,
-          type: 'API',
+          action: perm.action,
+          httpMethod: perm.httpMethod,
           origin: 'SYSTEM',
-          action: perm.method,
-          description: `${perm.method} ${perm.path}`,
-          parentPermissionId,
         },
       });
 
       if (existing) {
-        if (existing.name !== perm.name || existing.action !== perm.method) {
+        if (
+          existing.name !== perm.name ||
+          existing.action !== perm.action ||
+          existing.httpMethod !== perm.httpMethod
+        ) {
           updated++;
         }
       } else {
@@ -196,7 +187,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       }
     }
 
-    // 软删除不再存在的权限
     const toDelete = existingPermissions.filter(
       (p) => !scannedCodes.has(p.code),
     );
@@ -210,28 +200,33 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       deleted++;
     }
 
-    // 每次扫描后确保超级角色拥有所有权限
-    const assigned = await this.assignNewPermissionsToSuperRole();
+    const assigned = await this.assignAllRolePermissions();
 
     return { created, updated, deleted, assigned };
   }
 
-  private async assignNewPermissionsToSuperRole(): Promise<{
-    newAssigned: number;
-    apiTotal: number;
-  }> {
-    const superRole = await this.prisma.role.findFirst({
-      where: { roleKey: SUPER_ROLE_KEY },
+  /**
+   * 为指定角色分配权限
+   */
+  private async assignPermissionsToRole(
+    roleKey: string,
+    filter?: { httpMethod?: string },
+  ): Promise<{ newAssigned: number; total: number }> {
+    const role = await this.prisma.role.findFirst({
+      where: { roleKey },
       select: { roleId: true },
     });
-    if (!superRole) return { newAssigned: 0, apiTotal: 0 };
+    if (!role) return { newAssigned: 0, total: 0 };
+
+    const where: Record<string, unknown> = { deletedAt: null };
+    if (filter?.httpMethod) where['httpMethod'] = filter.httpMethod;
 
     const allPermissions = await this.prisma.permission.findMany({
-      where: { deletedAt: null },
+      where,
       select: { permissionId: true },
     });
     const existingLinks = await this.prisma.rolePermission.findMany({
-      where: { roleId: superRole.roleId },
+      where: { roleId: role.roleId },
       select: { permissionId: true },
     });
     const linkedIds = new Set(existingLinks.map((l) => l.permissionId));
@@ -242,41 +237,49 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     if (toAssign.length > 0) {
       await this.prisma.rolePermission.createMany({
         data: toAssign.map((p) => ({
-          roleId: superRole.roleId,
+          roleId: role.roleId,
           permissionId: p.permissionId,
         })),
         skipDuplicates: true,
       });
     }
 
-    // 统计超级角色已绑定的 API 权限数量
-    const apiTotal = await this.prisma.rolePermission.count({
+    const total = await this.prisma.rolePermission.count({
       where: {
-        roleId: superRole.roleId,
-        permission: { type: 'API', deletedAt: null },
+        roleId: role.roleId,
+        permission: { deletedAt: null },
       },
     });
 
-    return { newAssigned: toAssign.length, apiTotal };
+    return { newAssigned: toAssign.length, total };
   }
 
   /**
-   * 从 API 权限 code 解析父菜单 permissionId
-   * 例如 api:system:user:list → 尝试 system:user → system → 找不到则用根节点
+   * 扫描完成后自动分配权限：
+   * - super_admin：全部权限
+   * - admin：全部权限
+   * - guest：仅 GET（查看类）权限
    */
-  private resolveParentId(code: string, menuMap: Map<string, string>): string {
-    const ROOT = '00000000-0000-0000-0000-000000000000';
-    // 去掉 api: 前缀，得到 system:user:list
-    const withoutPrefix = code.replace(/^api:/, '');
-    // 逐级向上找：system:user:list → system:user → system
-    const parts = withoutPrefix.split(':');
-    for (let i = parts.length - 1; i >= 1; i--) {
-      const candidate = parts.slice(0, i).join(':');
-      if (menuMap.has(candidate)) {
-        return menuMap.get(candidate)!;
-      }
-    }
-    return ROOT;
+  private async assignAllRolePermissions(): Promise<{
+    superAdmin: { newAssigned: number; total: number };
+    admin: { newAssigned: number; total: number };
+    guest: { newAssigned: number; total: number };
+  }> {
+    const superAdmin = await this.assignPermissionsToRole(SUPER_ROLE_KEY);
+    const admin = await this.assignPermissionsToRole('admin');
+    const guest = await this.assignPermissionsToRole(GUEST_ROLE_KEY, {
+      httpMethod: 'GET',
+    });
+
+    return { superAdmin, admin, guest };
+  }
+
+  /**
+   * 从权限 code 提取 action
+   */
+  private extractAction(code: string): string {
+    const parts = code.split(':');
+    return parts[parts.length - 1] || 'list';
   }
 
   /**
@@ -291,32 +294,13 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
    * 获取 HTTP 方法
    */
   private getHttpMethod(instance: any, methodName: string): string | null {
-    const method = instance[methodName];
-    const path = Reflect.getMetadata('path', method);
+    const prototype = Object.getPrototypeOf(instance);
+    const method = prototype[methodName];
+    if (!method) return null;
 
-    // 检查各种 HTTP 方法装饰器
-    const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-    for (const httpMethod of httpMethods) {
-      const metadata = Reflect.getMetadata(
-        `__${httpMethod.toLowerCase()}__`,
-        method,
-      );
-      if (metadata !== undefined || path !== undefined) {
-        // 通过检查元数据判断 HTTP 方法
-        const methodMetadata = Reflect.getMetadata('method', method);
-        if (methodMetadata !== undefined) {
-          return httpMethod;
-        }
-      }
-    }
-
-    // 尝试通过路径元数据判断
-    if (path !== undefined) {
-      // 检查是否有 method 元数据
-      const requestMethod = Reflect.getMetadata('method', method);
-      if (requestMethod !== undefined) {
-        return ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'][requestMethod] || null;
-      }
+    const requestMethod = Reflect.getMetadata(METHOD_METADATA, method);
+    if (requestMethod !== undefined) {
+      return RequestMethod[requestMethod] || null;
     }
 
     return null;
@@ -326,7 +310,9 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
    * 获取方法路径
    */
   private getMethodPath(instance: any, methodName: string): string {
-    const method = instance[methodName];
+    const prototype = Object.getPrototypeOf(instance);
+    const method = prototype[methodName];
+    if (!method) return '';
     const path = Reflect.getMetadata('path', method);
     return path || '';
   }
@@ -347,8 +333,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
    * 生成权限名称
    */
   private generatePermissionName(code: string, method: string): string {
-    // 从 code 中提取操作名称
-    // 例如: api:system:user:list -> 获取用户列表
     const parts = code.split(':');
     const action = parts[parts.length - 1];
 
@@ -362,6 +346,27 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       'assign-roles': '分配角色接口',
       'remove-roles': '移除角色接口',
       'assign-permissions': '分配权限接口',
+      'remove-permissions': '移除权限接口',
+      'assign-users': '分配用户接口',
+      'remove-users': '移除用户接口',
+      'data-scope': '更新数据权限接口',
+      'reset-password': '重置密码接口',
+      scan: '扫描权限接口',
+      clean: '清理数据接口',
+      clear: '清空数据接口',
+      import: '导入接口',
+      export: '导出接口',
+      login: '登录接口',
+      logout: '登出接口',
+      refresh: '刷新令牌接口',
+      menus: '获取菜单接口',
+      profile: '获取用户信息接口',
+      password: '修改密码接口',
+      avatar: '上传头像接口',
+      overview: '概览接口',
+      stats: '统计接口',
+      activities: '活动接口',
+      view: '查看接口',
     };
 
     const resource = parts[parts.length - 2];
@@ -375,6 +380,12 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       config: '配置',
       loginlog: '登录日志',
       oplog: '操作日志',
+      'log-login': '登录日志',
+      'log-operation': '操作日志',
+      log: '日志',
+      dashboard: '仪表盘',
+      profile: '个人信息',
+      auth: '认证',
     };
 
     const resourceName = resourceMap[resource] || resource;

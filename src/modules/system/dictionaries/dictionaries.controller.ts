@@ -68,7 +68,7 @@ export class DictionariesController {
   }
 
   @Get('types')
-  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
+  @RequirePermissions(DICTIONARY_PERMISSIONS.LIST)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取字典类型列表' })
   @ApiResponse({
@@ -84,7 +84,7 @@ export class DictionariesController {
     return ResponseUtil.paginated(pageData, '字典类型列表');
   }
   @Get('types/batch')
-  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
+  @RequirePermissions(DICTIONARY_PERMISSIONS.LIST)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '根据多个字典类型编码获取字典项列表' })
   @ApiResponse({
@@ -196,7 +196,7 @@ export class DictionariesController {
   }
 
   @Get('items')
-  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
+  @RequirePermissions(DICTIONARY_PERMISSIONS.LIST)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取字典项列表' })
   @ApiResponse({
@@ -261,7 +261,7 @@ export class DictionariesController {
 
   // 根据字典类型编码获取字典项列表
   @Get('items/type/:typeCode')
-  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
+  @RequirePermissions(DICTIONARY_PERMISSIONS.LIST)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '根据字典类型编码获取字典项列表' })
   @ApiResponse({

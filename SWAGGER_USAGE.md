@@ -12,7 +12,7 @@
 ```bash
 curl -X POST http://localhost:8001/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"account":"admin","password":"admin123"}'
+  -d '{"account":"admin","password":"123456"}'
 ```
 
 响应示例：
@@ -98,7 +98,7 @@ curl -X POST http://localhost:8001/auth/login \
 
 - **邮箱**: admin@example.com
 - **用户名**: admin
-- **密码**: admin123
+- **密码**: 123456
 
 ## 权限说明
 

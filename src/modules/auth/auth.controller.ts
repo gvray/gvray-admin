@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { MenuResponseDto } from './dto/menu-response.dto';
+import { AuthMenuResponseDto } from './dto/menu-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
@@ -205,7 +205,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户可见菜单' })
-  @ApiResponse({ status: 200, description: '菜单树', type: [MenuResponseDto] })
+  @ApiResponse({ status: 200, description: '菜单树', type: [AuthMenuResponseDto] })
   async menus(@CurrentUser() user: { userId: string }) {
     const data = await this.authService.getMenus(user.userId);
     return ResponseUtil.found(data, '获取菜单成功');

@@ -46,6 +46,8 @@ model User {
   createdRolePerms       RolePermission[] @relation("RolePermissionCreatedBy")
   createdPerms           Permission[]     @relation("PermissionCreatedBy")
   updatedPerms           Permission[]     @relation("PermissionUpdatedBy")
+  createdMenus           Menu[]           @relation("MenuCreatedBy")
+  updatedMenus           Menu[]           @relation("MenuUpdatedBy")
   createdDepartments     Department[]     @relation("DepartmentCreatedBy")
   updatedDepartments     Department[]     @relation("DepartmentUpdatedBy")
   createdPositions       Position[]       @relation("PositionCreatedBy")
@@ -146,23 +148,16 @@ model RoleDepartment {
 }
 
 model Permission {
-  id                 Int              @id @default(autoincrement())
-  permissionId       String           @unique @default(uuid())
-  name               String
-  code               String           @unique // 权限代码，如：user:view, user:create
-  type               PermissionType   @default(BUTTON)
-  origin             PermissionOrigin @default(USER) // 来源：USER=用户创建, SYSTEM=系统扫描
-  action             String // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
-  description        String?          @db.Text // 权限描述
-  remark             String?          @db.Text // 备注信息
-  rolePermissions    RolePermission[]
-  menuMeta           MenuMeta?
-  parentPermissionId String?
-  parent             Permission?      @relation("PermissionHierarchy", fields: [parentPermissionId], references: [permissionId], onDelete: NoAction, onUpdate: NoAction)
-  children           Permission[]     @relation("PermissionHierarchy")
-
-  // 软删除
-  deletedAt DateTime? // API 权限软删除时间，非空表示已删除
+  id              Int              @id @default(autoincrement())
+  permissionId    String           @unique @default(uuid())
+  name            String
+  code            String           @unique // API 权限代码，如：system:user:list
+  action          String // 操作类型：list, view, create, update, delete, export, import, scan, clean, clear, assign-roles, remove-roles, reset-password, assign-permissions, remove-permissions, assign-users, remove-users, data-scope
+  httpMethod      String // HTTP 方法：GET, POST, PUT, PATCH, DELETE
+  description     String?          @db.Text // 权限描述
+  origin          PermissionOrigin @default(SYSTEM) // 来源：SYSTEM=系统扫描
+  deletedAt       DateTime? // API 权限软删除时间，非空表示已删除
+  rolePermissions RolePermission[]
 
   // 审计字段
   createdById String? // 创建者ID
@@ -176,29 +171,41 @@ model Permission {
   @@map("permissions")
 }
 
-enum PermissionType {
-  DIRECTORY
-  MENU
-  BUTTON
-  API
-}
-
 enum PermissionOrigin {
   USER   // 用户手动创建
   SYSTEM // 系统自动扫描生成
 }
 
-model MenuMeta {
-  id           Int        @id @default(autoincrement())
-  permissionId String     @unique
-  permission   Permission @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
-  path         String?
-  icon         String?
-  hidden       Boolean    @default(false)
-  component    String?
-  sort         Int        @default(0)
+model Menu {
+  id             Int      @id @default(autoincrement())
+  menuId         String   @unique @default(uuid())
+  name           String
+  type           MenuType
+  permissionCode String? // 绑定权限码，如：system:user:list
+  path           String?  @unique
+  icon           String?
+  hidden         Boolean  @default(false)
+  sort           Int      @default(0)
+  status         String   @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
+  parentMenuId   String?
+  parent         Menu?    @relation("MenuHierarchy", fields: [parentMenuId], references: [menuId], onDelete: NoAction, onUpdate: NoAction)
+  children       Menu[]   @relation("MenuHierarchy")
 
-  @@map("menu_meta")
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("MenuCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("MenuUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("menus")
+}
+
+enum MenuType {
+  CATALOG // 目录
+  MENU    // 菜单
 }
 
 model Department {

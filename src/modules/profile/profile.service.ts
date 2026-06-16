@@ -35,10 +35,9 @@ export class ProfileService {
                         permissionId: true,
                         name: true,
                         code: true,
-                        type: true,
                         action: true,
+                        httpMethod: true,
                         description: true,
-                        parentPermissionId: true,
                       },
                     },
                   },
@@ -69,10 +68,9 @@ export class ProfileService {
         permissionId: string;
         name: string;
         code: string;
-        type: string;
         action: string;
+        httpMethod: string;
         description: string | null;
-        parentPermissionId: string | null;
       }
     >();
     user.userRoles

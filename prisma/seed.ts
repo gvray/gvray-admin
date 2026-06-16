@@ -1,21 +1,19 @@
 import { PrismaClient } from '@prisma/client';
-import { seedPermissions } from './seeds/permissions';
+import { seedMenus } from './seeds/menus';
 import { seedDepartments } from './seeds/department';
 import { seedPositions } from './seeds/positions';
 import { seedRoles } from './seeds/roles';
-import { seedRolePermissions } from './seeds/role-permissions';
 import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
 import { seedConfigs } from './seeds/configs';
-import { seedGuestPermissions } from './seeds/guest-permissions';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('开始初始化数据库...');
 
-  // 1. 初始化权限（包含菜单权限与动作权限）
-  await seedPermissions(prisma);
+  // 1. 初始化菜单数据（目录 + 菜单）
+  await seedMenus(prisma);
 
   // 2. 创建部门
   const { itDepartment, hrDepartment } = await seedDepartments(prisma);
@@ -26,13 +24,7 @@ async function main() {
   // 4. 创建角色
   const { superRole, adminRole, userRole, guestRole } = await seedRoles(prisma);
 
-  // 5. 创建角色权限关联（超级管理员和管理员）
-  await seedRolePermissions(prisma);
-
-  // 6. 创建游客角色权限（所有菜单/按钮，仅查看类API）
-  await seedGuestPermissions(prisma, guestRole);
-
-  // 7. 创建用户
+  // 5. 创建用户
   const { superUser, adminUser } = await seedUsers(
     prisma,
     { itDepartment, hrDepartment },
@@ -40,10 +32,10 @@ async function main() {
     { superRole, adminRole, userRole, guestRole },
   );
 
-  // 8. 创建字典数据
+  // 6. 创建字典数据
   await seedDictionaries(prisma);
 
-  // 9. 创建配置数据
+  // 7. 创建配置数据
   await seedConfigs();
 
   console.log('数据库初始化完成！');
@@ -51,13 +43,13 @@ async function main() {
   console.log(`  邮箱: ${superUser.email}`);
   console.log(`  用户名: ${superUser.username}`);
   console.log(`  手机号: ${superUser.phone}`);
-  console.log(`  密码: super123`);
+  console.log(`  密码: 123456`);
 
   console.log('管理员账户信息:');
   console.log(`  邮箱: ${adminUser.email}`);
   console.log(`  用户名: ${adminUser.username}`);
   console.log(`  手机号: ${adminUser.phone}`);
-  console.log(`  密码: admin123`);
+  console.log(`  密码: 123456`);
 }
 
 main()

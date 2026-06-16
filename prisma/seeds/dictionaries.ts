@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { CommonStatus } from '../../src/shared/constants/common-status.constant';
-import { PERMISSION_ACTIONS } from '../../src/shared/constants/permissions.constant';
 
 export async function seedDictionaries(prisma: PrismaClient) {
   console.log('🌐 开始创建完整字典数据（批量插入优化）...');
@@ -46,22 +45,10 @@ export async function seedDictionaries(prisma: PrismaClient) {
       sort: 5,
     },
     {
-      code: 'permission_type',
-      name: '权限类型',
-      description: '权限类型字典',
-      sort: 6,
-    },
-    {
-      code: 'permission_action',
-      name: '权限操作',
-      description: '权限操作类型字典',
-      sort: 7,
-    },
-    {
       code: 'menu_hidden',
       name: '菜单显示状态',
       description: '菜单隐藏/显示',
-      sort: 8,
+      sort: 6,
     },
     {
       code: 'login_status',
@@ -186,47 +173,6 @@ export async function seedDictionaries(prisma: PrismaClient) {
       items: [
         { value: 'enabled', label: '启用', sort: 0 },
         { value: 'disabled', label: '禁用', sort: 1 },
-      ],
-    },
-    {
-      typeCode: 'permission_type',
-      items: [
-        { value: 'DIRECTORY', label: '目录', sort: 0 },
-        { value: 'MENU', label: '菜单', sort: 1 },
-        { value: 'BUTTON', label: '按钮', sort: 2 },
-        { value: 'API', label: '接口', sort: 3 },
-      ],
-    },
-    {
-      typeCode: 'permission_action',
-      items: [
-        { value: PERMISSION_ACTIONS.LIST, label: '列表', sort: 0 },
-        { value: PERMISSION_ACTIONS.VIEW, label: '查看', sort: 1 },
-        { value: PERMISSION_ACTIONS.CREATE, label: '创建', sort: 2 },
-        { value: PERMISSION_ACTIONS.UPDATE, label: '更新', sort: 3 },
-        { value: PERMISSION_ACTIONS.DELETE, label: '删除', sort: 4 },
-        { value: PERMISSION_ACTIONS.CLEAN, label: '清理历史', sort: 5 },
-        { value: PERMISSION_ACTIONS.CLEAR, label: '清空全部', sort: 6 },
-        { value: PERMISSION_ACTIONS.IMPORT, label: '导入', sort: 7 },
-        { value: PERMISSION_ACTIONS.EXPORT, label: '导出', sort: 8 },
-        { value: PERMISSION_ACTIONS.SCAN, label: '扫描', sort: 9 },
-        { value: PERMISSION_ACTIONS.UPDATE_USERS, label: '管理用户', sort: 10 },
-        { value: PERMISSION_ACTIONS.UPDATE_ROLES, label: '管理角色', sort: 11 },
-        {
-          value: PERMISSION_ACTIONS.UPDATE_PERMISSIONS,
-          label: '管理权限',
-          sort: 12,
-        },
-        {
-          value: PERMISSION_ACTIONS.UPDATE_DATA_SCOPE,
-          label: '管理数据权限',
-          sort: 13,
-        },
-        {
-          value: PERMISSION_ACTIONS.RESET_PASSWORD,
-          label: '重置密码',
-          sort: 14,
-        },
       ],
     },
     {

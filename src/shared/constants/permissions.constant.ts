@@ -40,24 +40,16 @@ export const PERMISSION_ACTIONS = {
   RESET_PASSWORD: 'reset-password',
 } as const;
 
-// ==================== 系统管理目录 ====================
-export const SYSTEM_DIRECTORY = 'system';
-
 // ==================== 用户管理权限 ====================
 const USER_RESOURCE = 'system:user';
 export const USER_PERMISSIONS = {
-  MENU: USER_RESOURCE,
-
   LIST: `${USER_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${USER_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   CREATE: `${USER_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
   DELETE: `${USER_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-
   IMPORT: `${USER_RESOURCE}:${PERMISSION_ACTIONS.IMPORT}`,
   EXPORT: `${USER_RESOURCE}:${PERMISSION_ACTIONS.EXPORT}`,
-
   UPDATE_ROLES: `${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_ROLES}`,
   RESET_PASSWORD: `${USER_RESOURCE}:${PERMISSION_ACTIONS.RESET_PASSWORD}`,
 } as const;
@@ -65,15 +57,11 @@ export const USER_PERMISSIONS = {
 // ==================== 角色管理权限 ====================
 const ROLE_RESOURCE = 'system:role';
 export const ROLE_PERMISSIONS = {
-  MENU: ROLE_RESOURCE,
-
   LIST: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   CREATE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
   DELETE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-
   UPDATE_PERMISSIONS: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_PERMISSIONS}`,
   UPDATE_USERS: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_USERS}`,
   UPDATE_DATA_SCOPE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_DATA_SCOPE}`,
@@ -82,26 +70,17 @@ export const ROLE_PERMISSIONS = {
 // ==================== 权限管理权限 ====================
 const PERMISSION_RESOURCE = 'system:permission';
 export const PERMISSION_PERMISSIONS = {
-  MENU: PERMISSION_RESOURCE,
-
   LIST: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
-  CREATE: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-
   SCAN: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.SCAN}`,
 } as const;
 
 // ==================== 部门管理权限 ====================
 const DEPARTMENT_RESOURCE = 'system:department';
 export const DEPARTMENT_PERMISSIONS = {
-  MENU: DEPARTMENT_RESOURCE,
-
   LIST: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   CREATE: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
   DELETE: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
@@ -110,11 +89,8 @@ export const DEPARTMENT_PERMISSIONS = {
 // ==================== 岗位管理权限 ====================
 const POSITION_RESOURCE = 'system:position';
 export const POSITION_PERMISSIONS = {
-  MENU: POSITION_RESOURCE,
-
   LIST: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   CREATE: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
   DELETE: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
@@ -123,11 +99,8 @@ export const POSITION_PERMISSIONS = {
 // ==================== 字典管理权限 ====================
 const DICTIONARY_RESOURCE = 'system:dictionary';
 export const DICTIONARY_PERMISSIONS = {
-  MENU: DICTIONARY_RESOURCE,
-
   LIST: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   CREATE: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
   DELETE: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
@@ -136,11 +109,8 @@ export const DICTIONARY_PERMISSIONS = {
 // ==================== 配置管理权限 ====================
 const CONFIG_RESOURCE = 'system:config';
 export const CONFIG_PERMISSIONS = {
-  MENU: CONFIG_RESOURCE,
-
   LIST: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   CREATE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
   UPDATE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
   DELETE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
@@ -149,18 +119,14 @@ export const CONFIG_PERMISSIONS = {
 // ==================== 日志管理权限 ====================
 const LOG_RESOURCE = 'system:log';
 export const LOG_PERMISSIONS = {
-  MENU: LOG_RESOURCE,
   VIEW: `${LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
 } as const;
 
 // ==================== 登录日志权限 ====================
 const LOGIN_LOG_RESOURCE = 'system:log-login';
 export const LOGIN_LOG_PERMISSIONS = {
-  MENU: LOGIN_LOG_RESOURCE,
-
   LIST: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   DELETE: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
   CLEAN: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`,
   CLEAR: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`,
@@ -169,11 +135,8 @@ export const LOGIN_LOG_PERMISSIONS = {
 // ==================== 操作日志权限 ====================
 const OPERATION_LOG_RESOURCE = 'system:log-operation';
 export const OPERATION_LOG_PERMISSIONS = {
-  MENU: OPERATION_LOG_RESOURCE,
-
   LIST: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
   DELETE: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
   CLEAN: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`,
   CLEAR: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`,
@@ -197,5 +160,41 @@ export interface PermissionMeta {
   code: string;
   name: string;
   description?: string;
-  type: 'MENU' | 'BUTTON' | 'API';
+  type: 'API';
 }
+
+// ==================== 权限中文映射（供前端组权限树） ====================
+export const PERMISSION_DOMAIN_LABELS: Record<string, string> = {
+  system: '系统管理',
+};
+
+export const PERMISSION_RESOURCE_LABELS: Record<string, string> = {
+  user: '用户管理',
+  role: '角色管理',
+  permission: '权限管理',
+  department: '部门管理',
+  position: '岗位管理',
+  dictionary: '字典管理',
+  config: '配置管理',
+  log: '日志管理',
+  'log-login': '登录日志',
+  'log-operation': '操作日志',
+};
+
+export const PERMISSION_ACTION_LABELS: Record<string, string> = {
+  list: '列表',
+  view: '查看',
+  create: '创建',
+  update: '更新',
+  delete: '删除',
+  clean: '清理历史',
+  clear: '清空全部',
+  import: '导入',
+  export: '导出',
+  scan: '扫描',
+  'update-users': '管理用户',
+  'update-roles': '管理角色',
+  'update-permissions': '管理权限',
+  'update-data-scope': '管理数据权限',
+  'reset-password': '重置密码',
+};

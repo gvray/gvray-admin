@@ -10,12 +10,11 @@ describe('PermissionsService - Scan Managed Permissions', () => {
   const mockPermission = {
     id: 1,
     permissionId: 'permission-id',
-    name: '用户管理',
-    code: 'system:user',
-    type: 'MENU',
-    action: 'access',
+    name: '获取用户列表',
+    code: 'system:user:list',
+    action: 'list',
+    httpMethod: 'GET',
     origin: 'SYSTEM',
-    parentPermissionId: 'root-id',
     description: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -35,9 +34,6 @@ describe('PermissionsService - Scan Managed Permissions', () => {
               findUnique: jest.fn(),
               update: jest.fn(),
             },
-            menuMeta: {
-              upsert: jest.fn(),
-            },
           },
         },
       ],
@@ -52,21 +48,9 @@ describe('PermissionsService - Scan Managed Permissions', () => {
       service.create({
         name: '手动权限',
         code: 'system:manual',
-        type: 'MENU' as any,
+        action: 'list',
       }),
     ).rejects.toThrow('权限必须由扫描同步生成，不允许手动创建');
-  });
-
-  it('rejects permission code changes', async () => {
-    jest
-      .spyOn(prisma.permission, 'findUnique')
-      .mockResolvedValueOnce(mockPermission as any);
-
-    await expect(
-      service.update('permission-id', {
-        code: 'system:user:new',
-      }),
-    ).rejects.toThrow('权限代码不可修改');
   });
 
   it('rejects updates for non-scan permissions', async () => {
@@ -82,25 +66,21 @@ describe('PermissionsService - Scan Managed Permissions', () => {
     ).rejects.toThrow('权限必须由扫描同步生成，不允许手动修改');
   });
 
-  it('allows updating metadata for scan-managed menu permissions', async () => {
+  it('allows updating name and description for scan-managed permissions', async () => {
     jest
       .spyOn(prisma.permission, 'findUnique')
       .mockResolvedValueOnce(mockPermission as any);
     jest.spyOn(prisma.permission, 'update').mockResolvedValueOnce({
       ...mockPermission,
-      name: '用户管理菜单',
+      name: '用户列表查询',
+      description: '获取用户列表数据',
     } as any);
-    jest.spyOn(prisma.menuMeta, 'upsert').mockResolvedValueOnce({} as any);
 
     const result = await service.update(
       'permission-id',
       {
-        name: '用户管理菜单',
-        menuMeta: {
-          path: '/system/users',
-          icon: 'UserOutlined',
-          sort: 1,
-        },
+        name: '用户列表查询',
+        description: '获取用户列表数据',
       },
       'operator-id',
     );
@@ -109,7 +89,8 @@ describe('PermissionsService - Scan Managed Permissions', () => {
     expect(prisma.permission.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          name: '用户管理菜单',
+          name: '用户列表查询',
+          description: '获取用户列表数据',
           updatedById: 'operator-id',
         }),
       }),

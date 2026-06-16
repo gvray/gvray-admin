@@ -54,25 +54,15 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
-    // 构建菜单映射，key 为权限 code（如 system:role）
-    const menuPerms = await (this.prisma as any).permission.findMany({
-      where: { type: 'MENU' },
-      select: { permissionId: true, code: true },
-    });
-    const menuMap: Record<string, string> = {};
-    menuPerms.forEach((p: any) => {
-      menuMap[p.code] = p.permissionId;
-    });
-
     // 预加载已有权限（包含已软删除的），避免 N+1 查询
-    const existingPerms = await (this.prisma as any).permission.findMany({
+    const existingPerms = await this.prisma.permission.findMany({
       select: { code: true, deletedAt: true },
     });
-    const existingSet = new Set(existingPerms.map((p: any) => p.code));
+    const existingSet = new Set(existingPerms.map((p) => p.code));
     const softDeletedSet = new Set(
       existingPerms
-        .filter((p: any) => p.deletedAt !== null)
-        .map((p: any) => p.code),
+        .filter((p) => p.deletedAt !== null)
+        .map((p) => p.code),
     );
 
     const metadataScanner = new MetadataScanner();
@@ -84,7 +74,7 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
       method: string;
       httpMethod: string;
       route: string;
-      menuCode: string;
+      resource: string;
       status: 'created' | 'exists' | 'reactivated' | 'skipped';
     }> = [];
 
@@ -111,33 +101,25 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
           RequestMethod.ALL;
         const httpMethod = RequestMethod[requestMethod] ?? 'ALL';
 
-        // 解析 menuCode：优先从控制器路径 /<module>/<menu> 推断
-        let menuCode = ctrlSegs[1] || '';
+        // 解析 resource：优先从控制器路径 /<module>/<resource> 推断
+        let resource = ctrlSegs[1] || '';
 
         for (const code of codes) {
           if (!code || code === '*:*:*') continue;
           const parts = code.split(':');
-          // 支持两种格式：api:system:role:create 或 system:role:create
-          const isApiFormat = parts[0] === 'api' && parts.length >= 4;
-          const isLegacyFormat = parts[0] === 'system' && parts.length >= 3;
-          if (!isApiFormat && !isLegacyFormat) continue;
-          const moduleIdx = isApiFormat ? 1 : 0;
-          const resourceIdx = isApiFormat ? 2 : 1;
-          const actionIdx = isApiFormat ? 3 : 2;
-          menuCode = parts[resourceIdx] || menuCode;
-          const actionFromCode = parts.slice(actionIdx).join(':');
-          const action =
-            actionFromCode || this.guessAction(methodPath, httpMethod);
+          // 格式：domain:resource:action
+          if (parts.length < 3) continue;
+          const domain = parts[0];
+          const resourcePart = parts[1];
+          const action = parts.slice(2).join(':') || this.guessAction(methodPath, httpMethod);
+          resource = resourcePart || resource;
 
-          const fullMenuCode = `${parts[moduleIdx]}:${menuCode}`;
-          const parentId = menuMap[fullMenuCode];
-          if (!parentId) continue;
+          const resourceKey = `${domain}:${resource}`;
 
-          const apiCode = `api:${parts[moduleIdx]}:${menuCode}:${action}`;
-          const exists = existingSet.has(apiCode);
-          const wasSoftDeleted = softDeletedSet.has(apiCode);
+          const exists = existingSet.has(code);
+          const wasSoftDeleted = softDeletedSet.has(code);
           report.push({
-            code: apiCode,
+            code,
             action,
             controller: metatype?.name ?? '',
             method: methodName,
@@ -146,7 +128,7 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
               .map((s) => s.replace(/^\/|\/$/g, ''))
               .filter(Boolean)
               .join('/')}`,
-            menuCode: fullMenuCode,
+            resource: resourceKey,
             status: exists
               ? wasSoftDeleted
                 ? 'reactivated'
@@ -161,7 +143,7 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
     try {
       const outDir = path.join(process.cwd(), 'reports');
       await fs.mkdir(outDir, { recursive: true });
-      const outFile = path.join(outDir, 'api-permissions.json');
+      const outFile = path.join(outDir, 'permissions.json');
 
       // 稳定排序
       const sorted = [...report].sort((a, b) => {
@@ -173,9 +155,9 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
       });
 
       await fs.writeFile(outFile, JSON.stringify(sorted, null, 2), 'utf8');
-      console.log(`API 权限扫描报告已生成: ${outFile}`);
+      console.log(`权限扫描报告已生成: ${outFile}`);
     } catch (e) {
-      console.warn('写出 API 权限扫描报告失败:', e);
+      console.warn('写出权限扫描报告失败:', e);
     }
   }
 }

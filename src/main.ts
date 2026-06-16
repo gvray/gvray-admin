@@ -61,20 +61,12 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('NestAdmin 企业级后台管理系统')
     .setDescription(
-      '企业级后台管理系统 API 文档，基于 NestJS + Prisma + MySQL。\n\n' +
-        '### 功能\n' +
-        '- JWT 身份认证\n' +
-        '- 用户、角色、权限管理\n' +
-        '- 部门与岗位管理\n' +
-        '- RBAC 权限控制\n\n' +
-        '### 快速开始\n' +
-        '1. 管理员登录获取 token\n' +
-        '2. 点击 "Authorize" 并输入 Bearer token\n' +
-        '3. 调用 API\n\n' +
-        '### 默认管理员\n' +
-        '- 邮箱: admin@example.com\n' +
-        '- 用户名: admin\n' +
-        '- 密码: admin123',
+      '**默认测试账户**\n\n' +
+        '| 角色 | 用户名 | 密码 |\n' +
+        '|------|--------|------|\n' +
+        '| 超级管理员 | `super_admin` | `123456` |\n' +
+        '| 管理员 | `admin` | `123456` |\n' +
+        '| 游客 | `guest` | `123456` |',
     )
     .setVersion('1.0.0')
     .addBearerAuth(
@@ -105,7 +97,7 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 应用启动成功: http://localhost:${port}`);
   console.log(`📚 API 文档地址: http://localhost:${port}/api`);
-  console.log(`🔐 默认管理员账户: admin@example.com / admin123`);
+  console.log(`🔐 默认管理员账户: admin@example.com / 123456`);
 }
 
 bootstrap();
