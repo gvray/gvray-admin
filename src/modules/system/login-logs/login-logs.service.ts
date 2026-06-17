@@ -3,7 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { LogStatus } from '@/shared/constants/log-status.constant';
+import { LogResult } from '@/shared/constants/log-result.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateLoginLogDto } from './dto/create-login-log.dto';
@@ -37,7 +37,7 @@ export class LoginLogsService extends BaseService {
     const {
       account,
       ipAddress,
-      status,
+      result,
       createdAtStart,
       createdAtEnd,
       location,
@@ -58,7 +58,7 @@ export class LoginLogsService extends BaseService {
         loginType,
       },
       equals: {
-        status,
+        result,
       },
       date: {
         field: 'createdAt',
@@ -68,42 +68,23 @@ export class LoginLogsService extends BaseService {
     });
 
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.loginLog.findMany({
-          where,
-          orderBy: [{ createdAt: 'desc' }],
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.loginLog.count({ where }),
-      ]);
-      const transformedItems = plainToInstance(LoginLogResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformedItems,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-
-    // 不分页查询
-    const loginLogs = await this.prisma.loginLog.findMany({
-      where,
-      orderBy: [{ createdAt: 'desc' }],
-    });
-
-    const total = await this.prisma.loginLog.count({ where });
-    const loginLogResponses = plainToInstance(LoginLogResponseDto, loginLogs, {
+    const [items, total] = await Promise.all([
+      this.prisma.loginLog.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }],
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.loginLog.count({ where }),
+    ]);
+    const transformedItems = plainToInstance(LoginLogResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
-      items: loginLogResponses,
+      items: transformedItems,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? loginLogResponses.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 
@@ -197,7 +178,7 @@ export class LoginLogsService extends BaseService {
         createdAt: {
           gte: startDate,
         },
-        status: LogStatus.SUCCESS,
+        result: LogResult.SUCCESS,
       },
     });
 
@@ -207,7 +188,7 @@ export class LoginLogsService extends BaseService {
         createdAt: {
           gte: startDate,
         },
-        status: LogStatus.FAILURE,
+        result: LogResult.FAILURE,
       },
     });
 

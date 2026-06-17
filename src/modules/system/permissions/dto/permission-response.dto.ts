@@ -20,10 +20,6 @@ export class PermissionResponseDto {
   @Expose()
   code: string;
 
-  @ApiProperty({ description: '操作类型' })
-  @Expose()
-  action: string;
-
   @ApiProperty({ description: 'HTTP 方法' })
   @Expose()
   httpMethod: string;

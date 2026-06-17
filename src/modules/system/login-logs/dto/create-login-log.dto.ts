@@ -16,11 +16,11 @@ export class CreateLoginLogDto {
   userAgent?: string;
 
   @ApiProperty({
-    description: '登录状态：success-成功, failure-失败',
+    description: '登录结果：success-成功, failure-失败',
     example: 'success',
   })
   @IsString()
-  status: string;
+  result: string;
 
   @ApiProperty({ description: '登录类型', default: 'username' })
   @IsString()

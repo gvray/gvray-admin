@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { LogStatus } from '@/shared/constants/log-status.constant';
+import { LogResult } from '@/shared/constants/log-result.constant';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '@/modules/system/users/users.service';
@@ -260,7 +260,6 @@ export class AuthService {
                         permissionId: true,
                         name: true,
                         code: true,
-                        action: true,
                         description: true,
                       },
                     },
@@ -533,10 +532,10 @@ export class AuthService {
         account: logData.account,
         ipAddress: logData.ipAddress,
         userAgent: logData.userAgent,
-        status:
+        result:
           logData.status >= 200 && logData.status < 300
-            ? LogStatus.SUCCESS
-            : LogStatus.FAILURE,
+            ? LogResult.SUCCESS
+            : LogResult.FAILURE,
         loginType: logData.loginType,
         failReason: logData.failReason,
         location,

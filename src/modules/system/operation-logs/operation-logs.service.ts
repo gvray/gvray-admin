@@ -25,7 +25,7 @@ export class OperationLogsService extends BaseService {
       userId,
       module,
       action,
-      status,
+      result,
       path,
       keyword,
       createdAtStart,
@@ -35,7 +35,7 @@ export class OperationLogsService extends BaseService {
 
     const where: Prisma.OperationLogWhereInput = this.buildWhere({
       contains: { username, module, path },
-      equals: { userId, action, status, id },
+      equals: { userId, action, result, id },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     }) as Prisma.OperationLogWhereInput;
     if (keyword) {
@@ -47,40 +47,23 @@ export class OperationLogsService extends BaseService {
     }
 
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.operationLog.findMany({
-          where,
-          orderBy: [{ createdAt: 'desc' }],
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.operationLog.count({ where }),
-      ]);
-      const transformed = plainToInstance(OperationLogResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-
-    const items = await this.prisma.operationLog.findMany({
-      where,
-      orderBy: [{ createdAt: 'desc' }],
-    });
-    const total = await this.prisma.operationLog.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.operationLog.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }],
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.operationLog.count({ where }),
+    ]);
     const transformed = plainToInstance(OperationLogResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 

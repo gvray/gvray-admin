@@ -30,12 +30,12 @@ export class QueryOperationLogDto extends PaginationDto {
   action?: string;
 
   @ApiPropertyOptional({
-    description: '操作状态：success-成功, failure-失败',
+    description: '操作结果：success-成功, failure-失败',
     example: 'success',
   })
   @IsOptional()
   @IsString()
-  status?: string;
+  result?: string;
 
   @ApiPropertyOptional({ description: '路径 模糊匹配' })
   @IsOptional()

@@ -48,44 +48,25 @@ export class ConfigsService extends BaseService {
     });
 
     const state = this.getPaginationState(query);
-    if (state) {
-      const [configs, total] = await Promise.all([
-        this.prisma.config.findMany({
-          where,
-          orderBy: { sort: 'asc' },
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.config.count({ where }),
-      ]);
-      const transformed = configs.map((config) =>
-        plainToInstance(ConfigResponseDto, config, {
-          excludeExtraneousValues: true,
-        }),
-      );
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-
-    const configs = await this.prisma.config.findMany({
-      where,
-      orderBy: { sort: 'asc' },
-    });
+    const [configs, total] = await Promise.all([
+      this.prisma.config.findMany({
+        where,
+        orderBy: { sort: 'asc' },
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.config.count({ where }),
+    ]);
     const transformed = configs.map((config) =>
       plainToInstance(ConfigResponseDto, config, {
         excludeExtraneousValues: true,
       }),
     );
-    const total = await this.prisma.config.count({ where });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 
@@ -184,29 +165,67 @@ export class ConfigsService extends BaseService {
 
   /**
    * 获取前端运行时配置（公开接口，无需认证）
-   * - system / env：写死或读环境变量
-   * - uiDefaults / securityPolicy / features：从 config 表读取，管理员可改
+   * - env：写死或读环境变量
+   * - system / ui / security / user / feature / storage / oauth / mail / sms：从 config 表读取
    * - capabilities：动态计算
    */
   async getRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
     // 1. 从 config 表批量读取管理员可改项
     const configKeys = [
-      'uiDefaults.theme',
-      'uiDefaults.language',
-      'uiDefaults.timezone',
-      'uiDefaults.sidebarCollapsed',
-      'uiDefaults.pageSize',
-      'uiDefaults.welcomeMessage',
-      'uiDefaults.showBreadcrumb',
-      'securityPolicy.watermark.enabled',
-      'securityPolicy.password.minLength',
-      'securityPolicy.password.requireComplexity',
-      'securityPolicy.login.failureLockCount',
-      'features.fileUpload.maxSize',
-      'features.fileUpload.allowedTypes',
-      'features.oss.enabled',
-      'features.email.enabled',
-      'features.oauth.github.enabled',
+      // system
+      'system.name',
+      'system.logo',
+      'system.favicon',
+      'system.welcomeMessage',
+      'system.copyright',
+      'system.icp',
+      'system.timezone',
+      // ui
+      'ui.theme',
+      'ui.language',
+      'ui.pageSize',
+      'ui.showBreadcrumb',
+      'ui.sidebarCollapsed',
+      'ui.dateFormat',
+      'ui.timeFormat',
+      // security
+      'security.watermarkEnabled',
+      'security.passwordMinLength',
+      'security.passwordMaxLength',
+      'security.passwordRequireComplexity',
+      'security.passwordExpiryDays',
+      'security.mustChangePassword',
+      'security.loginFailureLockCount',
+      'security.loginFailureLockDuration',
+      'security.sessionConcurrentLimit',
+      // user
+      'user.defaultRole',
+      'user.defaultAvatar',
+      // feature
+      'feature.register',
+      'feature.auditLog',
+      'feature.emailNotification',
+      'feature.smsNotification',
+      'feature.mfa',
+      // storage
+      'storage.provider',
+      'storage.maxFileSize',
+      'storage.allowedTypes',
+      'storage.baseUrl',
+      // oauth
+      'oauth.githubEnabled',
+      'oauth.googleEnabled',
+      'oauth.wechatEnabled',
+      // mail
+      'mail.enabled',
+      'mail.host',
+      'mail.port',
+      'mail.from',
+      'mail.ssl',
+      // sms
+      'sms.enabled',
+      'sms.provider',
+      'sms.signature',
     ];
 
     const configs = await this.prisma.config.findMany({
@@ -237,52 +256,79 @@ export class ConfigsService extends BaseService {
     ]);
 
     return {
-      // 写死
       system: {
-        name: 'G-ADMIN',
-        description:
-          '🦄 基于 React + Umi + Ant Design 的现代企业级 RBAC 权限管理系统',
-        logo: '/logo.svg',
-        favicon: '/favicon.ico',
-        defaultAvatar: 'https://api.dicebear.com/9.x/bottts/svg?seed=GavinRay',
+        name: str('system.name', 'GVRAY Admin'),
+        logo: str('system.logo', '/logo.svg'),
+        favicon: str('system.favicon', '/favicon.ico'),
+        welcomeMessage: str('system.welcomeMessage', '欢迎使用 GVRAY Admin'),
+        copyright: str('system.copyright', '© 2025 GVRAY Admin. All rights reserved.'),
+        icp: str('system.icp', ''),
+        timezone: str('system.timezone', 'Asia/Shanghai'),
       },
       env: {
         mode: process.env.NODE_ENV || 'development',
         apiPrefix: '/api/v1',
       },
-      // 管理员可改（从 config 表）
-      uiDefaults: {
-        theme: str('uiDefaults.theme', 'light'),
-        language: str('uiDefaults.language', 'zh-CN'),
-        timezone: str('uiDefaults.timezone', 'Asia/Shanghai'),
-        sidebarCollapsed: bool('uiDefaults.sidebarCollapsed', false),
-        pageSize: num('uiDefaults.pageSize', 10),
-        welcomeMessage: str(
-          'uiDefaults.welcomeMessage',
-          '这是你的系统运行概览，祝你工作愉快',
-        ),
-        showBreadcrumb: bool('uiDefaults.showBreadcrumb', true),
+      ui: {
+        theme: str('ui.theme', 'light'),
+        language: str('ui.language', 'zh-CN'),
+        pageSize: num('ui.pageSize', 10),
+        showBreadcrumb: bool('ui.showBreadcrumb', true),
+        sidebarCollapsed: bool('ui.sidebarCollapsed', false),
+        dateFormat: str('ui.dateFormat', 'YYYY-MM-DD'),
+        timeFormat: str('ui.timeFormat', 'HH:mm:ss'),
       },
-      securityPolicy: {
-        watermarkEnabled: bool('securityPolicy.watermark.enabled', true),
-        passwordMinLength: num('securityPolicy.password.minLength', 6),
-        passwordRequireComplexity: bool(
-          'securityPolicy.password.requireComplexity',
-          true,
-        ),
-        loginFailureLockCount: num('securityPolicy.login.failureLockCount', 5),
+      security: {
+        watermarkEnabled: bool('security.watermarkEnabled', true),
+        passwordMinLength: num('security.passwordMinLength', 8),
+        passwordMaxLength: num('security.passwordMaxLength', 32),
+        passwordRequireComplexity: bool('security.passwordRequireComplexity', true),
+        passwordExpiryDays: num('security.passwordExpiryDays', 0),
+        mustChangePassword: bool('security.mustChangePassword', true),
+        loginFailureLockCount: num('security.loginFailureLockCount', 5),
+        loginFailureLockDuration: num('security.loginFailureLockDuration', 30),
+        sessionConcurrentLimit: num('security.sessionConcurrentLimit', 3),
       },
-      features: {
-        fileUploadMaxSize: num('features.fileUpload.maxSize', 10485760),
-        fileUploadAllowedTypes: str(
-          'features.fileUpload.allowedTypes',
+      user: {
+        defaultRole: str('user.defaultRole', 'user'),
+        defaultAvatar: str(
+          'user.defaultAvatar',
+          'https://api.dicebear.com/9.x/bottts/svg?seed=GVRAY',
+        ),
+      },
+      feature: {
+        register: bool('feature.register', true),
+        auditLog: bool('feature.auditLog', true),
+        emailNotification: bool('feature.emailNotification', true),
+        smsNotification: bool('feature.smsNotification', false),
+        mfa: bool('feature.mfa', false),
+      },
+      storage: {
+        provider: str('storage.provider', 'local'),
+        maxFileSize: num('storage.maxFileSize', 10485760),
+        allowedTypes: str(
+          'storage.allowedTypes',
           'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
         ),
-        ossEnabled: bool('features.oss.enabled', false),
-        emailEnabled: bool('features.email.enabled', false),
-        oauthGithubEnabled: bool('features.oauth.github.enabled', false),
+        baseUrl: str('storage.baseUrl', ''),
       },
-      // 动态计算
+      oauth: {
+        githubEnabled: bool('oauth.githubEnabled', false),
+        googleEnabled: bool('oauth.googleEnabled', false),
+        wechatEnabled: bool('oauth.wechatEnabled', false),
+      },
+      mail: {
+        enabled: bool('mail.enabled', false),
+        host: str('mail.host', ''),
+        port: num('mail.port', 465),
+        from: str('mail.from', ''),
+        ssl: bool('mail.ssl', true),
+      },
+      sms: {
+        enabled: bool('sms.enabled', false),
+        provider: str('sms.provider', 'aliyun'),
+        signature: str('sms.signature', ''),
+      },
       capabilities: {
         totalUsers,
         totalRoles,

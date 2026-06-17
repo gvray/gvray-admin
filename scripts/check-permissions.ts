@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 async function main() {
   const perms = await prisma.permission.findMany({
     where: { deletedAt: null },
-    select: { code: true, name: true, action: true },
+    select: { code: true, name: true },
     orderBy: { code: 'asc' },
   });
   console.log('Total permissions:', perms.length);

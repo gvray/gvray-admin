@@ -21,48 +21,42 @@ export class PermissionsService extends BaseService {
   async findAll(
     query: QueryPermissionDto,
   ): Promise<PaginationData<PermissionResponseDto>> {
-    const { name, code, action, createdAtStart, createdAtEnd } = query;
+    const { name, code, createdAtStart, createdAtEnd } = query;
     const where: Record<string, unknown> = this.buildWhere({
-      contains: { name, code, action },
+      contains: { name, code },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
     // 排除已软删除的记录
     where['deletedAt'] = null;
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.permission.findMany({
-          where,
-          orderBy: [{ createdAt: 'desc' }],
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.permission.count({ where }),
-      ]);
-      const transformed = plainToInstance(PermissionResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.permission.findMany({
-      where,
-      orderBy: [{ createdAt: 'desc' }],
-    });
-    const total = await this.prisma.permission.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.permission.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }],
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.permission.count({ where }),
+    ]);
     const transformed = plainToInstance(PermissionResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
+  }
+
+  async findAllFlat(): Promise<PermissionResponseDto[]> {
+    const items = await this.prisma.permission.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ code: 'asc' }],
+    });
+    return plainToInstance(PermissionResponseDto, items, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findOne(id: string): Promise<PermissionResponseDto> {

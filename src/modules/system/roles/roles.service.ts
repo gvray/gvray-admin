@@ -162,41 +162,24 @@ export class RolesService extends BaseService {
     };
 
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.role.findMany({
-          where,
-          select,
-          skip: state.skip,
-          take: state.take,
-          orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-        }),
-        this.prisma.role.count({ where }),
-      ]);
-      const transformed = plainToInstance(RoleResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.role.findMany({
-      where,
-      select,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-    });
-    const total = await this.prisma.role.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.role.findMany({
+        where,
+        select,
+        skip: state.skip,
+        take: state.take,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+      }),
+      this.prisma.role.count({ where }),
+    ]);
     const transformed = plainToInstance(RoleResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 

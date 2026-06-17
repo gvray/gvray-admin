@@ -13,11 +13,6 @@ export class QueryPermissionDto extends PaginationSortDto {
   @IsString()
   code?: string;
 
-  @ApiPropertyOptional({ description: '操作类型' })
-  @IsOptional()
-  @IsString()
-  action?: string;
-
   @ApiPropertyOptional({ description: '创建时间开始（YYYY-MM-DD）' })
   @IsOptional()
   @IsString()

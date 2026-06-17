@@ -52,6 +52,19 @@ export class PermissionsController {
     return ResponseUtil.paginated(pageData, '权限列表');
   }
 
+  @Get('flat')
+  @RequirePermissions(PERMISSION_PERMISSIONS.LIST)
+  @ApiOperation({ summary: '获取全部权限（平铺，供前端组装权限树）' })
+  @ApiResponse({
+    status: 200,
+    description: '全部权限平铺列表',
+    type: [PermissionResponseDto],
+  })
+  async findAllFlat() {
+    const data = await this.permissionsService.findAllFlat();
+    return ResponseUtil.found(data, '获取全部权限成功');
+  }
+
   @Get(':id')
   @RequirePermissions(PERMISSION_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取指定权限' })
@@ -109,21 +122,30 @@ export class PermissionsController {
               type: 'object',
               properties: {
                 total: { type: 'number', description: '超级管理员已绑定总数' },
-                newAssigned: { type: 'number', description: '本次新增绑定数量' },
+                newAssigned: {
+                  type: 'number',
+                  description: '本次新增绑定数量',
+                },
               },
             },
             admin: {
               type: 'object',
               properties: {
                 total: { type: 'number', description: '管理员已绑定总数' },
-                newAssigned: { type: 'number', description: '本次新增绑定数量' },
+                newAssigned: {
+                  type: 'number',
+                  description: '本次新增绑定数量',
+                },
               },
             },
             guest: {
               type: 'object',
               properties: {
                 total: { type: 'number', description: '游客已绑定总数' },
-                newAssigned: { type: 'number', description: '本次新增绑定数量' },
+                newAssigned: {
+                  type: 'number',
+                  description: '本次新增绑定数量',
+                },
               },
             },
           },

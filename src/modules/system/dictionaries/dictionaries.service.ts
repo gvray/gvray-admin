@@ -59,39 +59,23 @@ export class DictionariesService extends BaseService {
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.dictionaryType.findMany({
-          where,
-          orderBy: { sort: 'asc' },
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.dictionaryType.count({ where }),
-      ]);
-      const transformed = plainToInstance(DictionaryTypeResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.dictionaryType.findMany({
-      where,
-      orderBy: { sort: 'asc' },
-    });
-    const total = await this.prisma.dictionaryType.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.dictionaryType.findMany({
+        where,
+        orderBy: { sort: 'asc' },
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.dictionaryType.count({ where }),
+    ]);
     const transformed = plainToInstance(DictionaryTypeResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 
@@ -214,47 +198,28 @@ export class DictionariesService extends BaseService {
       equals: { typeCode, status },
     });
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.dictionaryItem.findMany({
-          where,
-          orderBy: { sort: 'asc' },
-          skip: state.skip,
-          take: state.take,
-          include: {
-            type: {
-              select: { typeId: true, code: true, name: true },
-            },
+    const [items, total] = await Promise.all([
+      this.prisma.dictionaryItem.findMany({
+        where,
+        orderBy: { sort: 'asc' },
+        skip: state.skip,
+        take: state.take,
+        include: {
+          type: {
+            select: { typeId: true, code: true, name: true },
           },
-        }),
-        this.prisma.dictionaryItem.count({ where }),
-      ]);
-      const transformed = plainToInstance(DictionaryItemResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.dictionaryItem.findMany({
-      where,
-      orderBy: { sort: 'asc' },
-      include: {
-        type: { select: { typeId: true, name: true } },
-      },
-    });
-    const total = await this.prisma.dictionaryItem.count({ where });
+        },
+      }),
+      this.prisma.dictionaryItem.count({ where }),
+    ]);
     const transformed = plainToInstance(DictionaryItemResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 

@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { PrismaService } from '@/prisma/prisma.service';
-import { LogStatus } from '@/shared/constants/log-status.constant';
+import { LogResult } from '@/shared/constants/log-result.constant';
 import {
   OPLOG_META,
   OperationLogOptions,
@@ -106,8 +106,8 @@ export class OperationLogInterceptor implements NestInterceptor {
     const maskedBody = maskSensitive(req.body, maskFields);
 
     const finish = async (status: number, message?: string) => {
-      const statusStr =
-        status >= 200 && status < 300 ? LogStatus.SUCCESS : LogStatus.FAILURE;
+      const resultStr =
+        status >= 200 && status < 300 ? LogResult.SUCCESS : LogResult.FAILURE;
       try {
         const user = req.user || {};
         const latencyMs = Date.now() - start;
@@ -135,7 +135,7 @@ export class OperationLogInterceptor implements NestInterceptor {
             body: maskedBody as any,
             ipAddress: ip,
             userAgent: ua,
-            status: statusStr,
+            result: resultStr,
             message: message?.slice(0, 500),
             latencyMs,
           },

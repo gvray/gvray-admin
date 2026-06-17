@@ -89,41 +89,24 @@ export class DepartmentsService extends BaseService {
       _count: { select: { users: true } },
     };
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.department.findMany({
-          where,
-          include,
-          skip: state.skip,
-          take: state.take,
-          orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-        }),
-        this.prisma.department.count({ where }),
-      ]);
-      const transformed = plainToInstance(DepartmentResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.department.findMany({
-      where,
-      include,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-    });
-    const total = await this.prisma.department.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.department.findMany({
+        where,
+        include,
+        skip: state.skip,
+        take: state.take,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+      }),
+      this.prisma.department.count({ where }),
+    ]);
     const transformed = plainToInstance(DepartmentResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 

@@ -152,7 +152,6 @@ model Permission {
   permissionId    String           @unique @default(uuid())
   name            String
   code            String           @unique // API 权限代码，如：system:user:list
-  action          String // 操作类型：list, view, create, update, delete, export, import, scan, clean, clear, assign-roles, remove-roles, reset-password, assign-permissions, remove-permissions, assign-users, remove-users, data-scope
   httpMethod      String // HTTP 方法：GET, POST, PUT, PATCH, DELETE
   description     String?          @db.Text // 权限描述
   origin          PermissionOrigin @default(SYSTEM) // 来源：SYSTEM=系统扫描
@@ -373,7 +372,7 @@ model LoginLog {
   account    String // 登录用户名/邮箱/手机号
   ipAddress  String // 登录IP地址
   userAgent  String? // 用户代理信息
-  status     String         @db.VarChar(16) // 登录状态：success-成功, failure-失败
+  result     String         @db.VarChar(16) // 登录结果：success-成功, failure-失败
   loginType  String  @default("username") // 登录类型：username(用户名), email(邮箱), phone(手机号), wechat(微信), qq(QQ), alipay(支付宝), github(GitHub), google(Google)
   failReason String? // 失败原因
   location   String? // 登录地点（可选，基于IP解析）
@@ -426,7 +425,7 @@ model OperationLog {
   userAgent String?
 
   // 结果
-  status    String         @db.VarChar(16) // success 成功, failure 失败
+  result    String         @db.VarChar(16) // success 成功, failure 失败
   message   String?
   latencyMs Int
 
@@ -436,6 +435,6 @@ model OperationLog {
   @@index([userId])
   @@index([module])
   @@index([action])
-  @@index([status])
+  @@index([result])
   @@map("operation_logs")
 }

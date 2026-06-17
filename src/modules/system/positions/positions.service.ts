@@ -77,41 +77,24 @@ export class PositionsService extends BaseService {
       },
     };
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.position.findMany({
-          where,
-          include,
-          orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.position.count({ where }),
-      ]);
-      const transformedItems = plainToInstance(PositionResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformedItems,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.position.findMany({
-      where,
-      include,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-    });
-    const total = await this.prisma.position.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.position.findMany({
+        where,
+        include,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.position.count({ where }),
+    ]);
     const transformedItems = plainToInstance(PositionResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformedItems,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformedItems.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 

@@ -35,7 +35,6 @@ export class ProfileService {
                         permissionId: true,
                         name: true,
                         code: true,
-                        action: true,
                         httpMethod: true,
                         description: true,
                       },
@@ -68,7 +67,6 @@ export class ProfileService {
         permissionId: string;
         name: string;
         code: string;
-        action: string;
         httpMethod: string;
         description: string | null;
       }

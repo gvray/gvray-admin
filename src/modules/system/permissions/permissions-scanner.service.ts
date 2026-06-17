@@ -8,7 +8,6 @@ import { SUPER_ROLE_KEY, GUEST_ROLE_KEY } from '@/shared/constants/role.constant
 interface ScannedPermission {
   code: string;
   name: string;
-  action: string;
   httpMethod: string;
   path: string;
   controller: string;
@@ -83,7 +82,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
           scannedPermissions.push({
             code: permissionCode,
             name: this.generatePermissionName(permissionCode, httpMethod),
-            action: this.extractAction(permissionCode),
             httpMethod,
             path: fullPath,
             controller: controllerName,
@@ -146,7 +144,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
         permissionId: true,
         code: true,
         name: true,
-        action: true,
         httpMethod: true,
       },
     });
@@ -160,7 +157,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
         where: { code: perm.code },
         update: {
           name: perm.name,
-          action: perm.action,
           httpMethod: perm.httpMethod,
           origin: 'SYSTEM',
           deletedAt: null,
@@ -168,7 +164,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
         create: {
           code: perm.code,
           name: perm.name,
-          action: perm.action,
           httpMethod: perm.httpMethod,
           origin: 'SYSTEM',
         },
@@ -177,7 +172,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       if (existing) {
         if (
           existing.name !== perm.name ||
-          existing.action !== perm.action ||
           existing.httpMethod !== perm.httpMethod
         ) {
           updated++;
@@ -272,14 +266,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     });
 
     return { superAdmin, admin, guest };
-  }
-
-  /**
-   * 从权限 code 提取 action
-   */
-  private extractAction(code: string): string {
-    const parts = code.split(':');
-    return parts[parts.length - 1] || 'list';
   }
 
   /**

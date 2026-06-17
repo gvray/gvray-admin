@@ -51,15 +51,14 @@ export abstract class BaseService {
 
   protected getPaginationState(
     pagination: PaginationDto,
-  ): { skip: number; take: number; page: number; pageSize: number } | null {
+  ): { skip: number; take: number; page: number; pageSize: number } {
     const skip = pagination.getSkip();
     const take = pagination.getTake();
-    if (skip === undefined || take === undefined) return null;
     return {
       skip,
       take,
-      page: pagination.page!,
-      pageSize: pagination.pageSize!,
+      page: pagination.page,
+      pageSize: pagination.pageSize,
     };
   }
 

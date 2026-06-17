@@ -58,9 +58,9 @@ export class OperationLogResponseDto {
   @Expose()
   userAgent!: string | null;
 
-  @ApiProperty({ description: '1 成功, 0 失败' })
+  @ApiProperty({ description: 'success-成功, failure-失败' })
   @Expose()
-  status!: number;
+  result!: string;
 
   @ApiProperty({ nullable: true })
   @Expose()

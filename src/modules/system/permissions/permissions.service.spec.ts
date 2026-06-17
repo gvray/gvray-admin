@@ -43,16 +43,6 @@ describe('PermissionsService - Scan Managed Permissions', () => {
     prisma = module.get<PrismaService>(PrismaService);
   });
 
-  it('rejects manual permission creation', async () => {
-    await expect(
-      service.create({
-        name: '手动权限',
-        code: 'system:manual',
-        action: 'list',
-      }),
-    ).rejects.toThrow('权限必须由扫描同步生成，不允许手动创建');
-  });
-
   it('rejects updates for non-scan permissions', async () => {
     jest.spyOn(prisma.permission, 'findUnique').mockResolvedValueOnce({
       ...mockPermission,

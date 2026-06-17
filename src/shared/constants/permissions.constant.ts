@@ -116,6 +116,16 @@ export const CONFIG_PERMISSIONS = {
   DELETE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
 } as const;
 
+// ==================== 菜单管理权限 ====================
+const MENU_RESOURCE = 'system:menu';
+export const MENU_PERMISSIONS = {
+  LIST: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
+  VIEW: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
+  CREATE: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
+  UPDATE: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
+  DELETE: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+} as const;
+
 // ==================== 日志管理权限 ====================
 const LOG_RESOURCE = 'system:log';
 export const LOG_PERMISSIONS = {
@@ -151,50 +161,9 @@ export const PERMISSIONS = {
   POSITION: POSITION_PERMISSIONS,
   DICTIONARY: DICTIONARY_PERMISSIONS,
   CONFIG: CONFIG_PERMISSIONS,
+  MENU: MENU_PERMISSIONS,
   LOG: LOG_PERMISSIONS,
   LOGIN_LOG: LOGIN_LOG_PERMISSIONS,
   OPERATION_LOG: OPERATION_LOG_PERMISSIONS,
 } as const;
 
-export interface PermissionMeta {
-  code: string;
-  name: string;
-  description?: string;
-  type: 'API';
-}
-
-// ==================== 权限中文映射（供前端组权限树） ====================
-export const PERMISSION_DOMAIN_LABELS: Record<string, string> = {
-  system: '系统管理',
-};
-
-export const PERMISSION_RESOURCE_LABELS: Record<string, string> = {
-  user: '用户管理',
-  role: '角色管理',
-  permission: '权限管理',
-  department: '部门管理',
-  position: '岗位管理',
-  dictionary: '字典管理',
-  config: '配置管理',
-  log: '日志管理',
-  'log-login': '登录日志',
-  'log-operation': '操作日志',
-};
-
-export const PERMISSION_ACTION_LABELS: Record<string, string> = {
-  list: '列表',
-  view: '查看',
-  create: '创建',
-  update: '更新',
-  delete: '删除',
-  clean: '清理历史',
-  clear: '清空全部',
-  import: '导入',
-  export: '导出',
-  scan: '扫描',
-  'update-users': '管理用户',
-  'update-roles': '管理角色',
-  'update-permissions': '管理权限',
-  'update-data-scope': '管理数据权限',
-  'reset-password': '重置密码',
-};

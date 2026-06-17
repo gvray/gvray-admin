@@ -249,115 +249,61 @@ export class UsersService extends BaseService {
     }
 
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.user.findMany({
-          where,
-          select: {
-            userId: true,
-            email: true,
-            username: true,
-            nickname: true,
-            phone: true,
-            avatar: true,
-            gender: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-            userRoles: {
-              select: {
-                role: {
-                  select: {
-                    roleId: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-            department: {
-              select: {
-                departmentId: true,
-                name: true,
-              },
-            },
-            userPositions: {
-              select: {
-                position: {
-                  select: {
-                    positionId: true,
-                    name: true,
-                  },
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          userId: true,
+          email: true,
+          username: true,
+          nickname: true,
+          phone: true,
+          avatar: true,
+          gender: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  roleId: true,
+                  name: true,
                 },
               },
             },
           },
-          orderBy: [{ createdAt: 'desc' }],
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.user.count({ where }),
-      ]);
-      const transformed = plainToInstance(UserResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.user.findMany({
-      where,
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
+          department: {
+            select: {
+              departmentId: true,
+              name: true,
+            },
+          },
+          userPositions: {
+            select: {
+              position: {
+                select: {
+                  positionId: true,
+                  name: true,
+                },
               },
             },
           },
         },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: [{ createdAt: 'desc' }],
-    });
-    const total = await this.prisma.user.count({ where });
+        orderBy: [{ createdAt: 'desc' }],
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
     const transformed = plainToInstance(UserResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 

@@ -48,14 +48,10 @@ export class MenuService extends BaseService {
 
     if (parent.type === 'CATALOG') {
       if (type !== 'CATALOG' && type !== 'MENU') {
-        throw new ConflictException(
-          `目录"${parent.name}"下只能添加目录或菜单`,
-        );
+        throw new ConflictException(`目录"${parent.name}"下只能添加目录或菜单`);
       }
     } else {
-      throw new ConflictException(
-        `菜单"${parent.name}"不能添加子菜单`,
-      );
+      throw new ConflictException(`菜单"${parent.name}"不能添加子菜单`);
     }
   }
 
@@ -106,11 +102,16 @@ export class MenuService extends BaseService {
     });
   }
 
-  async findAll(
-    query: QueryMenuDto,
-  ): Promise<PaginationData<MenuResponseDto>> {
-    const { name, path, type, status, parentMenuId, createdAtStart, createdAtEnd } =
-      query;
+  async findAll(query: QueryMenuDto): Promise<PaginationData<MenuResponseDto>> {
+    const {
+      name,
+      path,
+      type,
+      status,
+      parentMenuId,
+      createdAtStart,
+      createdAtEnd,
+    } = query;
     const where: Record<string, unknown> = this.buildWhere({
       contains: { name, path },
       equals: { type, status, parentMenuId },
@@ -118,39 +119,23 @@ export class MenuService extends BaseService {
     });
 
     const state = this.getPaginationState(query);
-    if (state) {
-      const [items, total] = await Promise.all([
-        this.prisma.menu.findMany({
-          where,
-          orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-          skip: state.skip,
-          take: state.take,
-        }),
-        this.prisma.menu.count({ where }),
-      ]);
-      const transformed = plainToInstance(MenuResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
-      return {
-        items: transformed,
-        total,
-        page: state.page,
-        pageSize: state.pageSize,
-      };
-    }
-    const items = await this.prisma.menu.findMany({
-      where,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-    });
-    const total = await this.prisma.menu.count({ where });
+    const [items, total] = await Promise.all([
+      this.prisma.menu.findMany({
+        where,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+        skip: state.skip,
+        take: state.take,
+      }),
+      this.prisma.menu.count({ where }),
+    ]);
     const transformed = plainToInstance(MenuResponseDto, items, {
       excludeExtraneousValues: true,
     });
     return {
       items: transformed,
       total,
-      page: query.page ?? 1,
-      pageSize: query.pageSize ?? transformed.length,
+      page: state.page,
+      pageSize: state.pageSize,
     };
   }
 
@@ -231,7 +216,8 @@ export class MenuService extends BaseService {
       where: { id: menu.id },
       data: {
         name,
-        permissionCode: permissionCode !== undefined ? (permissionCode ?? null) : undefined,
+        permissionCode:
+          permissionCode !== undefined ? (permissionCode ?? null) : undefined,
         path: path !== undefined ? path : undefined,
         icon: icon !== undefined ? (icon ?? null) : undefined,
         hidden,
@@ -376,17 +362,12 @@ export class MenuService extends BaseService {
     });
   }
 
-  async getParentList(): Promise<MenuResponseDto[]> {
-    const menus = await this.prisma.menu.findMany({
-      where: {
-        type: { in: ['CATALOG', 'MENU'] },
-      },
+  async getOptions(): Promise<{ menuId: string; name: string }[]> {
+    return this.prisma.menu.findMany({
+      where: { status: 'enabled' },
+      select: { menuId: true, name: true },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
     });
-
-    const transformed = plainToInstance(MenuResponseDto, menus, {
-      excludeExtraneousValues: true,
-    });
-    return Array.isArray(transformed) ? transformed : [transformed];
   }
 }

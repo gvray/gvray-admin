@@ -15,12 +15,12 @@ export class QueryLoginLogDto extends PaginationDto {
   ipAddress?: string;
 
   @ApiPropertyOptional({
-    description: '登录状态：success-成功, failure-失败',
+    description: '登录结果：success-成功, failure-失败',
     example: 'success',
   })
   @IsOptional()
   @IsString()
-  status?: string;
+  result?: string;
 
   @ApiPropertyOptional({
     description: '创建时间开始（YYYY-MM-DD）',
