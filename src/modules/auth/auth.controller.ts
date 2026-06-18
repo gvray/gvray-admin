@@ -13,6 +13,8 @@ import { AuthMenuResponseDto } from './dto/menu-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
+import { AllowGuestWrite } from '../../core/decorators/allow-guest-write.decorator';
+import { FeatureFlag } from '../../core/decorators/feature-flag.decorator';
 
 @ApiTags('认证管理')
 @Controller('auth')
@@ -20,9 +22,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @FeatureFlag('register', '注册功能已关闭')
   @ApiOperation({
     summary: '注册新用户',
-    description: '注册一个新的用户账户，支持用户名和邮箱注册',
+    description:
+      '注册一个新的用户账户，支持用户名和邮箱注册。注册成功后请前往登录页面手动登录。',
   })
   @ApiResponse({
     status: 201,
@@ -30,40 +34,23 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        access_token: {
-          type: 'string',
-          description: 'JWT访问令牌',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-        user: {
+        code: { type: 'number', example: 201 },
+        message: { type: 'string', example: '注册成功' },
+        data: {
           type: 'object',
           properties: {
-            id: { type: 'number', example: 1 },
-            email: {
+            userId: {
               type: 'string',
-              example: 'user@example.com',
-              nullable: true,
-              description: '用户邮箱（可选）',
+              description: '新注册用户的唯一标识',
+              example: '7c5500e9-2fc9-4e2a-a6ab-62dd6939651a',
             },
-            username: { type: 'string', example: 'username' },
-            nickname: {
-              type: 'string',
-              example: '小明',
-              description: '用户昵称（必须）',
-            },
-            status: {
-              type: 'number',
-              example: 1,
-              description: '用户状态: 0-禁用, 1-启用, 2-审核中, 3-封禁',
-            },
-            createdAt: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
           },
         },
       },
     },
   })
   @ApiResponse({ status: 400, description: '请求参数错误' })
-  @ApiResponse({ status: 401, description: '邮箱已被注册' })
+  @ApiResponse({ status: 401, description: '用户名或邮箱已被注册' })
   async register(@Body() registerDto: RegisterDto) {
     const data = await this.authService.register(registerDto);
     return ResponseUtil.created(data, '注册成功');
@@ -163,6 +150,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @AllowGuestWrite()
   @ApiBearerAuth()
   @ApiOperation({
     summary: '用户退出登录',

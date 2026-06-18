@@ -40,6 +40,7 @@ export class DictionaryItemResponseDto {
   @ApiProperty({
     description: '状态：0-禁用, 1-启用',
     example: 1,
+    type: 'integer',
   })
   @Expose()
   status: number;
@@ -47,6 +48,7 @@ export class DictionaryItemResponseDto {
   @ApiProperty({
     description: '排序权重',
     example: 0,
+    type: 'integer',
   })
   @Expose()
   sort: number;
@@ -61,6 +63,8 @@ export class DictionaryItemResponseDto {
   @ApiProperty({
     description: '创建时间',
     example: '2025-01-01T00:00:00.000Z',
+    type: 'string',
+    format: 'date-time',
   })
   @Expose()
   createdAt: Date;
@@ -68,6 +72,8 @@ export class DictionaryItemResponseDto {
   @ApiProperty({
     description: '更新时间',
     example: '2025-01-01T00:00:00.000Z',
+    type: 'string',
+    format: 'date-time',
   })
   @Expose()
   updatedAt: Date;

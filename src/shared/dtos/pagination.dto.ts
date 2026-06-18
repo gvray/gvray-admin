@@ -8,6 +8,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export class PaginationDto {
   @ApiPropertyOptional({
     description: '页码',
+    type: 'integer',
     minimum: 1,
     example: 1,
     default: 1,
@@ -20,6 +21,7 @@ export class PaginationDto {
 
   @ApiPropertyOptional({
     description: '每页数量',
+    type: 'integer',
     minimum: 1,
     maximum: 100,
     example: 10,

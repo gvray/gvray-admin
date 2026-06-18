@@ -3,7 +3,7 @@ import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { METHOD_METADATA } from '@nestjs/common/constants';
 import { PrismaService } from '@/prisma/prisma.service';
 import { PERMISSIONS_KEY } from '@/core/decorators/permissions.decorator';
-import { SUPER_ROLE_KEY, GUEST_ROLE_KEY } from '@/shared/constants/role.constant';
+import { SUPER_ROLE_KEY, ADMIN_ROLE_KEY, GUEST_ROLE_KEY } from '@/shared/constants/role.constant';
 
 interface ScannedPermission {
   code: string;
@@ -260,10 +260,8 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     guest: { newAssigned: number; total: number };
   }> {
     const superAdmin = await this.assignPermissionsToRole(SUPER_ROLE_KEY);
-    const admin = await this.assignPermissionsToRole('admin');
-    const guest = await this.assignPermissionsToRole(GUEST_ROLE_KEY, {
-      httpMethod: 'GET',
-    });
+    const admin = await this.assignPermissionsToRole(ADMIN_ROLE_KEY);
+    const guest = await this.assignPermissionsToRole(GUEST_ROLE_KEY);
 
     return { superAdmin, admin, guest };
   }

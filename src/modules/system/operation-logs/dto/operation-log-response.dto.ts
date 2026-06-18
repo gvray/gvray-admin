@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
 export class OperationLogResponseDto {
-  @ApiProperty({ description: '日志ID' })
+  @ApiProperty({ description: '日志ID', type: 'integer' })
   @Expose()
   id: number;
 
@@ -66,11 +66,11 @@ export class OperationLogResponseDto {
   @Expose()
   message!: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ type: 'integer' })
   @Expose()
   latencyMs!: number;
 
-  @ApiProperty()
+  @ApiProperty({ type: 'string', format: 'date-time' })
   @Expose()
   createdAt!: Date;
 }

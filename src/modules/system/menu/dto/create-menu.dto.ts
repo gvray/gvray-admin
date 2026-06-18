@@ -29,11 +29,11 @@ export class CreateMenuDto {
   @IsString()
   icon?: string;
 
-  @ApiPropertyOptional({ description: '是否隐藏' })
+  @ApiPropertyOptional({ description: '是否隐藏', type: 'boolean' })
   @IsOptional()
   hidden?: boolean;
 
-  @ApiPropertyOptional({ description: '排序权重' })
+  @ApiPropertyOptional({ description: '排序权重', type: 'integer' })
   @IsOptional()
   @IsInt()
   sort?: number;

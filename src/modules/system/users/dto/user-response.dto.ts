@@ -4,7 +4,7 @@ import { UserStatus } from '@/shared/constants/user-status.constant';
 import { Gender } from '@/shared/constants/gender.constant';
 
 export class RoleResponseDto {
-  @ApiProperty({ description: '角色ID' })
+  @ApiProperty({ description: '角色ID', type: 'integer' })
   @Exclude()
   id: number;
 
@@ -21,7 +21,7 @@ export class RoleResponseDto {
 }
 
 export class DepartmentResponseDto {
-  @ApiProperty({ description: '部门ID' })
+  @ApiProperty({ description: '部门ID', type: 'integer' })
   @Exclude()
   id: number;
 
@@ -38,7 +38,7 @@ export class DepartmentResponseDto {
 }
 
 export class PositionResponseDto {
-  @ApiProperty({ description: '岗位ID' })
+  @ApiProperty({ description: '岗位ID', type: 'integer' })
   @Exclude()
   id: number;
 
@@ -55,7 +55,7 @@ export class PositionResponseDto {
 }
 
 export class UserResponseDto {
-  @ApiProperty({ description: '用户数据库ID' })
+  @ApiProperty({ description: '用户数据库ID', type: 'integer' })
   @Exclude()
   id: number;
 
@@ -111,11 +111,11 @@ export class UserResponseDto {
   @Expose()
   status: UserStatus;
 
-  @ApiProperty({ description: '创建时间' })
+  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
   @Expose()
   createdAt: Date;
 
-  @ApiProperty({ description: '更新时间' })
+  @ApiProperty({ description: '更新时间', type: 'string', format: 'date-time' })
   @Expose()
   updatedAt: Date;
 

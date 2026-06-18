@@ -35,12 +35,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{
-    access_token: string;
-    refresh_token: string;
-    access_token_expires_in: number;
-    refresh_token_expires_in: number;
-    expires_at: number;
-    user: unknown;
+    userId: string;
   }> {
     const { email, username, nickname, password } = registerDto;
 
@@ -62,63 +57,57 @@ export class AuthService {
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        username,
-        nickname,
-        password: hashedPassword,
-        status: UserStatus.ENABLED,
-      },
-      include: {
-        userRoles: {
-          include: {
-            role: true,
-          },
-        },
-        department: true,
-        userPositions: {
-          include: {
-            position: true,
-          },
-        },
-      },
+    // 查询默认角色
+    const defaultRole = await this.prisma.role.findUnique({
+      where: { roleKey: 'user' },
     });
 
-    // 生成 token
-    const payload = {
-      sub: user.userId,
-      email: user.email,
-      username: user.username,
-    };
+    // 使用事务保证用户、角色关联、设置的一致性
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email,
+          username,
+          nickname,
+          password: hashedPassword,
+          status: UserStatus.ENABLED,
+        },
+        select: {
+          userId: true,
+        },
+      });
 
-    // 生成 access token 和 refresh token
-    const accessToken = this.generateAccessToken(payload);
-    const refreshToken = await this.generateRefreshToken(user.userId);
+      // 自动分配默认角色
+      if (defaultRole) {
+        await tx.userRole.create({
+          data: {
+            userId: created.userId,
+            roleId: defaultRole.roleId,
+          },
+        });
+      }
 
-    // 移除密码字段
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = user;
+      // 创建默认用户设置
+      await tx.userSettings.create({
+        data: {
+          userId: created.userId,
+          settings: {
+            theme: 'light',
+            language: 'zh-CN',
+            sidebarCollapsed: false,
+            pageSize: 10,
+            timezone: 'Asia/Shanghai',
+            showWatermark: true,
+            enableNotification: true,
+            colorScheme: 'default',
+          },
+        },
+      });
 
-    // 计算过期时间戳
-    const accessTokenExpiresIn = this.parseExpiresIn(
-      this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h',
-    );
-    const refreshTokenExpiresIn = this.parseExpiresIn(
-      this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
-    );
-    const now = Date.now();
+      return created;
+    });
 
-    const result = {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      access_token_expires_in: accessTokenExpiresIn,
-      refresh_token_expires_in: refreshTokenExpiresIn,
-      expires_at: now + accessTokenExpiresIn * 1000,
-      user: userWithoutPassword,
-    };
-
-    return result;
+    return user;
   }
 
   async validateUser(account: string, password: string) {
@@ -483,7 +472,24 @@ export class AuthService {
 
     sortNodes(roots);
 
-    return plainToInstance(AuthMenuResponseDto, roots, {
+    // 剔除权限过滤后无子节点的空 CATALOG 目录
+    const removeEmptyCatalogs = (nodes: Node[]): Node[] => {
+      return nodes
+        .map((node) => ({
+          ...node,
+          children: node.children ? removeEmptyCatalogs(node.children) : undefined,
+        }))
+        .filter((node) => {
+          if (node.type === 'CATALOG') {
+            return node.children && node.children.length > 0;
+          }
+          return true;
+        });
+    };
+
+    const filteredRoots = removeEmptyCatalogs(roots);
+
+    return plainToInstance(AuthMenuResponseDto, filteredRoots, {
       excludeExtraneousValues: true,
     });
   }

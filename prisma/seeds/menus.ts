@@ -18,6 +18,23 @@ export async function seedMenus(prisma: PrismaClient) {
   const menuTree: MenuNode[] = [
     {
       type: 'CATALOG',
+      name: '系统监控',
+      path: '/monitor',
+      icon: 'MonitorOutlined',
+      sort: 1,
+      children: [
+        {
+          type: 'MENU',
+          name: '服务监控',
+          permissionCode: 'monitor:server:list',
+          path: '/monitor/server',
+          icon: 'DashboardOutlined',
+          sort: 1,
+        },
+      ],
+    },
+    {
+      type: 'CATALOG',
       name: '系统管理',
       path: '/system',
       icon: 'SettingOutlined',

@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, ArrayNotEmpty, IsInt } from 'class-validator';
 
 export class BatchDeleteOperationLogsDto {
-  @ApiProperty({ description: '待删除操作日志ID列表', type: [String] })
+  @ApiProperty({ description: '待删除操作日志ID列表', type: [Number] })
   @IsArray()
   @ArrayNotEmpty()
   @IsInt({ each: true })

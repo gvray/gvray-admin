@@ -6,6 +6,7 @@ export class CleanLoginLogsDto {
   @ApiProperty({
     description: '清理多少天之前的日志（不传则清空全部）',
     example: 7,
+    type: 'integer',
   })
   @Type(() => Number)
   @IsInt()

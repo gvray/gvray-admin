@@ -38,6 +38,6 @@ export class UserPermissionsResponseDto {
   })
   permissions: UserPermissionSimpleDto[];
 
-  @ApiProperty({ description: '是否为超级管理员' })
+  @ApiProperty({ description: '是否为超级管理员', type: 'boolean' })
   isSuperAdmin: boolean;
 }

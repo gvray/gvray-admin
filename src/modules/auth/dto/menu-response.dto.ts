@@ -34,11 +34,11 @@ export class AuthMenuResponseDto {
   @Transform(({ value }): string | null => value ?? null)
   icon?: string | null;
 
-  @ApiProperty({ description: '是否隐藏' })
+  @ApiProperty({ description: '是否隐藏', type: 'boolean' })
   @Expose()
   hidden?: boolean;
 
-  @ApiProperty({ description: '排序权重' })
+  @ApiProperty({ description: '排序权重', type: 'integer' })
   @Expose()
   sort?: number;
 

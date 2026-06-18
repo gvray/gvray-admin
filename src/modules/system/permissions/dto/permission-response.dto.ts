@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Transform } from 'class-transformer';
 
 export class PermissionResponseDto {
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 

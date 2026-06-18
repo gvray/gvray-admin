@@ -4,7 +4,7 @@ import { IsInt, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
 
 export class QueryOperationLogDto extends PaginationDto {
-  @ApiPropertyOptional({ description: 'ID 精确匹配' })
+  @ApiPropertyOptional({ description: 'ID 精确匹配', type: 'integer' })
   @IsOptional()
   @IsInt()
   id?: number;

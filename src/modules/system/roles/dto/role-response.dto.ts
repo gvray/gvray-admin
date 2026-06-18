@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 export class RolePermissionResponseDto {
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -45,12 +47,14 @@ export class RoleUserResponseDto {
   @Expose()
   email: string;
 
-  @ApiProperty({ description: '用户状态：0-禁用，1-启用' })
+  @ApiProperty({ description: '用户状态：0-禁用，1-启用', type: 'integer' })
   @Expose()
   status: number;
 }
 
 export class RoleResponseDto {
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -79,11 +83,11 @@ export class RoleResponseDto {
   @Transform(({ value }): string => value ?? '')
   remark?: string;
 
-  @ApiProperty({ description: '排序权重' })
+  @ApiProperty({ description: '排序权重', type: 'integer' })
   @Expose()
   sort: number;
 
-  @ApiProperty({ description: '状态：0-禁用，1-启用' })
+  @ApiProperty({ description: '状态：0-禁用，1-启用', type: 'integer' })
   @Expose()
   status: number;
 
@@ -111,11 +115,11 @@ export class RoleResponseDto {
   })
   users?: RoleUserResponseDto[];
 
-  @ApiProperty({ description: '创建时间' })
+  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
   @Expose()
   createdAt: Date;
 
-  @ApiProperty({ description: '更新时间' })
+  @ApiProperty({ description: '更新时间', type: 'string', format: 'date-time' })
   @Expose()
   updatedAt: Date;
 }
@@ -132,7 +136,7 @@ export class RoleDataScopeResponseDto {
   @ApiProperty({ description: '角色ID' })
   roleId: string;
 
-  @ApiProperty({ description: '数据权限范围' })
+  @ApiProperty({ description: '数据权限范围', type: 'integer' })
   dataScope: number;
 
   @ApiProperty({ description: '关联部门列表', type: [RoleDepartmentDto] })

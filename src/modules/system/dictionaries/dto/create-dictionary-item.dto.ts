@@ -43,6 +43,7 @@ export class CreateDictionaryItemDto {
     description: '排序权重',
     example: 0,
     default: 0,
+    type: 'integer',
   })
   @IsOptional()
   @IsInt({ message: '排序权重必须是整数' })

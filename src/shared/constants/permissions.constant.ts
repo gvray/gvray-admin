@@ -152,6 +152,13 @@ export const OPERATION_LOG_PERMISSIONS = {
   CLEAR: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`,
 } as const;
 
+// ==================== 系统监控权限 ====================
+const MONITOR_RESOURCE = 'monitor:server';
+export const MONITOR_PERMISSIONS = {
+  LIST: `${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
+  VIEW: `${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
+} as const;
+
 // ==================== 导出所有权限配置 ====================
 export const PERMISSIONS = {
   USER: USER_PERMISSIONS,
@@ -165,5 +172,6 @@ export const PERMISSIONS = {
   LOG: LOG_PERMISSIONS,
   LOGIN_LOG: LOGIN_LOG_PERMISSIONS,
   OPERATION_LOG: OPERATION_LOG_PERMISSIONS,
+  MONITOR: MONITOR_PERMISSIONS,
 } as const;
 

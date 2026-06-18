@@ -15,6 +15,7 @@ export class AssignDataScopeDto {
     example: 4,
     minimum: 1,
     maximum: 5,
+    type: 'integer',
   })
   @IsInt()
   @Min(1)
@@ -25,6 +26,7 @@ export class AssignDataScopeDto {
     description: '部门ID列表（当dataScope为4-自定义时必填）',
     example: ['dept1', 'dept2'],
     required: false,
+    type: [String],
   })
   @IsOptional()
   @IsArray()

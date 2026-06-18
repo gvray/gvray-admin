@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import {
   APP_INTERCEPTOR,
   APP_FILTER,
+  APP_GUARD,
   Reflector,
   DiscoveryModule,
 } from '@nestjs/core';
@@ -18,6 +19,8 @@ import configuration from '@/config/configuration';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
+import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
 import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.service';
 
 @Module({
@@ -52,6 +55,14 @@ import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.se
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: GuestWriteGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: FeatureFlagGuard,
     },
     ApiPermissionSyncService,
     Reflector,

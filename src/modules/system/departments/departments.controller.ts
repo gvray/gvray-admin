@@ -30,7 +30,7 @@ import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 @ApiTags('部门管理')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @Controller('system/departments')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class DepartmentsController {
@@ -119,6 +119,7 @@ export class DepartmentsController {
   @RequirePermissions(DEPARTMENT_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '批量删除部门' })
   @ApiBody({ type: BatchDeleteDepartmentsDto })
+  @ApiResponse({ status: 200, description: '删除成功' })
   async batchDelete(@Body() dto: BatchDeleteDepartmentsDto) {
     await this.departmentsService.removeMany(dto.ids);
     return ResponseUtil.deleted(null, '部门删除成功');

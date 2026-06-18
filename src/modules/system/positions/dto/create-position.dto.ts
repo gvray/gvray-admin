@@ -35,7 +35,7 @@ export class CreatePositionDto {
   @IsString()
   status?: string;
 
-  @ApiPropertyOptional({ description: '排序', default: 0 })
+  @ApiPropertyOptional({ description: '排序', default: 0, type: 'integer' })
   @IsOptional()
   @IsInt()
   @Min(0)

@@ -3,7 +3,9 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 
 export class PermissionResponseDto {
-  @ApiProperty({ description: '权限ID' })
+  @ApiProperty({ description: '权限ID', type: 'integer' })
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -29,7 +31,9 @@ export class PermissionResponseDto {
 }
 
 export class CurrentUserRoleResponseDto {
-  @ApiProperty({ description: '角色ID' })
+  @ApiProperty({ description: '角色ID', type: 'integer' })
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -86,7 +90,9 @@ export class CurrentUserRoleResponseDto {
 }
 
 export class CurrentUserDepartmentResponseDto {
-  @ApiProperty({ description: '部门ID' })
+  @ApiProperty({ description: '部门ID', type: 'integer' })
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -108,7 +114,9 @@ export class CurrentUserDepartmentResponseDto {
 }
 
 export class CurrentUserPositionResponseDto {
-  @ApiProperty({ description: '岗位ID' })
+  @ApiProperty({ description: '岗位ID', type: 'integer' })
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -130,7 +138,9 @@ export class CurrentUserPositionResponseDto {
 }
 
 export class CurrentUserResponseDto {
-  @ApiProperty({ description: '用户数据库ID' })
+  @ApiProperty({ description: '用户数据库ID', type: 'integer' })
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -172,15 +182,15 @@ export class CurrentUserResponseDto {
   @Expose()
   status: UserStatus;
 
-  @ApiProperty({ description: '创建时间' })
+  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
   @Expose()
   createdAt: Date;
 
-  @ApiProperty({ description: '更新时间' })
+  @ApiProperty({ description: '更新时间', type: 'string', format: 'date-time' })
   @Expose()
   updatedAt: Date;
 
-  @ApiPropertyOptional({ description: '是否为超级管理员' })
+  @ApiPropertyOptional({ description: '是否为超级管理员', type: 'boolean' })
   @Expose()
   isSuperAdmin?: boolean;
 
@@ -233,6 +243,8 @@ export class CurrentUserResponseDto {
 
   @ApiPropertyOptional({
     description: '用户偏好设置',
+    type: 'object',
+    additionalProperties: true,
     example: {
       theme: 'light',
       language: 'zh-CN',

@@ -20,6 +20,8 @@ export class ConfigsService extends BaseService {
     super(prisma);
   }
 
+  // ==================== CRUD ====================
+
   async create(
     createConfigDto: CreateConfigDto,
     userId: string,
@@ -30,7 +32,6 @@ export class ConfigsService extends BaseService {
         createdById: userId,
       },
     });
-
     return plainToInstance(ConfigResponseDto, config, {
       excludeExtraneousValues: true,
     });
@@ -74,11 +75,9 @@ export class ConfigsService extends BaseService {
     const config = await this.prisma.config.findUnique({
       where: { configId },
     });
-
     if (!config) {
       throw new NotFoundException('配置不存在');
     }
-
     return plainToInstance(ConfigResponseDto, config, {
       excludeExtraneousValues: true,
     });
@@ -88,11 +87,9 @@ export class ConfigsService extends BaseService {
     const config = await this.prisma.config.findUnique({
       where: { key },
     });
-
     if (!config) {
       throw new NotFoundException('配置不存在');
     }
-
     return plainToInstance(ConfigResponseDto, config, {
       excludeExtraneousValues: true,
     });
@@ -103,7 +100,6 @@ export class ConfigsService extends BaseService {
       where: { group, status: CommonStatus.ENABLED },
       orderBy: { sort: 'asc' },
     });
-
     return configs.map((config) =>
       plainToInstance(ConfigResponseDto, config, {
         excludeExtraneousValues: true,
@@ -119,11 +115,9 @@ export class ConfigsService extends BaseService {
     const config = await this.prisma.config.findUnique({
       where: { configId },
     });
-
     if (!config) {
       throw new NotFoundException('配置不存在');
     }
-
     const updatedConfig = await this.prisma.config.update({
       where: { configId },
       data: {
@@ -131,7 +125,6 @@ export class ConfigsService extends BaseService {
         updatedById: userId,
       },
     });
-
     return plainToInstance(ConfigResponseDto, updatedConfig, {
       excludeExtraneousValues: true,
     });
@@ -141,14 +134,10 @@ export class ConfigsService extends BaseService {
     const config = await this.prisma.config.findUnique({
       where: { configId },
     });
-
     if (!config) {
       throw new NotFoundException('配置不存在');
     }
-
-    await this.prisma.config.delete({
-      where: { configId },
-    });
+    await this.prisma.config.delete({ where: { configId } });
   }
 
   async removeMany(ids: string[]): Promise<void> {
@@ -163,90 +152,31 @@ export class ConfigsService extends BaseService {
     });
   }
 
-  /**
-   * 获取前端运行时配置（公开接口，无需认证）
-   * - env：写死或读环境变量
-   * - system / ui / security / user / feature / storage / oauth / mail / sms：从 config 表读取
-   * - capabilities：动态计算
-   */
-  async getRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
-    // 1. 从 config 表批量读取管理员可改项
-    const configKeys = [
-      // system
-      'system.name',
-      'system.logo',
-      'system.favicon',
-      'system.welcomeMessage',
-      'system.copyright',
-      'system.icp',
-      'system.timezone',
-      // ui
-      'ui.theme',
-      'ui.language',
-      'ui.pageSize',
-      'ui.showBreadcrumb',
-      'ui.sidebarCollapsed',
-      'ui.dateFormat',
-      'ui.timeFormat',
-      // security
-      'security.watermarkEnabled',
-      'security.passwordMinLength',
-      'security.passwordMaxLength',
-      'security.passwordRequireComplexity',
-      'security.passwordExpiryDays',
-      'security.mustChangePassword',
-      'security.loginFailureLockCount',
-      'security.loginFailureLockDuration',
-      'security.sessionConcurrentLimit',
-      // user
-      'user.defaultRole',
-      'user.defaultAvatar',
-      // feature
-      'feature.register',
-      'feature.auditLog',
-      'feature.emailNotification',
-      'feature.smsNotification',
-      'feature.mfa',
-      // storage
-      'storage.provider',
-      'storage.maxFileSize',
-      'storage.allowedTypes',
-      'storage.baseUrl',
-      // oauth
-      'oauth.githubEnabled',
-      'oauth.googleEnabled',
-      'oauth.wechatEnabled',
-      // mail
-      'mail.enabled',
-      'mail.host',
-      'mail.port',
-      'mail.from',
-      'mail.ssl',
-      // sms
-      'sms.enabled',
-      'sms.provider',
-      'sms.signature',
-    ];
+  // ==================== 运行时配置（动态聚合）====================
 
+  async getRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
+    return this.buildRuntimeConfig();
+  }
+
+  // ==================== 私有方法 ====================
+
+  private async buildRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
+    // 1. 读取 config 表所有 enabled 配置（动态聚合，不再硬编码 key）
     const configs = await this.prisma.config.findMany({
-      where: { key: { in: configKeys }, status: CommonStatus.ENABLED },
+      where: { status: CommonStatus.ENABLED },
+      orderBy: [{ group: 'asc' }, { sort: 'asc' }],
     });
 
-    const configMap = new Map<string, string>();
+    // 按 group.field 自动分组 + 类型转换
+    const groups: Record<string, Record<string, unknown>> = {};
     for (const c of configs) {
-      configMap.set(c.key, c.value);
-    }
+      const dotIndex = c.key.indexOf('.');
+      const group = dotIndex > 0 ? c.key.slice(0, dotIndex) : 'misc';
+      const field = dotIndex > 0 ? c.key.slice(dotIndex + 1) : c.key;
 
-    const str = (key: string, fallback: string) =>
-      configMap.get(key) ?? fallback;
-    const num = (key: string, fallback: number) => {
-      const v = configMap.get(key);
-      return v !== undefined ? Number(v) : fallback;
-    };
-    const bool = (key: string, fallback: boolean) => {
-      const v = configMap.get(key);
-      return v !== undefined ? v === 'true' || v === '1' : fallback;
-    };
+      if (!groups[group]) groups[group] = {};
+      groups[group][field] = this.castValue(c.value, c.type);
+    }
 
     // 2. 动态计算 capabilities
     const [totalUsers, totalRoles, totalPermissions] = await Promise.all([
@@ -255,87 +185,107 @@ export class ConfigsService extends BaseService {
       this.prisma.permission.count(),
     ]);
 
+    // 3. 组装响应（核心 group 结构化，其余 group 放到 extra）
+    const pick = (g: string, defaults: Record<string, unknown>) => ({
+      ...defaults,
+      ...(groups[g] || {}),
+    });
+
     return {
-      system: {
-        name: str('system.name', 'GVRAY Admin'),
-        logo: str('system.logo', '/logo.svg'),
-        favicon: str('system.favicon', '/favicon.ico'),
-        welcomeMessage: str('system.welcomeMessage', '欢迎使用 GVRAY Admin'),
-        copyright: str('system.copyright', '© 2025 GVRAY Admin. All rights reserved.'),
-        icp: str('system.icp', ''),
-        timezone: str('system.timezone', 'Asia/Shanghai'),
-      },
+      system: pick('system', {
+        name: 'GVRAY Admin',
+        logo: '/logo.svg',
+        favicon: '/favicon.ico',
+        welcomeMessage: '欢迎使用 GVRAY Admin',
+        copyright: '© 2025 GVRAY Admin. All rights reserved.',
+        icp: '',
+        timezone: 'Asia/Shanghai',
+      }),
       env: {
         mode: process.env.NODE_ENV || 'development',
         apiPrefix: '/api/v1',
       },
-      ui: {
-        theme: str('ui.theme', 'light'),
-        language: str('ui.language', 'zh-CN'),
-        pageSize: num('ui.pageSize', 10),
-        showBreadcrumb: bool('ui.showBreadcrumb', true),
-        sidebarCollapsed: bool('ui.sidebarCollapsed', false),
-        dateFormat: str('ui.dateFormat', 'YYYY-MM-DD'),
-        timeFormat: str('ui.timeFormat', 'HH:mm:ss'),
-      },
-      security: {
-        watermarkEnabled: bool('security.watermarkEnabled', true),
-        passwordMinLength: num('security.passwordMinLength', 8),
-        passwordMaxLength: num('security.passwordMaxLength', 32),
-        passwordRequireComplexity: bool('security.passwordRequireComplexity', true),
-        passwordExpiryDays: num('security.passwordExpiryDays', 0),
-        mustChangePassword: bool('security.mustChangePassword', true),
-        loginFailureLockCount: num('security.loginFailureLockCount', 5),
-        loginFailureLockDuration: num('security.loginFailureLockDuration', 30),
-        sessionConcurrentLimit: num('security.sessionConcurrentLimit', 3),
-      },
-      user: {
-        defaultRole: str('user.defaultRole', 'user'),
-        defaultAvatar: str(
-          'user.defaultAvatar',
+      ui: pick('ui', {
+        theme: 'light',
+        language: 'zh-CN',
+        pageSize: 10,
+        showBreadcrumb: true,
+        sidebarCollapsed: false,
+        dateFormat: 'YYYY-MM-DD',
+        timeFormat: 'HH:mm:ss',
+      }),
+      security: pick('security', {
+        watermarkEnabled: true,
+        passwordMinLength: 8,
+        passwordMaxLength: 32,
+        passwordRequireComplexity: true,
+        passwordExpiryDays: 0,
+        mustChangePassword: true,
+        loginFailureLockCount: 5,
+        loginFailureLockDuration: 30,
+        sessionConcurrentLimit: 3,
+      }),
+      user: pick('user', {
+        defaultRole: 'user',
+        defaultAvatar:
           'https://api.dicebear.com/9.x/bottts/svg?seed=GVRAY',
-        ),
-      },
-      feature: {
-        register: bool('feature.register', true),
-        auditLog: bool('feature.auditLog', true),
-        emailNotification: bool('feature.emailNotification', true),
-        smsNotification: bool('feature.smsNotification', false),
-        mfa: bool('feature.mfa', false),
-      },
-      storage: {
-        provider: str('storage.provider', 'local'),
-        maxFileSize: num('storage.maxFileSize', 10485760),
-        allowedTypes: str(
-          'storage.allowedTypes',
-          'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
-        ),
-        baseUrl: str('storage.baseUrl', ''),
-      },
-      oauth: {
-        githubEnabled: bool('oauth.githubEnabled', false),
-        googleEnabled: bool('oauth.googleEnabled', false),
-        wechatEnabled: bool('oauth.wechatEnabled', false),
-      },
-      mail: {
-        enabled: bool('mail.enabled', false),
-        host: str('mail.host', ''),
-        port: num('mail.port', 465),
-        from: str('mail.from', ''),
-        ssl: bool('mail.ssl', true),
-      },
-      sms: {
-        enabled: bool('sms.enabled', false),
-        provider: str('sms.provider', 'aliyun'),
-        signature: str('sms.signature', ''),
-      },
+      }),
+      feature: pick('feature', {
+        register: true,
+        auditLog: true,
+        emailNotification: true,
+        smsNotification: false,
+        mfa: false,
+      }),
+      storage: pick('storage', {
+        provider: 'local',
+        maxFileSize: 10485760,
+        allowedTypes: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+        baseUrl: '',
+      }),
+      oauth: pick('oauth', {
+        githubEnabled: false,
+        googleEnabled: false,
+        wechatEnabled: false,
+      }),
+      mail: pick('mail', {
+        enabled: false,
+        host: '',
+        port: 465,
+        from: '',
+        ssl: true,
+      }),
+      sms: pick('sms', {
+        enabled: false,
+        provider: 'aliyun',
+        signature: '',
+      }),
       capabilities: {
         totalUsers,
         totalRoles,
         totalPermissions,
       },
-    };
+    } as unknown as RuntimeConfigResponseDto;
   }
+
+  private castValue(raw: string, type: string): unknown {
+    switch (type) {
+      case 'number':
+        return Number(raw);
+      case 'boolean':
+        return raw === 'true' || raw === '1';
+      case 'json':
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return raw;
+        }
+      default:
+        return raw;
+    }
+  }
+
+  // ==================== 批量查询（保持兼容）====================
 
   async getConfigsByKeys(keys: string[]): Promise<Record<string, unknown>> {
     const configs = await this.prisma.config.findMany({
@@ -346,36 +296,9 @@ export class ConfigsService extends BaseService {
     });
 
     const result: Record<string, unknown> = {};
-
     for (const config of configs) {
-      const raw = config.value;
-      let value: unknown;
-
-      // 根据类型转换值
-      switch (config.type) {
-        case 'number':
-          value = Number(raw);
-          break;
-        case 'boolean':
-          value = raw === 'true' || raw === '1';
-          break;
-        case 'json':
-          try {
-            value = JSON.parse(raw);
-          } catch {
-            // 如果解析失败，保持原值
-            value = raw;
-          }
-          break;
-        default:
-          // string类型，保持原值
-          value = raw;
-          break;
-      }
-
-      result[config.key] = value;
+      result[config.key] = this.castValue(config.value, config.type);
     }
-
     return result;
   }
 }

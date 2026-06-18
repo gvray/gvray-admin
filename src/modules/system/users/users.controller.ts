@@ -15,6 +15,7 @@ import {
   ApiOperation,
   ApiTags,
   ApiResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -37,13 +38,12 @@ import { BatchDeleteUsersDto } from './dto/batch-delete-users.dto';
 @ApiTags('用户管理')
 @Controller('system/users')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
   @RequirePermissions(USER_PERMISSIONS.CREATE)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建用户' })
   @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
   async create(
@@ -59,7 +59,6 @@ export class UsersController {
 
   @Get()
   @RequirePermissions(USER_PERMISSIONS.LIST)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取用户列表' })
   @ApiResponse({
     status: 200,
@@ -73,12 +72,11 @@ export class UsersController {
 
   @Get(':userId')
   @RequirePermissions(USER_PERMISSIONS.VIEW)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定用户（通过UserId）' })
   @ApiResponse({
     status: 200,
     description: '获取成功',
-    type: [UserResponseDto],
+    type: UserResponseDto,
   })
   @ApiResponse({ status: 404, description: '用户不存在' })
   async findOne(@Param('userId') userId: string) {
@@ -88,7 +86,6 @@ export class UsersController {
 
   @Patch(':userId')
   @RequirePermissions(USER_PERMISSIONS.UPDATE)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '获取成功', type: UserResponseDto })
   @ApiResponse({ status: 404, description: '用户不存在' })
@@ -107,7 +104,6 @@ export class UsersController {
 
   @Delete(':userId')
   @RequirePermissions(USER_PERMISSIONS.DELETE)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
@@ -121,7 +117,6 @@ export class UsersController {
 
   @Put(':userId/roles')
   @RequirePermissions(USER_PERMISSIONS.UPDATE_ROLES)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '为用户分配角色（替换所有角色）' })
   @ApiResponse({
     status: 200,
@@ -144,7 +139,6 @@ export class UsersController {
 
   @Delete(':userId/roles')
   @RequirePermissions(USER_PERMISSIONS.UPDATE_ROLES)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '移除用户的角色' })
   @ApiResponse({
     status: 200,
@@ -167,8 +161,9 @@ export class UsersController {
 
   @Post('batch-delete')
   @RequirePermissions(USER_PERMISSIONS.DELETE)
-  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '批量删除用户' })
+  @ApiBody({ type: BatchDeleteUsersDto })
+  @ApiResponse({ status: 200, description: '删除成功' })
   async batchDelete(
     @Body() { ids }: BatchDeleteUsersDto,
     @CurrentUser() currentUser: IUser,

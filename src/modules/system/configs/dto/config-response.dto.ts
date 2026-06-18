@@ -31,11 +31,11 @@ export class ConfigResponseDto {
   group: string;
 
   @Expose()
-  @ApiProperty({ description: '状态' })
+  @ApiProperty({ description: '状态', type: 'integer' })
   status: number;
 
   @Expose()
-  @ApiProperty({ description: '排序权重' })
+  @ApiProperty({ description: '排序权重', type: 'integer' })
   sort: number;
 
   @Expose()
@@ -43,12 +43,12 @@ export class ConfigResponseDto {
   remark?: string;
 
   @Expose()
-  @ApiProperty({ description: '创建时间' })
+  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
   @Transform(({ value }) => value?.toISOString())
   createdAt: Date;
 
   @Expose()
-  @ApiProperty({ description: '更新时间' })
+  @ApiProperty({ description: '更新时间', type: 'string', format: 'date-time' })
   @Transform(({ value }) => value?.toISOString())
   updatedAt: Date;
 }

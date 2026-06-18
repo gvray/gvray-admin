@@ -8,6 +8,7 @@ import { PositionsModule } from './positions/positions.module';
 import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { ConfigsModule } from './configs/configs.module';
 import { LoginLogsModule } from './login-logs/login-logs.module';
+import { MonitorModule } from './monitor/monitor.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LoginLogsModule } from './login-logs/login-logs.module';
     DictionariesModule,
     ConfigsModule,
     LoginLogsModule,
+    MonitorModule,
   ],
   exports: [
     UsersModule,
@@ -31,6 +33,7 @@ import { LoginLogsModule } from './login-logs/login-logs.module';
     DictionariesModule,
     ConfigsModule,
     LoginLogsModule,
+    MonitorModule,
   ],
 })
 export class SystemModule {}

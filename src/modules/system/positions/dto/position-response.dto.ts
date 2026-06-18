@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 export class PositionUserResponseDto {
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -27,6 +29,8 @@ export class PositionUserResponseDto {
 }
 
 export class PositionResponseDto {
+  @ApiProperty({ type: 'integer' })
+
   @Exclude()
   id: number;
 
@@ -63,19 +67,19 @@ export class PositionResponseDto {
   @Type(() => PositionUserResponseDto)
   users?: PositionUserResponseDto[];
 
-  @ApiProperty({ description: '状态' })
+  @ApiProperty({ description: '状态', type: 'integer' })
   @Expose()
   status: number;
 
-  @ApiProperty({ description: '排序' })
+  @ApiProperty({ description: '排序', type: 'integer' })
   @Expose()
   sort: number;
 
-  @ApiProperty({ description: '创建时间' })
+  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
   @Expose()
   createdAt: Date;
 
-  @ApiProperty({ description: '更新时间' })
+  @ApiProperty({ description: '更新时间', type: 'string', format: 'date-time' })
   @Expose()
   updatedAt: Date;
 }

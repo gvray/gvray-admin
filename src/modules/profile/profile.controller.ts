@@ -13,11 +13,8 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { CurrentUserResponseDto } from '@/modules/auth/dto/current-user-response.dto';
 import { UserPermissionsResponseDto } from './dto/user-permissions-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
-import { DenyRoles } from '@/core/decorators/roles.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
-import { GUEST_ROLE_KEY } from '@/shared/constants/role.constant';
 
 @ApiTags('个人中心')
 @ApiBearerAuth('JWT-auth')
@@ -65,12 +62,10 @@ export class ProfileController {
   }
 
   @Post('change-password')
-  @UseGuards(RolesGuard)
-  @DenyRoles(GUEST_ROLE_KEY)
   @ApiOperation({ summary: '修改密码' })
   @ApiResponse({ status: 200, description: '修改成功' })
   @ApiResponse({ status: 400, description: '当前密码不正确' })
-  @ApiResponse({ status: 403, description: '游客账号不允许修改密码' })
+  @ApiResponse({ status: 403, description: '演示环境，游客账号仅支持查看操作' })
   async changePassword(
     @CurrentUser() user: { userId: string },
     @Body() dto: ChangePasswordDto,

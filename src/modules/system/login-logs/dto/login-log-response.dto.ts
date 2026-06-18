@@ -2,7 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class LoginLogResponseDto {
-  @ApiProperty({ description: '日志ID' })
+  @ApiProperty({ description: '日志ID', type: 'integer' })
   @Expose()
   id: number;
 
@@ -18,7 +18,7 @@ export class LoginLogResponseDto {
   @Expose()
   userAgent?: string;
 
-  @ApiProperty({ description: '登录状态：1-成功, 0-失败' })
+  @ApiProperty({ description: '登录状态：1-成功, 0-失败', type: 'integer' })
   @Expose()
   status: number;
 
@@ -46,7 +46,7 @@ export class LoginLogResponseDto {
   @Expose()
   os?: string;
 
-  @ApiProperty({ description: '创建时间' })
+  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
   @Expose()
   @Type(() => Date)
   createdAt: Date;

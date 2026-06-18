@@ -293,7 +293,7 @@ export async function seedConfigs() {
     // ====================== 功能开关 ======================
     {
       key: 'feature.register',
-      value: 'true',
+      value: 'false',
       name: '开放注册',
       description: '是否允许前端自助注册账号',
       type: 'boolean',
@@ -345,6 +345,18 @@ export async function seedConfigs() {
       status: CommonStatus.ENABLED,
       sort: 4,
       remark: '身份安全',
+    },
+
+    {
+      key: 'feature.guestAccount',
+      value: JSON.stringify({ username: 'guest', password: '123456' }),
+      name: '游客演示账号',
+      description: '登录页展示的游客试用账号，部署后由管理员在配置管理中启用',
+      type: 'json',
+      group: 'feature',
+      status: CommonStatus.DISABLED,
+      sort: 5,
+      remark: '演示环境专用',
     },
 
     // ====================== 存储配置 ======================

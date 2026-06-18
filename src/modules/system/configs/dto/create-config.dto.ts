@@ -34,7 +34,7 @@ export class CreateConfigDto {
   @IsString()
   status?: string = 'enabled';
 
-  @ApiProperty({ description: '排序权重', default: 0 })
+  @ApiProperty({ description: '排序权重', default: 0, type: 'integer' })
   @IsOptional()
   @IsInt()
   sort?: number = 0;
