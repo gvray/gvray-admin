@@ -9,6 +9,14 @@ import { UserStatus } from '@/shared/constants/user-status.constant';
  */
 export class QueryUserDto extends PaginationSortDto {
   @ApiPropertyOptional({
+    description: '关键词（匹配用户名、昵称、手机号、邮箱）',
+    example: 'admin',
+  })
+  @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @ApiPropertyOptional({
     description: '用户名（模糊查询）',
     example: 'admin',
   })

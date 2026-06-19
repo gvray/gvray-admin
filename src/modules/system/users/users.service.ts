@@ -234,6 +234,15 @@ export class UsersService extends BaseService {
     // 构建查询条件
     const where: Prisma.UserWhereInput = {};
 
+    if (query?.keyword) {
+      where.OR = [
+        { username: { contains: query.keyword } },
+        { nickname: { contains: query.keyword } },
+        { phone: { contains: query.keyword } },
+        { email: { contains: query.keyword } },
+      ];
+    }
+
     if (query?.username) {
       where.username = {
         contains: query.username,
