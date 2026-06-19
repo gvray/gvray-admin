@@ -206,4 +206,25 @@ export class PositionsService extends BaseService {
       });
     }
   }
+
+  async getOptions(): Promise<
+    {
+      positionId: string;
+      name: string;
+      code: string;
+      sort: number;
+    }[]
+  > {
+    return this.prisma.position.findMany({
+      where: { status: 'enabled' },
+      select: {
+        positionId: true,
+        name: true,
+        code: true,
+        sort: true,
+      },
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
+  }
 }

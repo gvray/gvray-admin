@@ -15,7 +15,6 @@ import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
-import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 
 @Injectable()
 export class DepartmentsService extends BaseService {
@@ -49,7 +48,7 @@ export class DepartmentsService extends BaseService {
 
     const { parentId, ...departmentData } = createDepartmentDto;
     let parentIdFinal: string | null = null;
-    if (parentId && parentId !== ROOT_PARENT_ID) {
+    if (parentId) {
       const parent = await this.prisma.department.findUnique({
         where: { departmentId: parentId },
       });
@@ -58,7 +57,7 @@ export class DepartmentsService extends BaseService {
       }
       parentIdFinal = parent.departmentId;
     } else {
-      parentIdFinal = ROOT_PARENT_ID;
+      parentIdFinal = null;
     }
     const department = await this.prisma.department.create({
       data: {
@@ -173,7 +172,7 @@ export class DepartmentsService extends BaseService {
     let finalParentId: string | null;
     if (updateDepartmentDto.parentId === null) {
       // 设置为顶级部门
-      finalParentId = ROOT_PARENT_ID;
+      finalParentId = null;
     } else if (updateDepartmentDto.parentId) {
       // 检查父部门是否存在
       const parentDepartment = await this.prisma.department.findUnique({
@@ -330,7 +329,7 @@ export class DepartmentsService extends BaseService {
       const matchedDepartments: DeptMinimal[] = matchedDepartmentsRaw.map(
         (d) => ({
           departmentId: d.departmentId,
-          parentId: d.parentId ?? ROOT_PARENT_ID,
+          parentId: d.parentId!,
         }),
       );
 
@@ -387,7 +386,7 @@ export class DepartmentsService extends BaseService {
     allDepartments.forEach((dept) => {
       const departmentNode = departmentMap.get(dept.departmentId);
 
-      if (dept.parentId && dept.parentId !== ROOT_PARENT_ID) {
+      if (dept.parentId) {
         const parentNode = departmentMap.get(dept.parentId);
         if (parentNode && departmentNode) {
           parentNode.children.push(departmentNode);
@@ -424,7 +423,7 @@ export class DepartmentsService extends BaseService {
     parentId: string,
     departmentIds: Set<string>,
   ): Promise<void> {
-    if (parentId === ROOT_PARENT_ID) return;
+    if (!parentId) return;
 
     departmentIds.add(parentId);
 
@@ -433,10 +432,7 @@ export class DepartmentsService extends BaseService {
       select: { parentId: true },
     });
 
-    if (
-      parentDepartment?.parentId &&
-      parentDepartment.parentId !== ROOT_PARENT_ID
-    ) {
+    if (parentDepartment?.parentId) {
       await this.addDepartmentAncestorIds(
         parentDepartment.parentId,
         departmentIds,
@@ -470,11 +466,30 @@ export class DepartmentsService extends BaseService {
       }
 
       visited.add(currentParentDepartmentId);
-      const parentIdNext = currentDepartmentRaw.parentId ?? ROOT_PARENT_ID;
-      currentParentDepartmentId =
-        parentIdNext === ROOT_PARENT_ID ? null : parentIdNext;
+      currentParentDepartmentId = currentDepartmentRaw.parentId;
     }
 
     return false;
+  }
+
+  async getOptions(): Promise<
+    {
+      departmentId: string;
+      name: string;
+      parentId: string | null;
+      sort: number;
+    }[]
+  > {
+    return this.prisma.department.findMany({
+      where: { status: CommonStatus.ENABLED },
+      select: {
+        departmentId: true,
+        name: true,
+        parentId: true,
+        sort: true,
+      },
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
   }
 }

@@ -212,7 +212,7 @@ model Department {
   departmentId    String           @unique @default(uuid())
   name            String           @unique
   description     String?          @db.Text // 部门描述
-  parentId        String
+  parentId        String?
   manager         String?
   phone           String?
   email           String?

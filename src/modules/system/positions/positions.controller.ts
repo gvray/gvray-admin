@@ -73,6 +73,18 @@ export class PositionsController {
     return ResponseUtil.paginated(pageData, '获取岗位列表成功');
   }
 
+  @Get('options')
+  @RequirePermissions(POSITION_PERMISSIONS.LIST)
+  @ApiOperation({ summary: '获取岗位选项（仅启用）' })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+  })
+  async getOptions() {
+    const data = await this.positionsService.getOptions();
+    return ResponseUtil.found(data, '获取岗位选项成功');
+  }
+
   @Get(':id')
   @RequirePermissions(POSITION_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取岗位详情' })

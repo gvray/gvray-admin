@@ -10,7 +10,6 @@ import { UpdateMenuDto } from './dto/update-menu.dto';
 import { QueryMenuDto } from './dto/query-menu.dto';
 import { MenuTreeNodeDto, MenuResponseDto } from './dto/menu-response.dto';
 import { BaseService } from '@/shared/services/base.service';
-import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 import type { Menu as MenuModel } from '@prisma/client';
 
@@ -30,10 +29,7 @@ export class MenuService extends BaseService {
     type: string,
     parentMenuId?: string,
   ): Promise<void> {
-    if (!parentMenuId || parentMenuId === ROOT_PARENT_ID) {
-      if (type !== 'CATALOG') {
-        throw new ConflictException('顶层菜单只能是目录类型');
-      }
+    if (!parentMenuId) {
       return;
     }
 
@@ -80,7 +76,7 @@ export class MenuService extends BaseService {
 
     await this.validateMenuHierarchy(type, parentMenuId);
 
-    const finalParentId = parentMenuId ?? ROOT_PARENT_ID;
+    const finalParentId = parentMenuId ?? null;
 
     const menu = await this.prisma.menu.create({
       data: {
@@ -208,7 +204,7 @@ export class MenuService extends BaseService {
     }
 
     const currentParentId = menu.parentMenuId;
-    if (parentMenuId && parentMenuId !== currentParentId) {
+    if (parentMenuId !== undefined && parentMenuId !== currentParentId) {
       await this.validateMenuHierarchy(menu.type, parentMenuId);
     }
 
@@ -223,7 +219,8 @@ export class MenuService extends BaseService {
         hidden,
         sort,
         status,
-        parentMenuId: parentMenuId ?? currentParentId ?? ROOT_PARENT_ID,
+        parentMenuId:
+          parentMenuId !== undefined ? parentMenuId : currentParentId,
         updatedById: currentUserId,
       },
     });
@@ -250,28 +247,20 @@ export class MenuService extends BaseService {
       throw new NotFoundException(`菜单ID ${id} 不存在`);
     }
 
-    await this.cascadeRemove(menu.menuId);
-  }
-
-  private async cascadeRemove(menuId: string): Promise<void> {
-    const allIds: string[] = [];
-    const collect = async (pid: string) => {
-      allIds.push(pid);
+    // 目录下有子菜单时禁止删除
+    if (menu.type === 'CATALOG') {
       const children = await this.prisma.menu.findMany({
-        where: { parentMenuId: pid },
+        where: { parentMenuId: menu.menuId },
         select: { menuId: true },
       });
-      for (const child of children) {
-        await collect(child.menuId);
+      if (children.length > 0) {
+        throw new ConflictException('该目录下还有子菜单，请先删除或移出子菜单');
       }
-    };
-    await collect(menuId);
-
-    for (let i = allIds.length - 1; i >= 0; i--) {
-      await this.prisma.menu.delete({
-        where: { menuId: allIds[i] },
-      });
     }
+
+    await this.prisma.menu.delete({
+      where: { menuId: menu.menuId },
+    });
   }
 
   async getMenuTree(queryDto?: QueryMenuDto): Promise<MenuTreeNodeDto[]> {
@@ -328,7 +317,7 @@ export class MenuService extends BaseService {
       const node = map.get(m.menuId);
       if (!node) return;
       const parentId = m.parentMenuId;
-      if (parentId && parentId !== ROOT_PARENT_ID) {
+      if (parentId) {
         const parent = map.get(parentId);
         if (parent) {
           parent.children = parent.children || [];
@@ -362,12 +351,39 @@ export class MenuService extends BaseService {
     });
   }
 
-  async getOptions(): Promise<{ menuId: string; name: string }[]> {
-    return this.prisma.menu.findMany({
+  async getOptions(): Promise<
+    {
+      menuId: string;
+      name: string;
+      type: string;
+      path: string | null;
+      parentMenuId: string | null;
+      status: string;
+    }[]
+  > {
+    const menus = await this.prisma.menu.findMany({
       where: { status: 'enabled' },
-      select: { menuId: true, name: true },
+      select: {
+        menuId: true,
+        name: true,
+        type: true,
+        path: true,
+        parentMenuId: true,
+        status: true,
+      },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
       take: 500,
+    });
+
+    const menuMap = new Map(menus.map((menu) => [menu.menuId, menu]));
+    return menus.filter((menu) => {
+      let currentParentId = menu.parentMenuId;
+      while (currentParentId) {
+        const parent = menuMap.get(currentParentId);
+        if (!parent) return false;
+        currentParentId = parent.parentMenuId;
+      }
+      return true;
     });
   }
 }

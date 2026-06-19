@@ -1,7 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 
-const ROOT_PARENT_ID = '00000000-0000-0000-0000-000000000000';
-
 interface MenuNode {
   type: 'CATALOG' | 'MENU';
   name: string;
@@ -134,13 +132,12 @@ export async function seedMenus(prisma: PrismaClient) {
   ];
 
   async function createMenuNode(node: MenuNode, parentId?: string) {
-    const parentMenuId = parentId || ROOT_PARENT_ID;
     const menu = await prisma.menu.upsert({
       where: { path: node.path },
       update: {
         name: node.name,
         type: node.type,
-        parentMenuId,
+        parentMenuId: parentId ?? null,
         permissionCode: node.permissionCode ?? null,
         path: node.path,
         icon: node.icon,
@@ -150,7 +147,7 @@ export async function seedMenus(prisma: PrismaClient) {
       create: {
         name: node.name,
         type: node.type,
-        parentMenuId,
+        parentMenuId: parentId ?? null,
         permissionCode: node.permissionCode ?? null,
         path: node.path,
         icon: node.icon,

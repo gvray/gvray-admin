@@ -12,7 +12,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '负责技术开发和维护',
       status: CommonStatus.ENABLED,
       sort: 1,
-      parentId: '00000000-0000-0000-0000-000000000000',
+      parentId: null,
     },
   });
 
@@ -25,7 +25,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '负责人力资源管理',
       status: CommonStatus.ENABLED,
       sort: 2,
-      parentId: '00000000-0000-0000-0000-000000000000',
+      parentId: null,
     },
   });
 
@@ -38,7 +38,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '顶级组织结构',
       sort: 0,
       status: CommonStatus.ENABLED,
-      parentId: '00000000-0000-0000-0000-000000000000',
+      parentId: null,
     },
   });
 

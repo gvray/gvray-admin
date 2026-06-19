@@ -57,9 +57,15 @@ export class AuthService {
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 读取默认角色编码配置
+    const defaultRoleConfig = await this.prisma.config.findUnique({
+      where: { key: 'user.defaultRole' },
+    });
+    const defaultRoleKey = defaultRoleConfig?.value || 'user';
+
     // 查询默认角色
     const defaultRole = await this.prisma.role.findUnique({
-      where: { roleKey: 'user' },
+      where: { roleKey: defaultRoleKey },
     });
 
     // 使用事务保证用户、角色关联、设置的一致性
@@ -397,7 +403,7 @@ export class AuthService {
     // 确保可见子菜单的所有父级 CATALOG 也在结果中
     const ensureParents = (menuId: string) => {
       const menu = menuMap.get(menuId);
-      if (!menu || !menu.parentMenuId || menu.parentMenuId === '00000000-0000-0000-0000-000000000000') return;
+      if (!menu || !menu.parentMenuId) return;
       visibleMenuIds.add(menu.parentMenuId);
       ensureParents(menu.parentMenuId);
     };
@@ -424,8 +430,8 @@ export class AuthService {
     };
 
     const nodeMap = new Map<string, Node>();
-    const roots: Node[] = [];
 
+    // 先把所有可见菜单放入 map，以便后续过滤
     visibleMenus.forEach((m) => {
       nodeMap.set(m.menuId, {
         menuId: m.menuId,
@@ -442,17 +448,23 @@ export class AuthService {
       });
     });
 
-    visibleMenus.forEach((m) => {
+    // 过滤：只保留 parentId 为 null 或 parent 也在结果集中的菜单
+    const validMenus = visibleMenus.filter((m) => {
+      if (!m.parentMenuId) return true;
+      return nodeMap.has(m.parentMenuId);
+    });
+
+    const roots: Node[] = [];
+
+    validMenus.forEach((m) => {
       const node = nodeMap.get(m.menuId);
       if (!node) return;
       const pid = m.parentMenuId;
-      if (pid && pid !== '00000000-0000-0000-0000-000000000000') {
+      if (pid) {
         const parent = nodeMap.get(pid);
         if (parent) {
           parent.children = parent.children || [];
           parent.children.push(node);
-        } else {
-          roots.push(node);
         }
       } else {
         roots.push(node);

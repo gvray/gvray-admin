@@ -9,38 +9,44 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       code: 'common_status',
       name: '通用状态',
-      description: '通用启用/禁用/审核中/封禁（适用于用户、角色、部门、岗位、字典、配置等）',
+      description: '通用启用/禁用（适用于角色、部门、岗位、字典、配置、菜单等）',
       sort: 0,
+    },
+    {
+      code: 'user_status',
+      name: '用户状态',
+      description: '用户账号状态：启用、禁用、审核中、封禁',
+      sort: 1,
     },
     {
       code: 'user_gender',
       name: '用户性别',
       description: '用户性别字典',
-      sort: 1,
+      sort: 2,
     },
     {
       code: 'data_scope',
       name: '数据权限范围',
       description: '角色数据权限范围',
-      sort: 2,
+      sort: 3,
     },
     {
       code: 'login_type',
       name: '登录类型',
       description: '登录方式类型',
-      sort: 3,
+      sort: 4,
     },
     {
       code: 'config_group',
       name: '配置分组',
       description: '系统配置分组',
-      sort: 4,
+      sort: 5,
     },
     {
       code: 'config_type',
       name: '配置类型',
       description: '系统配置数据类型',
-      sort: 5,
+      sort: 6,
     },
   ];
 
@@ -60,6 +66,13 @@ export async function seedDictionaries(prisma: PrismaClient) {
   const dictionaryItems = [
     {
       typeCode: 'common_status',
+      items: [
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'user_status',
       items: [
         { value: 'enabled', label: '启用', sort: 0 },
         { value: 'disabled', label: '禁用', sort: 1 },

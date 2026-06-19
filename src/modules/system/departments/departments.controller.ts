@@ -74,6 +74,18 @@ export class DepartmentsController {
     return ResponseUtil.found(data, '获取部门树形结构成功');
   }
 
+  @Get('options')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.LIST)
+  @ApiOperation({ summary: '获取部门选项（仅启用）' })
+  @ApiResponse({
+    status: 200,
+    description: '获取部门选项成功',
+  })
+  async getOptions() {
+    const data = await this.departmentsService.getOptions();
+    return ResponseUtil.found(data, '获取部门选项成功');
+  }
+
   @Get(':id')
   @RequirePermissions(DEPARTMENT_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取部门详情' })

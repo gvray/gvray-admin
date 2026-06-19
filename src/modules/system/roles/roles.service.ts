@@ -649,4 +649,25 @@ export class RolesService extends BaseService {
 
     return this.dataScopeService.getRoleDataScope(roleId);
   }
+
+  async getOptions(): Promise<
+    {
+      roleId: string;
+      name: string;
+      roleKey: string;
+      sort: number;
+    }[]
+  > {
+    return this.prisma.role.findMany({
+      where: { status: CommonStatus.ENABLED },
+      select: {
+        roleId: true,
+        name: true,
+        roleKey: true,
+        sort: true,
+      },
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
+  }
 }
