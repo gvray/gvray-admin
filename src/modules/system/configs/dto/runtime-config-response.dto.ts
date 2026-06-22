@@ -58,6 +58,18 @@ export class RuntimeUiDto {
 
   @ApiProperty({ description: '时间格式', example: 'HH:mm:ss' })
   timeFormat: string;
+
+  @ApiProperty({ description: '主题主色', example: '#1890ff' })
+  primaryColor: string;
+
+  @ApiProperty({ description: '默认时区', example: 'Asia/Shanghai' })
+  timezone: string;
+
+  @ApiProperty({ description: '默认启用通知', example: true, type: 'boolean' })
+  enableNotification: boolean;
+
+  @ApiProperty({ description: '全站灰度模式', example: false, type: 'boolean' })
+  grayMode: boolean;
 }
 
 // ==================== 安全配置 ====================

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
@@ -16,7 +17,10 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class ConfigsService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
+  constructor(
+    protected readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
     super(prisma);
   }
 
@@ -158,9 +162,51 @@ export class ConfigsService extends BaseService {
     return this.buildRuntimeConfig();
   }
 
+  /**
+   * 获取公开运行时配置（供前端无鉴权初始化使用）
+   * 过滤掉敏感字段：security、storage、oauth、mail、sms、capabilities
+   */
+  async getPublicRuntimeConfig(): Promise<Partial<RuntimeConfigResponseDto>> {
+    return this.buildPublicRuntimeConfig();
+  }
+
   // ==================== 私有方法 ====================
 
   private async buildRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
+    const full = await this.buildConfigCore();
+    const [totalUsers, totalRoles, totalPermissions] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.role.count(),
+      this.prisma.permission.count(),
+    ]);
+
+    return {
+      ...full,
+      security: full.security,
+      storage: full.storage,
+      oauth: full.oauth,
+      mail: full.mail,
+      sms: full.sms,
+      capabilities: {
+        totalUsers,
+        totalRoles,
+        totalPermissions,
+      },
+    } as RuntimeConfigResponseDto;
+  }
+
+  private async buildPublicRuntimeConfig(): Promise<Partial<RuntimeConfigResponseDto>> {
+    const full = await this.buildConfigCore();
+    return {
+      system: full.system,
+      env: full.env,
+      ui: full.ui,
+      user: full.user,
+      feature: full.feature,
+    };
+  }
+
+  private async buildConfigCore(): Promise<Record<string, any>> {
     // 1. 读取 config 表所有 enabled 配置（动态聚合，不再硬编码 key）
     const configs = await this.prisma.config.findMany({
       where: { status: CommonStatus.ENABLED },
@@ -178,18 +224,13 @@ export class ConfigsService extends BaseService {
       groups[group][field] = this.castValue(c.value, c.type);
     }
 
-    // 2. 动态计算 capabilities
-    const [totalUsers, totalRoles, totalPermissions] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.role.count(),
-      this.prisma.permission.count(),
-    ]);
-
-    // 3. 组装响应（核心 group 结构化，其余 group 放到 extra）
     const pick = (g: string, defaults: Record<string, unknown>) => ({
       ...defaults,
       ...(groups[g] || {}),
     });
+
+    const apiPrefix =
+      this.configService.get<string>('APP_GLOBAL_PREFIX') || '/api/v1';
 
     return {
       system: pick('system', {
@@ -203,7 +244,7 @@ export class ConfigsService extends BaseService {
       }),
       env: {
         mode: process.env.NODE_ENV || 'development',
-        apiPrefix: '/api/v1',
+        apiPrefix,
       },
       ui: pick('ui', {
         theme: 'light',
@@ -213,6 +254,10 @@ export class ConfigsService extends BaseService {
         sidebarCollapsed: false,
         dateFormat: 'YYYY-MM-DD',
         timeFormat: 'HH:mm:ss',
+        primaryColor: '#1890ff',
+        timezone: 'Asia/Shanghai',
+        enableNotification: true,
+        grayMode: false,
       }),
       security: pick('security', {
         watermarkEnabled: true,
@@ -260,12 +305,7 @@ export class ConfigsService extends BaseService {
         provider: 'aliyun',
         signature: '',
       }),
-      capabilities: {
-        totalUsers,
-        totalRoles,
-        totalPermissions,
-      },
-    } as unknown as RuntimeConfigResponseDto;
+    };
   }
 
   private castValue(raw: string, type: string): unknown {
@@ -283,6 +323,24 @@ export class ConfigsService extends BaseService {
       default:
         return raw;
     }
+  }
+
+  // ==================== 功能开关（Feature Flag）====================
+
+  /**
+   * 检查指定功能开关是否启用
+   * 直接查 config 表，不走 getRuntimeConfig，避免不必要的 count 查询
+   */
+  async isFeatureEnabled(key: string): Promise<boolean> {
+    const config = await this.prisma.config.findUnique({
+      where: { key: `feature.${key}` },
+    });
+
+    if (!config || config.status !== CommonStatus.ENABLED) {
+      return false;
+    }
+
+    return this.castValue(config.value, config.type) === true;
   }
 
   // ==================== 批量查询（保持兼容）====================

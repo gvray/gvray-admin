@@ -3,10 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
@@ -14,6 +16,30 @@ import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 @Injectable()
 export class ProfileService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getProfile(userId: string): Promise<ProfileResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userId: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        email: true,
+        phone: true,
+        gender: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    return plainToInstance(ProfileResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+  }
 
   async getPermissions(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -161,7 +187,16 @@ export class ProfileService {
     });
 
     const current = (existing?.settings as Record<string, unknown>) ?? {};
-    const merged = { ...current, ...dto } as Prisma.InputJsonObject;
+
+    // 只合并 dto 中实际传过来的字段（undefined 的不覆盖）
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(dto)) {
+      if (value !== undefined) {
+        updates[key] = value;
+      }
+    }
+
+    const merged = { ...current, ...updates } as Prisma.InputJsonObject;
 
     const record = await this.prisma.userSettings.upsert({
       where: { userId },
@@ -169,5 +204,30 @@ export class ProfileService {
       create: { userId, settings: merged },
     });
     return record.settings;
+  }
+
+  async getLoginLogs(userId: string, query: { page?: number; pageSize?: number }) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 10;
+    const skip = (page - 1) * pageSize;
+
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: { username: true },
+    });
+
+    const account = user?.username ?? userId;
+
+    const [items, total] = await Promise.all([
+      this.prisma.loginLog.findMany({
+        where: { account },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      this.prisma.loginLog.count({ where: { account } }),
+    ]);
+
+    return { items, total, page, pageSize };
   }
 }

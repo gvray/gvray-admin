@@ -36,8 +36,7 @@ export class FeatureFlagGuard implements CanActivate {
       return true;
     }
 
-    const config = await this.configsService.getRuntimeConfig();
-    const enabled = config.feature?.[flag.key];
+    const enabled = await this.configsService.isFeatureEnabled(flag.key);
 
     if (!enabled) {
       throw new ForbiddenException(flag.message || '该功能已关闭');

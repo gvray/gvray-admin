@@ -85,9 +85,13 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
-      docExpansion: 'none',
+      docExpansion: 'list',
       filter: true,
       showRequestDuration: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+      defaultModelExpandDepth: 2,
+      defaultModelsExpandDepth: 1,
     },
     customSiteTitle: 'NestAdmin API 文档',
   });

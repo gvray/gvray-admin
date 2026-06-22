@@ -10,6 +10,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthMenuResponseDto } from './dto/menu-response.dto';
+import { CurrentUserResponseDto } from './dto/current-user-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
@@ -187,6 +188,23 @@ export class AuthController {
   async logout(@CurrentUser() user: { userId: string }) {
     await this.authService.logout(user.userId);
     return ResponseUtil.success(null, '退出登录成功');
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '获取当前登录用户身份',
+    description: '返回当前用户的角色、权限码、部门、岗位等身份信息',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '当前用户身份信息',
+    type: CurrentUserResponseDto,
+  })
+  async me(@CurrentUser() user: { userId: string }) {
+    const data = await this.authService.getCurrentUser(user.userId);
+    return ResponseUtil.found(data, '获取当前用户成功');
   }
 
   @Get('menus')

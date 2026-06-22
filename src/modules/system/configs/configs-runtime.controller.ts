@@ -5,7 +5,7 @@ import { RuntimeConfigResponseDto } from './dto/runtime-config-response.dto';
 import { ResponseUtil } from '@/shared/utils/response.util';
 
 @ApiTags('运行时配置')
-@Controller('system')
+@Controller('public')
 export class ConfigsRuntimeController {
   constructor(private readonly configsService: ConfigsService) {}
 
@@ -21,7 +21,7 @@ export class ConfigsRuntimeController {
     type: RuntimeConfigResponseDto,
   })
   async getRuntimeConfig() {
-    const data = await this.configsService.getRuntimeConfig();
+    const data = await this.configsService.getPublicRuntimeConfig();
     return ResponseUtil.success(data, '获取运行时配置成功');
   }
 }

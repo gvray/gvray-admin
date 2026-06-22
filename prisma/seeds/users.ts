@@ -54,22 +54,6 @@ export async function seedUsers(
       roleId: roles.superRole.roleId,
     },
   });
-  // 创建超级管理员用户设置
-  const superSettings = {
-    theme: 'light',
-    language: 'zh-CN',
-    sidebarCollapsed: false,
-    pageSize: 20,
-    timezone: 'Asia/Shanghai',
-    showWatermark: true,
-    enableNotification: true,
-    colorScheme: 'default',
-  };
-  await prisma.userSettings.upsert({
-    where: { userId: superUser.userId },
-    update: { settings: superSettings },
-    create: { userId: superUser.userId, settings: superSettings },
-  });
   console.log(`超级管理员用户创建成功: ${superUser.username}`);
 
   // 创建管理员用户
@@ -123,23 +107,6 @@ export async function seedUsers(
     },
   });
 
-  // 创建管理员用户设置
-  const adminSettings = {
-    theme: 'dark',
-    language: 'zh-CN',
-    sidebarCollapsed: false,
-    pageSize: 10,
-    timezone: 'Asia/Shanghai',
-    showWatermark: false,
-    enableNotification: true,
-    colorScheme: 'blue',
-  };
-  await prisma.userSettings.upsert({
-    where: { userId: adminUser.userId },
-    update: { settings: adminSettings },
-    create: { userId: adminUser.userId, settings: adminSettings },
-  });
-
   // 创建游客用户（生产和开发环境都创建）
   console.log('创建游客用户...');
   const hashedGuestPassword = await bcrypt.hash('123456', 10);
@@ -174,24 +141,6 @@ export async function seedUsers(
       userId: guestUser.userId,
       roleId: roles.guestRole.roleId,
     },
-  });
-
-  // 创建游客用户设置
-  const guestSettings = {
-    theme: 'light',
-    language: 'zh-CN',
-    sidebarCollapsed: false,
-    pageSize: 20,
-    timezone: 'Asia/Shanghai',
-    showWatermark: true,
-    enableNotification: false,
-    colorScheme: 'default',
-  };
-
-  await prisma.userSettings.upsert({
-    where: { userId: guestUser.userId },
-    update: { settings: guestSettings },
-    create: { userId: guestUser.userId, settings: guestSettings },
   });
 
   console.log('✅ 游客用户创建成功');
@@ -403,22 +352,6 @@ export async function seedUsers(
         },
       });
 
-      // 创建用户设置
-      const testSettings = {
-        theme: i % 3 === 0 ? 'dark' : 'light',
-        language: 'zh-CN',
-        sidebarCollapsed: i % 2 === 0,
-        pageSize: [10, 20, 50][i % 3],
-        timezone: 'Asia/Shanghai',
-        showWatermark: true,
-        enableNotification: i % 4 !== 0,
-        colorScheme: ['default', 'blue', 'green', 'purple'][i % 4],
-      };
-      await prisma.userSettings.upsert({
-        where: { userId: user.userId },
-        update: { settings: testSettings },
-        create: { userId: user.userId, settings: testSettings },
-      });
     }
 
     console.log(`✅ 成功创建 ${testUsers.length} 个测试用户`);

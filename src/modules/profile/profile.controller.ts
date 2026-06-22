@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -6,36 +6,36 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ProfileService } from './profile.service';
-import { AuthService } from '@/modules/auth/auth.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
-import { CurrentUserResponseDto } from '@/modules/auth/dto/current-user-response.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 import { UserPermissionsResponseDto } from './dto/user-permissions-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
+import { PaginationDto } from '@/shared/dtos/pagination.dto';
 
 @ApiTags('个人中心')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('profile')
 export class ProfileController {
-  constructor(
-    private readonly profileService: ProfileService,
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly profileService: ProfileService) {}
 
   @Get()
-  @ApiOperation({ summary: '获取当前用户信息' })
+  @ApiOperation({
+    summary: '获取个人资料',
+    description: '返回当前用户的个人资料信息（昵称、头像、联系方式等）',
+  })
   @ApiResponse({
     status: 200,
-    description: '当前用户完整信息',
-    type: CurrentUserResponseDto,
+    description: '个人资料',
+    type: ProfileResponseDto,
   })
   async getProfile(@CurrentUser() user: { userId: string }) {
-    const data = await this.authService.getCurrentUser(user.userId);
-    return ResponseUtil.found(data, '获取当前用户信息');
+    const data = await this.profileService.getProfile(user.userId);
+    return ResponseUtil.found(data, '获取个人资料成功');
   }
 
   @Get('permissions')
@@ -117,5 +117,16 @@ export class ProfileController {
   ) {
     const data = await this.profileService.updateSettings(user.userId, dto);
     return ResponseUtil.success(data, '更新偏好设置成功');
+  }
+
+  @Get('login-logs')
+  @ApiOperation({ summary: '获取个人登录日志' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async getLoginLogs(
+    @CurrentUser() user: { userId: string },
+    @Query() query: PaginationDto,
+  ) {
+    const data = await this.profileService.getLoginLogs(user.userId, query);
+    return ResponseUtil.paginated(data, '获取登录日志成功');
   }
 }

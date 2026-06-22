@@ -137,6 +137,40 @@ export class CurrentUserPositionResponseDto {
   description?: string;
 }
 
+export class CurrentUserProfileDto {
+  @ApiProperty({ description: '昵称' })
+  @Expose()
+  nickname: string;
+
+  @ApiPropertyOptional({ description: '头像' })
+  @Expose()
+  @Transform(({ value }): string | null => value ?? null)
+  avatar?: string | null;
+
+  @ApiPropertyOptional({ description: '邮箱' })
+  @Expose()
+  @Transform(({ value }): string | null => value ?? null)
+  email?: string | null;
+
+  @ApiPropertyOptional({ description: '手机号码' })
+  @Expose()
+  @Transform(({ value }): string | null => value ?? null)
+  phone?: string | null;
+
+  @ApiPropertyOptional({ description: '性别' })
+  @Expose()
+  @Transform(({ value }): string | null => value ?? null)
+  gender?: string | null;
+
+  @ApiProperty({
+    description: '用户状态',
+    enum: UserStatus,
+    example: UserStatus.ENABLED,
+  })
+  @Expose()
+  status: UserStatus;
+}
+
 export class CurrentUserResponseDto {
   @ApiProperty({ description: '用户数据库ID', type: 'integer' })
   @ApiProperty({ type: 'integer' })
@@ -154,41 +188,6 @@ export class CurrentUserResponseDto {
   @ApiProperty({ description: '用户名' })
   @Expose()
   username: string;
-
-  @ApiProperty({ description: '昵称' })
-  @Expose()
-  nickname: string;
-
-  @ApiPropertyOptional({ description: '头像' })
-  @Expose()
-  @Transform(({ value }): string => value ?? '')
-  avatar?: string;
-
-  @ApiPropertyOptional({ description: '邮箱' })
-  @Expose()
-  @Transform(({ value }): string => value ?? '')
-  email?: string;
-
-  @ApiPropertyOptional({ description: '手机号码' })
-  @Expose()
-  @Transform(({ value }): string => value ?? '')
-  phone?: string;
-
-  @ApiProperty({
-    description: '用户状态',
-    enum: UserStatus,
-    example: UserStatus.ENABLED,
-  })
-  @Expose()
-  status: UserStatus;
-
-  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
-  @Expose()
-  createdAt: Date;
-
-  @ApiProperty({ description: '更新时间', type: 'string', format: 'date-time' })
-  @Expose()
-  updatedAt: Date;
 
   @ApiPropertyOptional({ description: '是否为超级管理员', type: 'boolean' })
   @Expose()
@@ -242,32 +241,6 @@ export class CurrentUserResponseDto {
   department?: CurrentUserDepartmentResponseDto;
 
   @ApiPropertyOptional({
-    description: '用户偏好设置',
-    type: 'object',
-    additionalProperties: true,
-    example: {
-      theme: 'light',
-      language: 'zh-CN',
-      sidebarCollapsed: false,
-      pageSize: 20,
-      timezone: 'Asia/Shanghai',
-    },
-  })
-  @Expose()
-  @Transform(({ obj }: { obj: any }): Record<string, unknown> => {
-    try {
-      if (!obj?.userSettings) {
-        return {};
-      }
-      const settings = obj.userSettings.settings;
-      return typeof settings === 'object' && settings !== null ? settings : {};
-    } catch {
-      return {};
-    }
-  })
-  preferences?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
     description: '所属岗位',
     type: [CurrentUserPositionResponseDto],
   })
@@ -296,4 +269,38 @@ export class CurrentUserResponseDto {
     }
   })
   positions?: CurrentUserPositionResponseDto[];
+
+  @ApiPropertyOptional({
+    description: '用户偏好设置',
+    type: 'object',
+    additionalProperties: true,
+    example: {
+      theme: 'light',
+      language: 'zh-CN',
+      sidebarCollapsed: false,
+      pageSize: 20,
+      timezone: 'Asia/Shanghai',
+    },
+  })
+  @Expose()
+  @Transform(({ obj }: { obj: any }): Record<string, unknown> => {
+    try {
+      if (!obj?.userSettings) {
+        return {};
+      }
+      const settings = obj.userSettings.settings;
+      return typeof settings === 'object' && settings !== null ? settings : {};
+    } catch {
+      return {};
+    }
+  })
+  preferences?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: '个人资料',
+    type: CurrentUserProfileDto,
+  })
+  @Expose()
+  @Type(() => CurrentUserProfileDto)
+  profile?: CurrentUserProfileDto;
 }

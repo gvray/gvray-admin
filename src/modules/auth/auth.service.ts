@@ -12,6 +12,7 @@ import { AuthMenuResponseDto } from './dto/menu-response.dto';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
 import { UAParser } from 'ua-parser-js';
@@ -68,7 +69,7 @@ export class AuthService {
       where: { roleKey: defaultRoleKey },
     });
 
-    // 使用事务保证用户、角色关联、设置的一致性
+    // 使用事务保证用户、角色关联的一致性
     const user = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: {
@@ -93,22 +94,8 @@ export class AuthService {
         });
       }
 
-      // 创建默认用户设置
-      await tx.userSettings.create({
-        data: {
-          userId: created.userId,
-          settings: {
-            theme: 'light',
-            language: 'zh-CN',
-            sidebarCollapsed: false,
-            pageSize: 10,
-            timezone: 'Asia/Shanghai',
-            showWatermark: true,
-            enableNotification: true,
-            colorScheme: 'default',
-          },
-        },
-      });
+      // 注：不创建默认 userSettings，方案 A（只存差异）
+      // 前端渲染时：userSettings.x ?? runtimeConfig.ui.x
 
       return created;
     });
@@ -237,8 +224,6 @@ export class AuthService {
         email: true,
         phone: true,
         status: true,
-        createdAt: true,
-        updatedAt: true,
         avatar: true,
         userRoles: {
           select: {
@@ -294,20 +279,13 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    const userResponse = plainToInstance(CurrentUserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
-
-    // 计算是否为超级管理员（约定：仅当存在 roleKey === 'super_admin' 的角色时为超管）
+    // 重组为嵌套结构
     const rolesArr: any[] = Array.isArray((user as any).userRoles)
       ? (user as any).userRoles
       : [];
     const isSuperAdmin = rolesArr.some(
       (ur: any) => ur.role?.roleKey === SUPER_ROLE_KEY,
     );
-
-    // 将 isSuperAdmin 合并到响应对象
-    Object.assign(userResponse, { isSuperAdmin });
 
     const permissionCodes: string[] = Array.from(
       new Set(
@@ -321,9 +299,27 @@ export class AuthService {
       ),
     );
 
-    Object.assign(userResponse, { permissionCodes });
+    const payload = {
+      userId: user.userId,
+      username: user.username,
+      isSuperAdmin,
+      permissionCodes,
+      userRoles: user.userRoles,
+      department: user.department,
+      userPositions: user.userPositions,
+      userSettings: user.userSettings,
+      profile: {
+        nickname: user.nickname,
+        avatar: user.avatar,
+        email: user.email,
+        phone: user.phone,
+        status: user.status,
+      },
+    };
 
-    return userResponse;
+    return plainToInstance(CurrentUserResponseDto, payload, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async logout(userId: string): Promise<void> {
