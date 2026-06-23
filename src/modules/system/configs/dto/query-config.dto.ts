@@ -33,6 +33,14 @@ export class QueryConfigDto extends PaginationDto {
   status?: string;
 
   @ApiPropertyOptional({
+    description: '是否对前端公开：true-公开, false-不公开',
+    example: 'true',
+  })
+  @IsOptional()
+  @IsString()
+  isPublic?: string;
+
+  @ApiPropertyOptional({
     description: '创建时间开始（YYYY-MM-DD）',
     example: '2026-01-01',
   })

@@ -3,7 +3,6 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
@@ -19,7 +18,6 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 export class ConfigsService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
   ) {
     super(prisma);
   }
@@ -44,11 +42,12 @@ export class ConfigsService extends BaseService {
   async findAll(
     query: QueryConfigDto,
   ): Promise<PaginationData<ConfigResponseDto>> {
-    const { key, name, type, group, status, createdAtStart, createdAtEnd } =
+    const { key, name, type, group, status, isPublic, createdAtStart, createdAtEnd } =
       query;
     const where = this.buildWhere({
       contains: { key, name },
       equals: { type, group, status },
+      boolean: { field: 'isPublic', value: isPublic },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
 
@@ -164,7 +163,7 @@ export class ConfigsService extends BaseService {
 
   /**
    * 获取公开运行时配置（供前端无鉴权初始化使用）
-   * 过滤掉敏感字段：security、storage、oauth、mail、sms、capabilities
+   * 仅返回 config 表中 isPublic=true 的配置，按 group 动态分组聚合
    */
   async getPublicRuntimeConfig(): Promise<Partial<RuntimeConfigResponseDto>> {
     return this.buildPublicRuntimeConfig();
@@ -173,7 +172,7 @@ export class ConfigsService extends BaseService {
   // ==================== 私有方法 ====================
 
   private async buildRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
-    const full = await this.buildConfigCore();
+    const groups = await this.buildConfigCore();
     const [totalUsers, totalRoles, totalPermissions] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.role.count(),
@@ -181,12 +180,7 @@ export class ConfigsService extends BaseService {
     ]);
 
     return {
-      ...full,
-      security: full.security,
-      storage: full.storage,
-      oauth: full.oauth,
-      mail: full.mail,
-      sms: full.sms,
+      ...groups,
       capabilities: {
         totalUsers,
         totalRoles,
@@ -196,20 +190,19 @@ export class ConfigsService extends BaseService {
   }
 
   private async buildPublicRuntimeConfig(): Promise<Partial<RuntimeConfigResponseDto>> {
-    const full = await this.buildConfigCore();
-    return {
-      system: full.system,
-      env: full.env,
-      ui: full.ui,
-      user: full.user,
-      feature: full.feature,
-    };
+    return this.buildConfigCore({ publicOnly: true });
   }
 
-  private async buildConfigCore(): Promise<Record<string, any>> {
-    // 1. 读取 config 表所有 enabled 配置（动态聚合，不再硬编码 key）
+  private async buildConfigCore(
+    options?: { publicOnly?: boolean },
+  ): Promise<Record<string, any>> {
+    const where: any = { status: CommonStatus.ENABLED };
+    if (options?.publicOnly) {
+      where.isPublic = true;
+    }
+
     const configs = await this.prisma.config.findMany({
-      where: { status: CommonStatus.ENABLED },
+      where,
       orderBy: [{ group: 'asc' }, { sort: 'asc' }],
     });
 
@@ -224,87 +217,8 @@ export class ConfigsService extends BaseService {
       groups[group][field] = this.castValue(c.value, c.type);
     }
 
-    const pick = (g: string, defaults: Record<string, unknown>) => ({
-      ...defaults,
-      ...(groups[g] || {}),
-    });
-
-    const apiPrefix =
-      this.configService.get<string>('APP_GLOBAL_PREFIX') || '/api/v1';
-
     return {
-      system: pick('system', {
-        name: 'GVRAY Admin',
-        logo: '/logo.svg',
-        favicon: '/favicon.ico',
-        welcomeMessage: '欢迎使用 GVRAY Admin',
-        copyright: '© 2025 GVRAY Admin. All rights reserved.',
-        icp: '',
-        timezone: 'Asia/Shanghai',
-      }),
-      env: {
-        mode: process.env.NODE_ENV || 'development',
-        apiPrefix,
-      },
-      ui: pick('ui', {
-        theme: 'light',
-        language: 'zh-CN',
-        pageSize: 10,
-        showBreadcrumb: true,
-        sidebarCollapsed: false,
-        dateFormat: 'YYYY-MM-DD',
-        timeFormat: 'HH:mm:ss',
-        primaryColor: '#1890ff',
-        timezone: 'Asia/Shanghai',
-        enableNotification: true,
-        grayMode: false,
-      }),
-      security: pick('security', {
-        watermarkEnabled: true,
-        passwordMinLength: 8,
-        passwordMaxLength: 32,
-        passwordRequireComplexity: true,
-        passwordExpiryDays: 0,
-        mustChangePassword: true,
-        loginFailureLockCount: 5,
-        loginFailureLockDuration: 30,
-        sessionConcurrentLimit: 3,
-      }),
-      user: pick('user', {
-        defaultRole: 'user',
-        defaultAvatar:
-          'https://api.dicebear.com/9.x/bottts/svg?seed=GVRAY',
-      }),
-      feature: pick('feature', {
-        register: true,
-        auditLog: true,
-        emailNotification: true,
-        smsNotification: false,
-        mfa: false,
-      }),
-      storage: pick('storage', {
-        provider: 'local',
-        maxFileSize: 10485760,
-        allowedTypes: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
-        baseUrl: '',
-      }),
-      oauth: pick('oauth', {
-        githubEnabled: false,
-        googleEnabled: false,
-        wechatEnabled: false,
-      }),
-      mail: pick('mail', {
-        enabled: false,
-        host: '',
-        port: 465,
-        from: '',
-        ssl: true,
-      }),
-      sms: pick('sms', {
-        enabled: false,
-        provider: 'aliyun',
-        signature: '',
-      }),
+      ...groups,
     };
   }
 

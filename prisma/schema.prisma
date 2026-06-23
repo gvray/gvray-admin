@@ -353,6 +353,7 @@ model Config {
   group       String  @default("system") // 配置分组
   status      String  @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int     @default(0) // 排序权重
+  isPublic    Boolean @default(false) // 是否对前端公开
   remark      String? @db.Text // 备注信息
 
   // 审计字段

@@ -184,24 +184,6 @@ export class UsersService extends BaseService {
       });
     }
 
-    // 自动分配默认角色
-    const defaultRoleConfig = await this.prisma.config.findUnique({
-      where: { key: 'user.defaultRole' },
-    });
-    const defaultRoleKey = defaultRoleConfig?.value || 'user';
-    const defaultRole = await this.prisma.role.findUnique({
-      where: { roleKey: defaultRoleKey },
-    });
-    if (defaultRole) {
-      await this.prisma.userRole.create({
-        data: {
-          userId: user.userId,
-          roleId: defaultRole.roleId,
-          createdById: currentUserId,
-        },
-      });
-    }
-
     // 初始化用户默认偏好设置
     await this.prisma.userSettings.create({
       data: {

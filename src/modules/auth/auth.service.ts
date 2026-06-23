@@ -58,9 +58,9 @@ export class AuthService {
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 读取默认角色编码配置
+    // 读取自助注册默认角色编码配置
     const defaultRoleConfig = await this.prisma.config.findUnique({
-      where: { key: 'user.defaultRole' },
+      where: { key: 'feature.registerDefaultRole' },
     });
     const defaultRoleKey = defaultRoleConfig?.value || 'user';
 

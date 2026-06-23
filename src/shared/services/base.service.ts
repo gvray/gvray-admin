@@ -16,6 +16,7 @@ export abstract class BaseService {
   protected buildWhere(params: {
     contains?: Record<string, string | undefined>;
     equals?: Record<string, unknown>;
+    boolean?: { field: string; value?: string };
     date?: {
       field: string;
       start?: string;
@@ -36,6 +37,10 @@ export abstract class BaseService {
           where[key] = val;
         }
       }
+    }
+    const b = params.boolean;
+    if (b?.value !== undefined && b.value !== '') {
+      where[b.field] = b.value === 'true' || b.value === '1';
     }
     const d = params.date;
     if (d) {

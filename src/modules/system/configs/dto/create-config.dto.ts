@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, IsBoolean } from 'class-validator';
 
 export class CreateConfigDto {
   @ApiProperty({ description: '配置键' })
@@ -43,4 +43,9 @@ export class CreateConfigDto {
   @IsOptional()
   @IsString()
   remark?: string;
+
+  @ApiProperty({ description: '是否对前端公开', default: false, type: 'boolean' })
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean = false;
 }

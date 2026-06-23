@@ -7,7 +7,7 @@ export async function seedConfigs() {
   console.log('🌱 开始创建可配置数据...');
 
   const configsData = [
-    // ====================== 系统配置 ======================
+    // ====================== 系统配置 (全部公开) ======================
     {
       key: 'system.name',
       value: 'GVRAY Admin',
@@ -17,6 +17,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: true,
       remark: '品牌基础配置',
     },
     {
@@ -28,6 +29,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: true,
       remark: '品牌视觉配置',
     },
     {
@@ -39,6 +41,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: true,
       remark: '品牌视觉配置',
     },
     {
@@ -50,6 +53,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 3,
+      isPublic: true,
       remark: '品牌文案配置',
     },
     {
@@ -61,6 +65,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 4,
+      isPublic: true,
       remark: '法律信息配置',
     },
     {
@@ -72,6 +77,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 5,
+      isPublic: true,
       remark: '法律信息配置',
     },
     {
@@ -83,6 +89,7 @@ export async function seedConfigs() {
       group: 'system',
       status: CommonStatus.ENABLED,
       sort: 6,
+      isPublic: true,
       remark: '区域化配置',
     },
 
@@ -96,6 +103,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: true,
       remark: '数据防泄漏',
     },
     {
@@ -107,6 +115,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: false,
       remark: '密码策略',
     },
     {
@@ -118,6 +127,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: false,
       remark: '密码策略',
     },
     {
@@ -129,6 +139,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 3,
+      isPublic: false,
       remark: '密码策略',
     },
     {
@@ -140,6 +151,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 4,
+      isPublic: false,
       remark: '密码策略',
     },
     {
@@ -151,6 +163,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 5,
+      isPublic: false,
       remark: '账号安全',
     },
     {
@@ -162,6 +175,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 6,
+      isPublic: false,
       remark: '暴力破解防护',
     },
     {
@@ -173,6 +187,7 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 7,
+      isPublic: false,
       remark: '暴力破解防护',
     },
     {
@@ -184,20 +199,22 @@ export async function seedConfigs() {
       group: 'security',
       status: CommonStatus.ENABLED,
       sort: 8,
+      isPublic: false,
       remark: '会话管理',
     },
 
     // ====================== 用户配置 ======================
     {
-      key: 'user.defaultRole',
+      key: 'feature.registerDefaultRole',
       value: 'user',
-      name: '默认角色编码',
-      description: '新注册用户或被管理员创建用户时分配的默认角色',
+      name: '注册用户默认角色编码',
+      description: '前端自助注册用户时分配的默认角色（管理员后台添加用户时不使用）',
       type: 'string',
-      group: 'user',
+      group: 'feature',
       status: CommonStatus.ENABLED,
-      sort: 0,
-      remark: '用户初始化',
+      sort: 10,
+      isPublic: false,
+      remark: '注册准入',
     },
     {
       key: 'user.defaultAvatar',
@@ -208,12 +225,13 @@ export async function seedConfigs() {
       group: 'user',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: true,
       remark: '用户初始化',
     },
 
-    // ====================== 界面配置 ======================
+    // ====================== 界面配置 (全部公开) ======================
     {
-      key: 'ui.theme',
+      key: 'ui.defaultTheme',
       value: 'light',
       name: '默认主题',
       description: '系统默认主题，用户可在个人设置中覆盖',
@@ -221,10 +239,11 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: true,
       remark: '界面主题',
     },
     {
-      key: 'ui.language',
+      key: 'ui.defaultLanguage',
       value: 'zh-CN',
       name: '默认语言',
       description: '系统默认语言，用户可在个人设置中覆盖',
@@ -232,10 +251,11 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: true,
       remark: '国际化',
     },
     {
-      key: 'ui.pageSize',
+      key: 'ui.defaultPageSize',
       value: '10',
       name: '表格默认分页',
       description: '数据列表每页默认展示条数，用户可在个人设置中覆盖',
@@ -243,6 +263,7 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: true,
       remark: '界面偏好',
     },
     {
@@ -254,10 +275,11 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 3,
+      isPublic: true,
       remark: '界面布局',
     },
     {
-      key: 'ui.sidebarCollapsed',
+      key: 'ui.defaultSidebarCollapsed',
       value: 'false',
       name: '侧边栏默认折叠',
       description: '登录后侧边栏是否默认收起，用户可在个人设置中覆盖',
@@ -265,6 +287,7 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 4,
+      isPublic: true,
       remark: '界面布局',
     },
     {
@@ -276,6 +299,7 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 5,
+      isPublic: true,
       remark: '区域化',
     },
     {
@@ -287,10 +311,11 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 6,
+      isPublic: true,
       remark: '区域化',
     },
     {
-      key: 'ui.primaryColor',
+      key: 'ui.defaultColorPrimary',
       value: '#1890ff',
       name: '主题主色',
       description: '系统默认主题主色（Hex 值），用户可在个人设置中覆盖',
@@ -298,6 +323,7 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 7,
+      isPublic: true,
       remark: '品牌色',
     },
     {
@@ -309,6 +335,7 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 8,
+      isPublic: true,
       remark: '区域化',
     },
     {
@@ -320,6 +347,7 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 9,
+      isPublic: true,
       remark: '通知偏好',
     },
     {
@@ -331,10 +359,11 @@ export async function seedConfigs() {
       group: 'ui',
       status: CommonStatus.ENABLED,
       sort: 10,
+      isPublic: true,
       remark: '特殊场景',
     },
 
-    // ====================== 功能开关 ======================
+    // ====================== 功能开关 (全部公开) ======================
     {
       key: 'feature.register',
       value: 'false',
@@ -344,6 +373,7 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: true,
       remark: '准入控制',
     },
     {
@@ -355,6 +385,7 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: true,
       remark: '安全审计',
     },
     {
@@ -366,6 +397,7 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: true,
       remark: '通知通道',
     },
     {
@@ -377,6 +409,7 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 3,
+      isPublic: true,
       remark: '通知通道',
     },
     {
@@ -388,6 +421,7 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 4,
+      isPublic: true,
       remark: '身份安全',
     },
 
@@ -400,6 +434,7 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.DISABLED,
       sort: 5,
+      isPublic: true,
       remark: '演示环境专用',
     },
 
@@ -413,6 +448,7 @@ export async function seedConfigs() {
       group: 'storage',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: false,
       remark: '存储后端',
     },
     {
@@ -424,6 +460,7 @@ export async function seedConfigs() {
       group: 'storage',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: true,
       remark: '上传限制',
     },
     {
@@ -435,6 +472,7 @@ export async function seedConfigs() {
       group: 'storage',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: true,
       remark: '上传限制',
     },
     {
@@ -446,10 +484,11 @@ export async function seedConfigs() {
       group: 'storage',
       status: CommonStatus.ENABLED,
       sort: 3,
+      isPublic: false,
       remark: '访问配置',
     },
 
-    // ====================== 第三方登录 ======================
+    // ====================== 第三方登录 (全部公开) ======================
     {
       key: 'oauth.githubEnabled',
       value: 'false',
@@ -459,6 +498,7 @@ export async function seedConfigs() {
       group: 'oauth',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: true,
       remark: 'OAuth 开关',
     },
     {
@@ -470,6 +510,7 @@ export async function seedConfigs() {
       group: 'oauth',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: true,
       remark: 'OAuth 开关',
     },
     {
@@ -481,10 +522,11 @@ export async function seedConfigs() {
       group: 'oauth',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: true,
       remark: 'OAuth 开关',
     },
 
-    // ====================== 邮件配置 ======================
+    // ====================== 邮件配置 (全部不公开) ======================
     {
       key: 'mail.enabled',
       value: 'false',
@@ -494,6 +536,7 @@ export async function seedConfigs() {
       group: 'mail',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: false,
       remark: '邮件总开关',
     },
     {
@@ -505,6 +548,7 @@ export async function seedConfigs() {
       group: 'mail',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: false,
       remark: 'SMTP 连接',
     },
     {
@@ -516,6 +560,7 @@ export async function seedConfigs() {
       group: 'mail',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: false,
       remark: 'SMTP 连接',
     },
     {
@@ -527,6 +572,7 @@ export async function seedConfigs() {
       group: 'mail',
       status: CommonStatus.ENABLED,
       sort: 3,
+      isPublic: false,
       remark: '邮件发送方',
     },
     {
@@ -538,10 +584,11 @@ export async function seedConfigs() {
       group: 'mail',
       status: CommonStatus.ENABLED,
       sort: 4,
+      isPublic: false,
       remark: 'SMTP 安全',
     },
 
-    // ====================== 短信配置 ======================
+    // ====================== 短信配置 (全部不公开) ======================
     {
       key: 'sms.enabled',
       value: 'false',
@@ -551,6 +598,7 @@ export async function seedConfigs() {
       group: 'sms',
       status: CommonStatus.ENABLED,
       sort: 0,
+      isPublic: false,
       remark: '短信总开关',
     },
     {
@@ -562,6 +610,7 @@ export async function seedConfigs() {
       group: 'sms',
       status: CommonStatus.ENABLED,
       sort: 1,
+      isPublic: false,
       remark: '服务商选择',
     },
     {
@@ -573,6 +622,7 @@ export async function seedConfigs() {
       group: 'sms',
       status: CommonStatus.ENABLED,
       sort: 2,
+      isPublic: false,
       remark: '短信内容',
     },
   ];

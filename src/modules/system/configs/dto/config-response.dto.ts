@@ -39,6 +39,10 @@ export class ConfigResponseDto {
   sort: number;
 
   @Expose()
+  @ApiProperty({ description: '是否对前端公开', type: 'boolean' })
+  isPublic: boolean;
+
+  @Expose()
   @ApiProperty({ description: '备注信息' })
   remark?: string;
 

@@ -13,7 +13,7 @@ export class ConfigsRuntimeController {
   @ApiOperation({
     summary: '获取前端运行时配置',
     description:
-      '公开接口，无需认证。前端初始化系统时拉取必要配置。仅返回安全白名单字段，敏感配置不会暴露。',
+      '公开接口，无需认证。前端初始化系统时拉取必要配置。仅返回 config 表中 isPublic=true 的配置，按 group 动态分组聚合。敏感配置（如 mail/sms 后端凭据）默认不暴露，管理员可通过配置管理后台调整 isPublic 字段灵活控制。',
   })
   @ApiResponse({
     status: 200,
