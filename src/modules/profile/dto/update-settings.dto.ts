@@ -18,12 +18,12 @@ export class UpdateSettingsDto {
 
   @ApiPropertyOptional({
     description: '主题模式',
-    enum: ['light', 'dark', 'auto'],
+    enum: ['light', 'dark', 'system'],
     example: 'light',
   })
   @IsOptional()
   @IsString()
-  @IsIn(['light', 'dark', 'auto'])
+  @IsIn(['light', 'dark', 'system'])
   theme?: string;
 
   @ApiPropertyOptional({
