@@ -32,7 +32,7 @@ export class UpdateSettingsDto {
   })
   @IsOptional()
   @IsString()
-  primaryColor?: string;
+  colorPrimary?: string;
 
   @ApiPropertyOptional({
     description: '色弱模式',
@@ -61,12 +61,13 @@ export class UpdateSettingsDto {
   showLogo?: boolean;
 
   @ApiPropertyOptional({
-    description: '侧边栏深色（theme 控制全局亮暗，此字段仅控制侧边栏是否深色）',
-    example: false,
+    description: '侧边栏主题（light / dark，与全局 theme 独立控制）',
+    example: 'light',
   })
   @IsOptional()
-  @IsBoolean()
-  sidebarDark?: boolean;
+  @IsString()
+  @IsIn(['light', 'dark'])
+  sidebarTheme?: string;
 
   @ApiPropertyOptional({
     description: '侧边栏是否折叠',
@@ -121,14 +122,6 @@ export class UpdateSettingsDto {
   @Min(5)
   @Max(100)
   pageSize?: number;
-
-  @ApiPropertyOptional({
-    description: '时区',
-    example: 'Asia/Shanghai',
-  })
-  @IsOptional()
-  @IsString()
-  timezone?: string;
 
   @ApiPropertyOptional({
     description: '是否启用通知',
