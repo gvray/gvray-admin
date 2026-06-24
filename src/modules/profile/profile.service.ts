@@ -206,6 +206,15 @@ export class ProfileService {
     return record.settings;
   }
 
+  async resetSettings(userId: string) {
+    const record = await this.prisma.userSettings.upsert({
+      where: { userId },
+      update: { settings: {} },
+      create: { userId, settings: {} },
+    });
+    return record.settings;
+  }
+
   async getLoginLogs(userId: string, query: { page?: number; pageSize?: number }) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;

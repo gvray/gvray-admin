@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -117,6 +117,22 @@ export class ProfileController {
   ) {
     const data = await this.profileService.updateSettings(user.userId, dto);
     return ResponseUtil.success(data, '更新偏好设置成功');
+  }
+
+  @Delete('settings')
+  @ApiOperation({ summary: '重置个人偏好设置' })
+  @ApiResponse({
+    status: 200,
+    description: '重置成功',
+    schema: {
+      type: 'object',
+      additionalProperties: true,
+      example: {},
+    },
+  })
+  async resetSettings(@CurrentUser() user: { userId: string }) {
+    const data = await this.profileService.resetSettings(user.userId);
+    return ResponseUtil.success(data, '偏好设置已重置');
   }
 
   @Get('login-logs')
