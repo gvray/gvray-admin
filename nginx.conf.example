@@ -1,4 +1,4 @@
-# NestAdmin 生产环境 Nginx 配置示例
+# GVRAY Admin 生产环境 Nginx 配置示例
 # 复制到 /etc/nginx/sites-available/ 并创建软链接到 sites-enabled
 
 server {
@@ -110,12 +110,12 @@ server {
     }
 
     # 日志配置
-    access_log /var/log/nginx/nestadmin.access.log;
-    error_log /var/log/nginx/nestadmin.error.log;
+    access_log /var/log/nginx/gvrayadmin.access.log;
+    error_log /var/log/nginx/gvrayadmin.error.log;
 }
 
 # 负载均衡配置示例 (多实例部署)
-# upstream nestadmin_backend {
+# upstream gvrayadmin_backend {
 #     least_conn;
 #     server 127.0.0.1:8001 max_fails=3 fail_timeout=30s;
 #     server 127.0.0.1:8002 max_fails=3 fail_timeout=30s;

@@ -54,45 +54,82 @@ curl -X POST http://localhost:8001/auth/login \
 - `POST /auth/register` - 用户注册
 
 ### 👥 用户管理
-- `GET /users` - 获取所有用户
-- `POST /users` - 创建用户
-- `GET /users/{id}` - 获取指定用户
-- `PATCH /users/{id}` - 更新用户
-- `DELETE /users/{id}` - 删除用户
-- `POST /users/{id}/roles` - 为用户分配角色
-- `DELETE /users/{id}/roles` - 移除用户角色
+- `GET /system/users` - 获取所有用户
+- `POST /system/users` - 创建用户
+- `GET /system/users/{userId}` - 获取指定用户
+- `PATCH /system/users/{userId}` - 更新用户
+- `DELETE /system/users/{userId}` - 删除用户
+- `POST /system/users/{userId}/reset-password` - 重置用户密码
+- `PUT /system/users/{userId}/roles` - 为用户分配角色
+- `DELETE /system/users/{userId}/roles` - 移除用户角色
 
 ### 🎭 角色管理
-- `GET /roles` - 获取所有角色
-- `POST /roles` - 创建角色
-- `GET /roles/{id}` - 获取指定角色
-- `PATCH /roles/{id}` - 更新角色
-- `DELETE /roles/{id}` - 删除角色
-- `POST /roles/{id}/permissions` - 为角色分配权限
-- `DELETE /roles/{id}/permissions` - 移除角色权限
+- `GET /system/roles` - 获取所有角色
+- `POST /system/roles` - 创建角色
+- `GET /system/roles/{roleId}` - 获取指定角色
+- `PATCH /system/roles/{roleId}` - 更新角色
+- `DELETE /system/roles/{roleId}` - 删除角色
+- `PUT /system/roles/{roleId}/permissions` - 为角色分配权限
+- `PUT /system/roles/{roleId}/data-scope` - 设置角色数据权限
 
 ### 🔑 权限管理
-- `GET /permissions` - 获取所有权限
-- `POST /permissions` - 创建权限
-- `GET /permissions/{id}` - 获取指定权限
-- `PATCH /permissions/{id}` - 更新权限
-- `DELETE /permissions/{id}` - 删除权限
+- `GET /system/permissions` - 获取所有权限
+- `POST /system/permissions` - 创建权限
+- `GET /system/permissions/{permissionId}` - 获取指定权限
+- `PATCH /system/permissions/{permissionId}` - 更新权限
+- `DELETE /system/permissions/{permissionId}` - 删除权限
+- `POST /system/permissions/scan` - 扫描并同步 API 权限
 
 ### 🏢 部门管理
-- `GET /departments` - 获取所有部门
-- `POST /departments` - 创建部门
-- `GET /departments/tree` - 获取部门树结构
-- `GET /departments/{id}` - 获取指定部门
-- `PATCH /departments/{id}` - 更新部门
-- `DELETE /departments/{id}` - 删除部门
+- `GET /system/departments` - 获取所有部门
+- `POST /system/departments` - 创建部门
+- `GET /system/departments/tree` - 获取部门树结构
+- `GET /system/departments/{departmentId}` - 获取指定部门
+- `PATCH /system/departments/{departmentId}` - 更新部门
+- `DELETE /system/departments/{departmentId}` - 删除部门
 
 ### 💼 岗位管理
-- `GET /positions` - 获取所有岗位
-- `POST /positions` - 创建岗位
-- `GET /positions/department/{departmentId}` - 获取部门岗位
-- `GET /positions/{id}` - 获取指定岗位
-- `PATCH /positions/{id}` - 更新岗位
-- `DELETE /positions/{id}` - 删除岗位
+- `GET /system/positions` - 获取所有岗位
+- `POST /system/positions` - 创建岗位
+- `GET /system/positions/department/{departmentId}` - 获取部门岗位
+- `GET /system/positions/{positionId}` - 获取指定岗位
+- `PATCH /system/positions/{positionId}` - 更新岗位
+- `DELETE /system/positions/{positionId}` - 删除岗位
+
+### ⚙️ 配置管理
+- `GET /system/configs` - 获取配置列表
+- `POST /system/configs` - 创建配置
+- `GET /system/configs/{configId}` - 获取指定配置
+- `PATCH /system/configs/{configId}` - 更新配置
+- `DELETE /system/configs/{configId}` - 删除配置
+
+### 📝 字典管理
+- `GET /system/dictionaries` - 获取字典列表
+- `POST /system/dictionaries` - 创建字典
+- `GET /system/dictionaries/{dictId}` - 获取指定字典
+- `PATCH /system/dictionaries/{dictId}` - 更新字典
+- `DELETE /system/dictionaries/{dictId}` - 删除字典
+
+### 📋 菜单管理
+- `GET /system/menu` - 获取菜单树
+- `POST /system/menu` - 创建菜单
+- `GET /system/menu/{menuId}` - 获取指定菜单
+- `PATCH /system/menu/{menuId}` - 更新菜单
+- `DELETE /system/menu/{menuId}` - 删除菜单
+
+### 📊 监控
+- `GET /monitor/server` - 获取服务器状态（CPU、内存、磁盘）
+
+### 🧑 个人中心
+- `GET /profile` - 获取当前用户信息
+- `PATCH /profile` - 更新当前用户信息
+- `POST /profile/change-password` - 修改密码
+- `GET /profile/settings` - 获取个人设置
+- `PATCH /profile/settings` - 更新个人设置
+
+### 📝 日志
+- `GET /system/login-logs` - 登录日志
+- `GET /system/operation-logs` - 操作日志
 
 ## 默认管理员账户
 

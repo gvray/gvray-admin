@@ -282,8 +282,6 @@ findAll(@Query() query: QueryUsersDto) {
 
 完整的示例代码请参考：
 
-- **服务示例**: `src/modules/permissions/permissions.service.example.ts`
-- **控制器示例**: `src/modules/permissions/permissions.controller.example.ts`
 
 ## 🎯 最佳实践
 
@@ -414,8 +412,6 @@ export class CustomPaginationDto extends PaginationSortDto {
 - [异常过滤器](./src/core/filters/http-exception.filter.ts)
 - [分页DTO](./src/shared/dtos/pagination.dto.ts)
 - [基础服务类](./src/shared/services/base.service.ts)
-- [服务示例](./src/modules/permissions/permissions.service.example.ts)
-- [控制器示例](./src/modules/permissions/permissions.controller.example.ts)
 
 ---
 

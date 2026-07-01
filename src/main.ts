@@ -59,7 +59,7 @@ async function bootstrap() {
 
   // Swagger 配置
   const config = new DocumentBuilder()
-    .setTitle('NestAdmin 企业级后台管理系统')
+    .setTitle('GVRAY Admin 企业级后台管理系统')
     .setDescription(
       '**默认测试账户**\n\n' +
         '| 角色 | 用户名 | 密码 |\n' +
@@ -93,7 +93,7 @@ async function bootstrap() {
       defaultModelExpandDepth: 2,
       defaultModelsExpandDepth: 1,
     },
-    customSiteTitle: 'NestAdmin API 文档',
+    customSiteTitle: 'GVRAY Admin API 文档',
   });
 
   // 启动应用
