@@ -489,6 +489,79 @@ export class UsersService extends BaseService {
     });
   }
 
+  async resetPassword(
+    userId: string,
+    newPassword: string,
+    currentUserId?: string,
+  ): Promise<UserResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { userId: user.userId },
+      data: {
+        password: hashedPassword,
+        updatedBy: currentUserId
+          ? { connect: { userId: currentUserId } }
+          : undefined,
+      },
+    });
+
+    // 重新查询用户以获取完整的关联数据
+    const userWithRelations = await this.prisma.user.findUnique({
+      where: { userId: user.userId },
+      select: {
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        gender: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
+          },
+        },
+        department: {
+          select: {
+            departmentId: true,
+            name: true,
+          },
+        },
+        userPositions: {
+          select: {
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return plainToInstance(UserResponseDto, userWithRelations, {
+      excludeExtraneousValues: true,
+    });
+  }
+
   async remove(userId: string, currentUserId?: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { userId },

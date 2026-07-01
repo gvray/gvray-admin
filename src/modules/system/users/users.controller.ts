@@ -21,6 +21,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { USER_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
@@ -157,6 +158,25 @@ export class UsersController {
       currentUser.userId,
     );
     return ResponseUtil.updated(data, '角色移除成功');
+  }
+
+  @Post(':userId/reset-password')
+  @RequirePermissions(USER_PERMISSIONS.RESET_PASSWORD)
+  @ApiOperation({ summary: '重置用户密码' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 200, description: '密码重置成功', type: UserResponseDto })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  async resetPassword(
+    @Param('userId') userId: string,
+    @Body() resetPasswordDto: ResetPasswordDto,
+    @CurrentUser() currentUser: IUser,
+  ) {
+    const data = await this.usersService.resetPassword(
+      userId,
+      resetPasswordDto.newPassword,
+      currentUser.userId,
+    );
+    return ResponseUtil.updated(data, '密码重置成功');
   }
 
   @Post('batch-delete')
