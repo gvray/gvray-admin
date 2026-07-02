@@ -102,7 +102,9 @@ export class UsersService extends BaseService {
     createUserDto: CreateUserDto,
     currentUserId?: string,
   ): Promise<UserResponseDto> {
-    const { password, departmentId, positionIds, ...rest } = createUserDto;
+    const { password, departmentId, positionIds, roleIds, ...rest } =
+      createUserDto;
+    const uniqueRoleIds = [...new Set(roleIds ?? [])];
 
     // 检查邮箱是否已存在（如果提供了邮箱）
     if (rest.email) {
@@ -146,6 +148,8 @@ export class UsersService extends BaseService {
       }
     }
 
+    await this.validateRoleIds(uniqueRoleIds);
+
     const user = await this.prisma.user.create({
       data: {
         ...rest,
@@ -184,6 +188,17 @@ export class UsersService extends BaseService {
       });
     }
 
+    // 创建用户角色关联
+    if (uniqueRoleIds.length > 0) {
+      await this.prisma.userRole.createMany({
+        data: uniqueRoleIds.map((roleId) => ({
+          userId: user.userId,
+          roleId,
+          createdById: currentUserId,
+        })),
+      });
+    }
+
     // 初始化用户默认偏好设置
     await this.prisma.userSettings.create({
       data: {
@@ -201,13 +216,53 @@ export class UsersService extends BaseService {
       },
     });
 
-    // 移除密码字段
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = user;
-    const userResponse = plainToInstance(UserResponseDto, userWithoutPassword, {
+    // 重新查询用户以获取完整的关联数据
+    const userWithRelations = await this.prisma.user.findUnique({
+      where: { userId: user.userId },
+      select: {
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        gender: true,
+        description: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
+          },
+        },
+        department: {
+          select: {
+            departmentId: true,
+            name: true,
+          },
+        },
+        userPositions: {
+          select: {
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
     });
-    return userResponse;
   }
 
   async findAll(
