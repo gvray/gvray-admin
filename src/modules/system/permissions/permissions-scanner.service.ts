@@ -252,7 +252,7 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
    * 扫描完成后自动分配权限：
    * - super_admin：全部权限
    * - admin：全部权限
-   * - guest：仅 GET（查看类）权限
+   * - guest：全部权限（用于前端菜单/按钮展示，写操作由 GuestWriteGuard 拦截）
    */
   private async assignAllRolePermissions(): Promise<{
     superAdmin: { newAssigned: number; total: number };
