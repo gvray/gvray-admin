@@ -55,7 +55,7 @@ curl -X POST http://localhost:8001/auth/login \
 
 ### 👥 用户管理
 - `GET /system/users` - 获取所有用户
-- `POST /system/users` - 创建用户
+- `POST /system/users` - 创建用户（后台创建支持 `roleIds` 指定角色；自助注册 `/auth/register` 使用默认角色配置）
 - `GET /system/users/{userId}` - 获取指定用户
 - `PATCH /system/users/{userId}` - 更新用户
 - `DELETE /system/users/{userId}` - 删除用户

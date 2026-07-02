@@ -196,29 +196,13 @@ curl -X GET http://localhost:8001/system/users \
 
 ## 🤖 AI 编程支持
 
-本项目专为 AI 驱动开发优化，内置完整的 AI 助手配置：
+本项目提供轻量化的 AI 助手上下文，避免默认加载过多文档：
 
-### CLAUDE.md — AI 项目指南
+- [CLAUDE.md](./CLAUDE.md)：Claude Code 自动加载入口，只保留项目硬规则和按需索引。
+- [.claude/project/](./.claude/project/)：AI 助手按需知识库，包含工作流、架构、DTO、权限、响应格式等细分说明。
+- [docs/](./docs/)：保留给未来产品/API/用户/部署文档；当前 `docs/AGENTS.md` 等旧路径仅作为兼容入口。
 
-项目根目录下的 [`CLAUDE.md`](./CLAUDE.md) 是为 Claude Code / Cursor / GitHub Copilot 等 AI 工具编写的项目指南，包含：
-
-- **架构约定** — 模块结构、路径别名、权限命名规范
-- **编码规范** — Controller / Service / DTO 的标准写法
-- **开发流程** — 新增模块、数据库变更、权限扫描的标准步骤
-- **避坑指南** — 常见错误和 AI 容易踩的坑
-
-使用 AI 编程时，助手会自动读取 `CLAUDE.md`，生成的代码**直接符合项目规范**，无需人工调整。
-
-### AI 编程优势
-
-| 场景 | 传统开发 | AI 驱动开发 |
-|------|---------|------------|
-| 新增一个 CRUD 模块 | 30 分钟（写代码 + 调规范） | **3 分钟**（AI 生成，直接可用） |
-| 新增权限控制 | 手动改常量 + 装饰器 + seed | AI 一键同步，零遗漏 |
-| 数据库变更 | 改 schema + 手动写迁移 + 同步 DTO | AI 自动改 schema + 生成 DTO + 更新 service |
-| 代码审查 | 人工逐行检查 | AI 基于 `CLAUDE.md` 规范自动审查 |
-
-> 💡 **提示**: 使用 Claude Code 打开本项目，输入 `/init` 即可自动加载项目配置。
+使用 AI 编程时，先让助手读取相关模块文件；涉及 DTO、权限、响应格式、配置或部署时，再按需读取 `.claude/project/` 下对应文档。
 
 ---
 
@@ -264,10 +248,13 @@ src/
 │   └── utils/            # 工具函数（ResponseUtil / TimeUtil）
 └── main.ts               # 应用入口（Swagger / 全局管道 / 拦截器）
 
-docs/                     # AI 编程助手文档
-├── AGENTS.md             # AI 编程指南（@符号 / 开发流程 / 避坑）
-├── ARCHITECTURE.md       # 架构约定（模块 / 权限 / 响应格式 / DTO 规范）
-└── CODING.md             # 编码规范（TS / NestJS / 安全 / 日志）
+.claude/                  # Claude Code 配置与 AI 按需知识库
+└── project/              # AI 工作流 / 架构 / DTO / 权限等按需文档
+
+docs/                     # 项目文档目录（预留产品 / API / 用户 / 部署文档）
+├── AGENTS.md             # 旧 AI 文档兼容入口
+├── ARCHITECTURE.md       # 旧架构文档兼容入口
+└── CODING.md             # 旧编码文档兼容入口
 
 docker/                   # Docker 部署配置
 ├── nginx/
