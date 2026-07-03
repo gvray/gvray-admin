@@ -92,13 +92,13 @@ export class LoginLogsService extends BaseService {
     };
   }
 
-  async findOne(id: string): Promise<LoginLogResponseDto> {
-    const loginLog = await this.prisma.loginLog.findFirst({
-      where: { id: Number(id) },
+  async findOne(id: number): Promise<LoginLogResponseDto> {
+    const loginLog = await this.prisma.loginLog.findUnique({
+      where: { id },
     });
 
     if (!loginLog) {
-      throw new Error(`登录日志ID ${id} 不存在`);
+      throw new NotFoundException(`登录日志ID ${id} 不存在`);
     }
 
     return plainToInstance(LoginLogResponseDto, loginLog, {
@@ -106,19 +106,15 @@ export class LoginLogsService extends BaseService {
     });
   }
 
-  async remove(id: string): Promise<void> {
-    const numericId = Number(id);
-    if (!Number.isInteger(numericId)) {
-      throw new BadRequestException('无效的登录日志ID');
-    }
+  async remove(id: number): Promise<void> {
     const existing = await this.prisma.loginLog.findUnique({
-      where: { id: numericId },
+      where: { id },
     });
     if (!existing) {
       throw new NotFoundException(`登录日志ID ${id} 不存在`);
     }
     await this.prisma.loginLog.delete({
-      where: { id: numericId },
+      where: { id },
     });
   }
 

@@ -6,10 +6,6 @@ export class OperationLogResponseDto {
   @Expose()
   id: number;
 
-  @ApiProperty()
-  @Expose()
-  logId!: string;
-
   @ApiProperty({ nullable: true })
   @Expose()
   userId!: string | null;

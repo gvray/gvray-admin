@@ -7,6 +7,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -56,8 +57,8 @@ export class LoginLogsController {
     status: 200,
     description: '获取成功',
   })
-  async getStats(@Query('days') days?: number) {
-    const data = await this.loginLogsService.getLoginStats(days || 7);
+  async getStats(@Query('days', ParseIntPipe) days?: number) {
+    const data = await this.loginLogsService.getLoginStats(days ?? 7);
     return ResponseUtil.found(data, '获取成功');
   }
 
@@ -79,7 +80,7 @@ export class LoginLogsController {
     type: LoginLogResponseDto,
   })
   @ApiResponse({ status: 404, description: '登录日志不存在' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     const data = await this.loginLogsService.findOne(id);
     return ResponseUtil.found(data, '获取成功');
   }
@@ -89,7 +90,7 @@ export class LoginLogsController {
   @ApiOperation({ summary: '删除登录日志' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '登录日志不存在' })
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id', ParseIntPipe) id: number) {
     await this.loginLogsService.remove(id);
     return ResponseUtil.deleted(null, '删除成功');
   }

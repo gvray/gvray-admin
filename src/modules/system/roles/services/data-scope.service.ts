@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 
 // 数据权限枚举
@@ -70,7 +70,7 @@ export class DataScopeService {
     });
 
     if (!role) {
-      throw new Error('角色不存在');
+      throw new NotFoundException('角色不存在');
     }
 
     return {

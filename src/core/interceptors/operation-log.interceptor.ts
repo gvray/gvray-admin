@@ -15,7 +15,6 @@ import {
   OperationLogOptions,
 } from '@/core/decorators/operation-log.decorator';
 import { OPLOG_SKIP } from '@/core/decorators/no-operation-log.decorator';
-import { randomUUID } from 'crypto';
 
 function maskSensitive(input: unknown, maskFields: string[]): unknown {
   const fields = new Set(maskFields.map((f) => f.toLowerCase()));
@@ -122,7 +121,6 @@ export class OperationLogInterceptor implements NestInterceptor {
                 : 'unknown';
         await this.prisma.operationLog.create({
           data: {
-            logId: randomUUID(),
             userId: user.sub || user.userId || null,
             username: user.username || null,
             nickname: user.nickname || null,

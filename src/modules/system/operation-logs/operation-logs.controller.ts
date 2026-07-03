@@ -7,6 +7,7 @@ import {
   UseGuards,
   Post,
   Body,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
@@ -52,8 +53,8 @@ export class OperationLogsController {
   @ApiOperation({ summary: '获取操作日志详情（按数值ID）' })
   @ApiResponse({ status: 200, description: '操作日志详情' })
   @ApiResponse({ status: 404, description: '操作日志不存在' })
-  async findOne(@Param('id') id: string) {
-    const data = await this.service.findOne(Number(id));
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.service.findOne(id);
     return ResponseUtil.found(data, '获取成功');
   }
 
@@ -62,8 +63,8 @@ export class OperationLogsController {
   @ApiOperation({ summary: '删除操作日志（按数值ID）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '操作日志不存在' })
-  async remove(@Param('id') id: string) {
-    await this.service.remove(Number(id));
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    await this.service.remove(id);
     return ResponseUtil.deleted(null, '删除成功');
   }
 
