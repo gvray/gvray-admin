@@ -31,9 +31,9 @@
 | 17 | `ui.defaultPageSize` | 表格默认分页 | ✅ | ✅ | ❌ | 后端分页未读取该配置，使用 DTO 默认值 |
 | 18 | `ui.defaultSidebarCollapsed` | 侧边栏默认折叠 | ✅ | ❌ | — | 纯前端 |
 | 19 | `ui.defaultColorPrimary` | 主题主色 | ✅ | ❌ | — | 纯前端 |
-| 20 | `ui.defaultEnableNotification` | 默认启用通知 | ✅ | ✅ | ✅ | 创建用户时初始化 `userSettings` 已写入 |
+| 20 | `ui.defaultEnableNotification` | 默认启用通知 | ✅ | ✅ | ❌ | 创建用户时硬编码写入 `userSettings`，未读取该配置 |
 | 21 | `ui.grayMode` | 全站灰度模式 | ✅ | ❌ | — | 纯前端 CSS filter |
-| 22 | `feature.register` | 开放注册 | ✅ | ✅ | ❌ | 注册接口存在但未读取该配置做准入控制 |
+| 22 | `feature.register` | 开放注册 | ✅ | ✅ | ✅ | `/auth/register` 已接入 `FeatureFlagGuard` 读取该配置 |
 | 23 | `feature.auditLog` | 操作审计日志 | ✅ | ✅ | ❌ | 操作日志拦截器存在但未读取该配置开关 |
 | 24 | `feature.emailNotification` | 邮件通知 | ✅ | ✅ | ❌ | 邮件模块未实现 |
 | 25 | `feature.smsNotification` | 短信通知 | ✅ | ✅ | ❌ | 短信模块未实现 |
@@ -64,14 +64,15 @@
 |------|:---:|
 | 前端需要 | 31 |
 | 后端需要 | 32 |
-| **后端已实装** | **1** |
-| 后端未实装（预留配置） | 31 |
+| **后端已实装** | **2** |
+| 后端未实装（预留配置） | 30 |
 
-### 已实装的配置（仅 1 项）
+### 已实装的配置
 
 | key | 实装位置 |
 |-----|---------|
-| `ui.defaultEnableNotification` | `users.service.ts` 创建用户时初始化 `userSettings` |
+| `feature.register` | `AuthController.register()` 通过 `@FeatureFlag('register')` 接入 |
+| `feature.registerDefaultRole` | `AuthService.register()` 已读取并用于分配默认角色 |
 
 ### 后端已预留但尚未实装的功能模块
 
@@ -86,7 +87,7 @@
 | 密码过期检查 | 1 | ❌ 未实现 |
 | 登录失败锁定 | 2 | ❌ 未实现 |
 | 并发会话限制 | 1 | ❌ 未实现 |
-| 注册准入控制 | 1 | ❌ 未实现 |
+| 审计日志开关 | 1 | ❌ 未实现 |
 | 审计日志开关 | 1 | ❌ 未实现 |
 | 默认头像配置化 | 1 | ❌ 未实现 |
 | 系统名称配置化 | 1 | ❌ 未实现 |

@@ -49,6 +49,7 @@ export class DictionariesController {
   // 字典类型相关接口
   @Post('types')
   @RequirePermissions(DICTIONARY_PERMISSIONS.CREATE)
+  @OperationLog({ module: '字典管理' })
   @ApiOperation({ summary: '创建字典类型' })
   @ApiResponse({
     status: 201,
@@ -128,6 +129,7 @@ export class DictionariesController {
 
   @Patch('types/:typeId')
   @RequirePermissions(DICTIONARY_PERMISSIONS.UPDATE)
+  @OperationLog({ module: '字典管理', action: 'update' })
   @ApiOperation({ summary: '更新字典类型（通过TypeId）' })
   @ApiResponse({
     status: 200,
@@ -150,6 +152,7 @@ export class DictionariesController {
 
   @Delete('types/:typeId')
   @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
+  @OperationLog({ module: '字典管理', action: 'delete' })
   @ApiOperation({ summary: '删除字典类型（通过TypeId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
@@ -171,6 +174,7 @@ export class DictionariesController {
   // 字典项相关接口
   @Post('items')
   @RequirePermissions(DICTIONARY_PERMISSIONS.CREATE)
+  @OperationLog({ module: '字典管理' })
   @ApiOperation({ summary: '创建字典项' })
   @ApiResponse({
     status: 201,
@@ -220,6 +224,7 @@ export class DictionariesController {
 
   @Patch('items/:itemId')
   @RequirePermissions(DICTIONARY_PERMISSIONS.UPDATE)
+  @OperationLog({ module: '字典管理', action: 'update' })
   @ApiOperation({ summary: '更新字典项（通过ItemId）' })
   @ApiResponse({
     status: 200,
@@ -242,6 +247,7 @@ export class DictionariesController {
 
   @Delete('items/:itemId')
   @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
+  @OperationLog({ module: '字典管理', action: 'delete' })
   @ApiOperation({ summary: '删除字典项（通过ItemId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '字典项不存在' })

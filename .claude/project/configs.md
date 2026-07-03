@@ -29,5 +29,4 @@
 
 ## 已知待对齐项
 
-- `CONFIGS_ANALYSIS.md` 存在过时结论（如把已实装的 `feature.register` 标为未实装），需重新核验后更新。
-- `.env.example` 中的 `CORS_ORIGIN` 与代码读取的 `CORS_ORIGINS` 命名不一致，属于配置待修复项；本轮不改 `.env.example`，仅在文档中标注。
+- `CONFIGS_ANALYSIS.md` 需定期与源码和 seed 核验，避免配置状态标注过时。

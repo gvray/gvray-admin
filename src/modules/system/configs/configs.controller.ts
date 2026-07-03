@@ -43,6 +43,7 @@ export class ConfigsController {
 
   @Post()
   @RequirePermissions(CONFIG_PERMISSIONS.CREATE)
+  @OperationLog({ module: '配置管理' })
   @ApiOperation({ summary: '创建配置' })
   @ApiResponse({
     status: 201,
@@ -124,6 +125,7 @@ export class ConfigsController {
 
   @Patch(':configId')
   @RequirePermissions(CONFIG_PERMISSIONS.UPDATE)
+  @OperationLog({ module: '配置管理', action: 'update' })
   @ApiOperation({ summary: '更新配置' })
   @ApiResponse({
     status: 200,
@@ -145,6 +147,7 @@ export class ConfigsController {
 
   @Delete(':configId')
   @RequirePermissions(CONFIG_PERMISSIONS.DELETE)
+  @OperationLog({ module: '配置管理', action: 'delete' })
   @ApiOperation({ summary: '删除配置' })
   @ApiResponse({
     status: 200,

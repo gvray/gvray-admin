@@ -47,6 +47,7 @@ export class UsersController {
 
   @Post()
   @RequirePermissions(USER_PERMISSIONS.CREATE)
+  @OperationLog({ module: '用户管理' })
   @ApiOperation({ summary: '创建用户' })
   @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
   async create(
@@ -89,6 +90,7 @@ export class UsersController {
 
   @Patch(':userId')
   @RequirePermissions(USER_PERMISSIONS.UPDATE)
+  @OperationLog({ module: '用户管理', action: 'update' })
   @ApiOperation({ summary: '更新用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '获取成功', type: UserResponseDto })
   @ApiResponse({ status: 404, description: '用户不存在' })
@@ -107,6 +109,7 @@ export class UsersController {
 
   @Delete(':userId')
   @RequirePermissions(USER_PERMISSIONS.DELETE)
+  @OperationLog({ module: '用户管理', action: 'delete' })
   @ApiOperation({ summary: '删除用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
@@ -120,6 +123,7 @@ export class UsersController {
 
   @Put(':userId/roles')
   @RequirePermissions(USER_PERMISSIONS.UPDATE_ROLES)
+  @OperationLog({ module: '用户管理', action: 'update' })
   @ApiOperation({ summary: '为用户分配角色（替换所有角色）' })
   @ApiResponse({
     status: 200,
@@ -142,6 +146,7 @@ export class UsersController {
 
   @Delete(':userId/roles')
   @RequirePermissions(USER_PERMISSIONS.UPDATE_ROLES)
+  @OperationLog({ module: '用户管理', action: 'delete' })
   @ApiOperation({ summary: '移除用户的角色' })
   @ApiResponse({
     status: 200,

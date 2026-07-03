@@ -19,8 +19,7 @@
   "code": 200,
   "message": "操作成功",
   "data": {},
-  "timestamp": "2026-01-01T00:00:00.000Z",
-  "path": "/system/users"
+  "timestamp": "2026-01-01T00:00:00.000Z"
 }
 ```
 
@@ -52,8 +51,7 @@
   "message": "请求参数错误",
   "data": null,
   "timestamp": "2026-01-01T00:00:00.000Z",
-  "path": "/system/users",
-  "showType": "ERROR_MESSAGE"
+  "showType": 2
 }
 ```
 

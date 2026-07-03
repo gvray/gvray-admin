@@ -106,32 +106,31 @@ export class AuthService {
   }
 
   async validateUser(account: string, password: string) {
-    try {
-      // 直接从数据库查询用户，包含密码字段
-      const user = await this.prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: account },
-            { username: account },
-            { phone: account },
-            { userId: account },
-          ],
-        },
-      });
+    // 直接从数据库查询用户，包含密码字段
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: account },
+          { username: account },
+          { phone: account },
+          { userId: account },
+        ],
+      },
+    });
 
-      if (user) {
-        const passwordMatch = await bcrypt.compare(password, user.password);
-
-        if (passwordMatch) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { password: _, ...result } = user;
-          return result;
-        }
-      }
-    } catch (error) {
-      this.logger.error('Error in validateUser', error);
+    if (!user) {
+      return null;
     }
-    return null;
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return null;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...result } = user;
+    return result;
   }
 
   // TODO: [Redis] 接入分布式登录失败限流与账户锁定
@@ -327,9 +326,6 @@ export class AuthService {
     });
   }
 
-  // TODO: [Redis] 接入 Token 黑名单（或分布式会话）
-  // 当前 logout 仅撤销 refresh token，access token 在过期前仍有效，多实例无法同步踢人。
-  // 后续接入 Redis 后以 `blacklist:access:{jti}` 存储登出 token 并设 TTL，在 Guard 中校验。
   async logout(userId: string): Promise<void> {
     // 撤销该用户的所有 refresh token
     await this.prisma.refreshToken.updateMany({
@@ -341,9 +337,6 @@ export class AuthService {
         isRevoked: true,
       },
     });
-
-    // 在无状态JWT系统中，access token 的失效由客户端删除处理
-    // refresh token 已在数据库中标记为撤销
   }
 
   // TODO: [Redis] 缓存用户菜单树

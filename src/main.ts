@@ -66,11 +66,12 @@ async function bootstrap() {
     .setTitle('GVRAY Admin 企业级后台管理系统')
     .setDescription(
       '**默认测试账户**\n\n' +
-        '| 角色 | 用户名 | 密码 |\n' +
-        '|------|--------|------|\n' +
-        '| 超级管理员 | `super_admin` | `123456` |\n' +
-        '| 管理员 | `admin` | `123456` |\n' +
-        '| 游客 | `guest` | `123456` |',
+        '| 角色 | 用户名 |\n' +
+        '|------|--------|\n' +
+        '| 超级管理员 | `super_admin` |\n' +
+        '| 管理员 | `admin` |\n' +
+        '| 游客 | `guest` |\n\n' +
+        '密码请查看环境变量 `SUPER_ADMIN_INITIAL_PASSWORD` 或 seed 配置。',
     )
     .setVersion('1.0.0')
     .addBearerAuth(

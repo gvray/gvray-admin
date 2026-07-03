@@ -165,7 +165,7 @@ pnpm start:dev
 # 构建项目
 pnpm build
 
-# 启动服务（默认端口 8001，见 docker-compose.yml）
+# 启动服务（默认端口 3000）
 pnpm start:prod
 ```
 
@@ -202,7 +202,6 @@ curl -X GET http://localhost:3000/system/users \
 
 - [CLAUDE.md](./CLAUDE.md)：Claude Code 自动加载入口，只保留项目硬规则和按需索引。
 - [.claude/project/](./.claude/project/)：AI 助手按需知识库，包含工作流、架构、DTO、权限、响应格式等细分说明。
-- [docs/](./docs/)：保留给未来产品/API/用户/部署文档。
 
 使用 AI 编程时，先让助手读取相关模块文件；涉及 DTO、权限、响应格式、配置或部署时，再按需读取 `.claude/project/` 下对应文档。
 
@@ -240,11 +239,12 @@ src/
 ├── prisma/               # Prisma Module / PrismaService（@Global()）
 │   ├── prisma.module.ts
 │   └── prisma.service.ts
-├── prisma/               # Prisma Schema + 迁移 + Seed（根目录）
-│   ├── schema.prisma
-│   ├── migrations/
-│   ├── seeds/            # 种子数据（用户 / 角色 / 权限 / 部门 / 岗位 / 配置）
-│   └── seed.ts
+
+prisma/                     # Prisma Schema + 迁移 + Seed（项目根目录，与 src/ 同级）
+├── schema.prisma
+├── migrations/
+├── seeds/                  # 种子数据（用户 / 角色 / 权限 / 部门 / 岗位 / 配置）
+└── seed.ts
 ├── shared/               # 共享层
 │   ├── constants/        # 权限码 / 用户状态 / 性别等常量
 │   ├── dtos/             # 通用 DTO（PaginationDto / PaginationSortDto）

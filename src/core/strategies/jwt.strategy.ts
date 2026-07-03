@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload } from '../types/jwt-payload.type';
 import { IUser } from '../interfaces/user.interface';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { UserStatus } from '@/shared/constants/user-status.constant';
 
 interface DbUser {
   userId: string;
@@ -13,7 +14,7 @@ interface DbUser {
   username: string;
   nickname: string;
   avatar: string | null;
-  status: number;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
   userRoles: Array<{
@@ -106,6 +107,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException('用户不存在或已被禁用');
+    }
+
+    if (user.status !== UserStatus.ENABLED) {
+      throw new UnauthorizedException('用户已被禁用');
     }
 
     return {

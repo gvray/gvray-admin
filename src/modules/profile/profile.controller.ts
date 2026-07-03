@@ -10,15 +10,17 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { UserPermissionsResponseDto } from './dto/user-permissions-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
 
 @ApiTags('个人中心')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard)
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
@@ -51,6 +53,7 @@ export class ProfileController {
   }
 
   @Patch()
+  @OperationLog({ module: '个人中心', action: 'update' })
   @ApiOperation({ summary: '更新个人信息' })
   @ApiResponse({ status: 200, description: '更新成功' })
   async updateProfile(
@@ -62,6 +65,7 @@ export class ProfileController {
   }
 
   @Post('change-password')
+  @OperationLog({ module: '个人中心', action: 'update' })
   @ApiOperation({ summary: '修改密码' })
   @ApiResponse({ status: 200, description: '修改成功' })
   @ApiResponse({ status: 400, description: '当前密码不正确' })
@@ -96,6 +100,7 @@ export class ProfileController {
   }
 
   @Patch('settings')
+  @OperationLog({ module: '个人中心', action: 'update' })
   @ApiOperation({ summary: '更新个人偏好设置' })
   @ApiResponse({
     status: 200,
@@ -120,6 +125,7 @@ export class ProfileController {
   }
 
   @Delete('settings')
+  @OperationLog({ module: '个人中心', action: 'delete' })
   @ApiOperation({ summary: '重置个人偏好设置' })
   @ApiResponse({
     status: 200,

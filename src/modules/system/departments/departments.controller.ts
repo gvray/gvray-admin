@@ -40,6 +40,7 @@ export class DepartmentsController {
 
   @Post()
   @RequirePermissions(DEPARTMENT_PERMISSIONS.CREATE)
+  @OperationLog({ module: '部门管理' })
   @ApiOperation({ summary: '创建部门' })
   @ApiResponse({
     status: 201,
@@ -103,6 +104,7 @@ export class DepartmentsController {
 
   @Patch(':id')
   @RequirePermissions(DEPARTMENT_PERMISSIONS.UPDATE)
+  @OperationLog({ module: '部门管理', action: 'update' })
   @ApiOperation({ summary: '更新部门' })
   @ApiResponse({
     status: 200,
@@ -119,6 +121,7 @@ export class DepartmentsController {
 
   @Delete(':id')
   @RequirePermissions(DEPARTMENT_PERMISSIONS.DELETE)
+  @OperationLog({ module: '部门管理', action: 'delete' })
   @ApiOperation({ summary: '删除部门' })
   @ApiResponse({
     status: 200,

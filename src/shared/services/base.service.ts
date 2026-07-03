@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { startOfDay, endOfDay } from '../utils/time.util';
@@ -257,7 +257,7 @@ export abstract class BaseService {
   ): Promise<T> {
     const record = await model.findUnique({ where });
     if (!record) {
-      throw new Error(errorMessage);
+      throw new NotFoundException(errorMessage);
     }
     return record;
   }
@@ -283,7 +283,7 @@ export abstract class BaseService {
   ): Promise<T> {
     const record = await model.findUnique({ where, include });
     if (!record) {
-      throw new Error(errorMessage);
+      throw new NotFoundException(errorMessage);
     }
     return record;
   }

@@ -7,7 +7,7 @@ export interface IUser {
   nickname: string;
   password?: string;
   avatar: string | null;
-  status: number;
+  status: string;
   createdAt: Date;
   updatedAt: Date;
   roles: IRole[];

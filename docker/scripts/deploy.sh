@@ -209,7 +209,6 @@ cmd_deploy() {
     -e DATABASE_URL="$DATABASE_URL" \
     -e PORT="${PORT:-3000}" \
     -e JWT_SECRET="$JWT_SECRET" \
-    -e JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-7d}" \
     -e ENABLE_CORS="${ENABLE_CORS:-false}" \
     "$image_tag"
 

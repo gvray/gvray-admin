@@ -115,6 +115,7 @@ export class RolesController {
 
   @Delete(':id')
   @RequirePermissions(ROLE_PERMISSIONS.DELETE)
+  @OperationLog({ module: '角色管理', action: 'delete' })
   @ApiOperation({ summary: '删除角色' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -125,6 +126,7 @@ export class RolesController {
 
   @Put(':id/permissions')
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE_PERMISSIONS)
+  @OperationLog({ module: '角色管理', action: 'update' })
   @ApiOperation({ summary: '为角色分配权限（替换所有权限）' })
   @ApiResponse({ status: 200, description: '分配成功', type: RoleResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -143,6 +145,7 @@ export class RolesController {
 
   @Delete(':id/permissions')
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE_PERMISSIONS)
+  @OperationLog({ module: '角色管理', action: 'delete' })
   @ApiOperation({ summary: '移除角色的权限' })
   @ApiResponse({ status: 200, description: '移除成功', type: RoleResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -161,6 +164,7 @@ export class RolesController {
 
   @Put(':id/users')
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE_USERS)
+  @OperationLog({ module: '角色管理', action: 'update' })
   @ApiOperation({ summary: '为角色分配用户（替换所有用户）' })
   @ApiResponse({
     status: 200,
@@ -183,6 +187,7 @@ export class RolesController {
 
   @Delete(':id/users')
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE_USERS)
+  @OperationLog({ module: '角色管理', action: 'delete' })
   @ApiOperation({ summary: '移除角色用户' })
   @ApiResponse({
     status: 200,

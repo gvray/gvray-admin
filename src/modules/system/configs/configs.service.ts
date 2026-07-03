@@ -246,24 +246,52 @@ export class ConfigsService extends BaseService {
 
   // ==================== 功能开关（Feature Flag）====================
 
+  private featureCache = new Map<
+    string,
+    { value: boolean; expiresAt: number }
+  >();
+  private readonly FEATURE_CACHE_TTL_MS = 60_000; // 60 秒内存缓存
+
   /**
    * 检查指定功能开关是否启用
    * 直接查 config 表，不走 getRuntimeConfig，避免不必要的 count 查询
    *
-   * TODO: [Redis] 缓存功能开关结果
-   * 当前 isFeatureEnabled() 每次调用都查库，FeatureFlagGuard 会在请求链路中高频触发。
-   * 后续接入 Redis 后以 `feature:{key}` 缓存布尔值，TTL 1-5 分钟，配置变更时清除。
+   * 带 60 秒内存缓存，减轻高频请求时的数据库压力。
+   * TODO: [Redis] 后续接入 Redis 后以 `feature:{key}` 缓存布尔值，TTL 1-5 分钟，配置变更时清除。
    */
   async isFeatureEnabled(key: string): Promise<boolean> {
-    const config = await this.prisma.config.findUnique({
-      where: { key: `feature.${key}` },
-    });
-
-    if (!config || config.status !== CommonStatus.ENABLED) {
-      return false;
+    const cacheKey = `feature.${key}`;
+    const cached = this.featureCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
     }
 
-    return this.castValue(config.value, config.type) === true;
+    const config = await this.prisma.config.findUnique({
+      where: { key: cacheKey },
+    });
+
+    const enabled =
+      !!config &&
+      config.status === CommonStatus.ENABLED &&
+      this.castValue(config.value, config.type) === true;
+
+    this.featureCache.set(cacheKey, {
+      value: enabled,
+      expiresAt: Date.now() + this.FEATURE_CACHE_TTL_MS,
+    });
+
+    return enabled;
+  }
+
+  /**
+   * 清除功能开关缓存（配置变更后调用）
+   */
+  clearFeatureCache(key?: string): void {
+    if (key) {
+      this.featureCache.delete(`feature.${key}`);
+    } else {
+      this.featureCache.clear();
+    }
   }
 
   // ==================== 批量查询（保持兼容）====================

@@ -59,7 +59,7 @@
 | 改动类型 | 文档 |
 |----------|------|
 | 新增/删除/重命名模块 | [../../README.md](../../README.md) |
-| 新增/修改 API 接口 | Swagger DTO 注解；必要时更新 [../../SWAGGER_USAGE.md](../../SWAGGER_USAGE.md) 的使用说明 |
+| 新增/修改 API 接口 | Swagger DTO 注解；同步相关响应示例和权限说明 |
 | 新增/修改权限码 | [permissions.md](permissions.md) |
 | 新增/修改配置项 | [configs.md](configs.md), [../../CONFIGS_ANALYSIS.md](../../CONFIGS_ANALYSIS.md) |
 | 修改统一响应格式 | [response-format.md](response-format.md), [../../UNIFIED_RESPONSE_GUIDE.md](../../UNIFIED_RESPONSE_GUIDE.md) |

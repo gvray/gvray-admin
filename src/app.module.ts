@@ -24,7 +24,6 @@ import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
 import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
-import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.service';
 
 @Module({
   controllers: [AppController],
@@ -64,7 +63,6 @@ import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.se
       provide: APP_GUARD,
       useClass: FeatureFlagGuard,
     },
-    ApiPermissionSyncService,
     Reflector,
   ],
 })

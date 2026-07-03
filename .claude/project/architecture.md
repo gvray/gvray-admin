@@ -40,7 +40,7 @@ module-name/
 - Controller 负责路由、鉴权、参数 DTO、Swagger 装饰器和调用 Service。
 - 不在 Controller 中写业务逻辑。
 - 受保护接口显式使用 `JwtAuthGuard`；需要角色/权限时使用 `RolesGuard`、`PermissionsGuard`。
-- 系统管理 Controller 统一使用 `@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)`，`GuestWriteGuard` 拦截 guest 写操作。
+- 系统管理 Controller 统一使用 `@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)`，`GuestWriteGuard` 拦截 guest 写操作；仅读取的监控类接口（如 `MonitorController`）可省略 `RolesGuard`。
 - `FeatureFlagGuard` 是全局守卫，只对标记了 `@FeatureFlag(...)` 的路由生效。
 - 获取当前用户统一使用 `@CurrentUser()`，不要直接从 `req.user` 读取。
 - 如需跳过操作日志，使用 `@NoOperationLog()`。
