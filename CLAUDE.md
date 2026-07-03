@@ -8,21 +8,22 @@ GVRAY Admin 是 NestJS 11 + TypeScript 后端，使用 Prisma 6 + MySQL、JWT �
 
 ## 关键目录
 
-- `src/core/`：基础设施（decorators / guards / interceptors / filters / strategies）
+- `src/core/`：基础设施（decorators / guards / interceptors / filters / pipes / strategies）
 - `src/modules/`：业务模块，系统管理模块在 `src/modules/system/`
-- `src/prisma/`：Prisma Service、schema、migrations、seeds
-- `src/shared/`：constants、DTO、interfaces、utils、BaseService
+- `src/prisma/`：Nest Prisma Module / PrismaService
+- `prisma/`：`schema.prisma`、`seed.ts`、`seeds/`、migrations（如存在）
+- `src/shared/`：constants、DTO、interfaces、utils、services（含 BaseService）
 
 ## 开发硬规则
 
-- 先读相关模块文件，不要整仓读取或一次性读取大目录。
+- 先读相关模块，不要整仓读取；文档与源码冲突时以源码为准。
 - Controller 只处理路由、鉴权、DTO、Swagger；业务逻辑放 Service。
-- Service 返回统一使用 `ResponseUtil`，不要裸返回 Prisma 对象。
-- DTO 字段必须有 Swagger 注解；响应 DTO 用 `@Expose()` / `@Exclude()` 控制输出。
-- 禁止在任何 API 响应中返回 `password`，禁止暴露数据库自增 `id`。
-- 权限码使用 `src/shared/constants/permissions.constant.ts` 常量，不硬编码字符串。
-- 路径使用 tsconfig alias（如 `@/shared/...`），避免深层 `../../`。
-- 涉及接口、权限、配置、响应格式、部署等行为变化时，同步更新对应文档。
+- 返回业务数据由 `ResponseInterceptor` 自动包装；自定义 message/code/分页用 `ResponseUtil`。
+- 禁止返回未过滤的 Prisma 对象；禁止响应中出现 `password`、token、secret；禁止暴露数据库自增 `id`。
+- 权限码使用 `src/shared/constants/permissions.constant.ts` 常量，不硬编码。
+- 路径使用 tsconfig alias，避免深层相对路径。
+- 改动涉及接口/权限/配置/响应/部署时，同步更新对应文档。
+- 未经确认不运行数据库重置/迁移/seed、权限导入、部署发布等破坏性命令。
 
 ## 按需阅读
 
@@ -41,8 +42,9 @@ GVRAY Admin 是 NestJS 11 + TypeScript 后端，使用 Prisma 6 + MySQL、JWT �
 pnpm start:dev
 pnpm build
 pnpm test
-pnpm prisma:migrate
-pnpm prisma:seed
-pnpm db:reset
-pnpm api:import
+pnpm prisma:generate
+pnpm prisma:migrate   # 会改变数据库结构，执行前确认
+pnpm prisma:seed      # 会写入数据，执行前确认
+pnpm db:reset         # 会重置数据库，必须明确确认
+pnpm api:import       # 会同步权限数据，执行前确认
 ```

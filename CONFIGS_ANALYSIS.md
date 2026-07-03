@@ -38,7 +38,7 @@
 | 24 | `feature.emailNotification` | 邮件通知 | ✅ | ✅ | ❌ | 邮件模块未实现 |
 | 25 | `feature.smsNotification` | 短信通知 | ✅ | ✅ | ❌ | 短信模块未实现 |
 | 26 | `feature.mfa` | 双因子认证(MFA) | ✅ | ✅ | ❌ | MFA/TOTP 模块未实现 |
-| 27 | `feature.registerDefaultRole` | 注册用户默认角色编码 | ❌ | ✅ | ❌ | 注册时未读取该配置分配角色 |
+| 27 | `feature.registerDefaultRole` | 注册用户默认角色编码 | ❌ | ✅ | ✅ | `AuthService.register()` 已读取并用于分配默认角色 |
 | 28 | `feature.guestAccount` | 游客演示账号 | ✅ | ❌ | — | 纯前端展示 |
 | 29 | `storage.provider` | 存储驱动 | ❌ | ✅ | ❌ | 文件上传模块未实现 |
 | 30 | `storage.maxFileSize` | 最大上传大小(字节) | ✅ | ✅ | ❌ | 上传模块未实现 |

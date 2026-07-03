@@ -13,8 +13,8 @@
 - 📝 **Swagger** - 自动生成 OpenAPI 规范的接口文档
 - 🎨 **代码规范** - 遵循 TypeScript 最佳实践，统一的代码风格
 - 🔄 **数据迁移** - 基于 Prisma 的数据库版本控制和迁移
-- 🛡️ **安全防护** - JWT 认证，请求加密，CORS 配置等
-- 🔑 **灵活登录** - 支持用户名或邮箱登录
+- 🛡️ **安全防护** - JWT 认证、密码 bcrypt 哈希、RBAC 权限控制、CORS、操作日志脱敏
+- 🔑 **灵活登录** - 支持用户名、邮箱、手机号、userId 登录
 - 🏢 **组织架构** - 完整的部门和岗位管理体系
 
 ## 🚀 技术栈
@@ -38,11 +38,12 @@
 ### 🔐 认证与授权
 - [x] 完整的注册登录流程
 - [x] JWT 令牌认证机制
-- [x] 支持用户名或邮箱登录
+- [x] 支持用户名、邮箱、手机号登录
 - [x] 权限验证守卫
 - [x] 角色权限管理
 - [x] 刷新令牌机制（Access Token + Refresh Token）
 - [x] 登录日志记录与分析
+- [x] 注册功能开关（Feature Flag 控制）
 - [ ] 单点登录（SSO）集成
 - [ ] OAuth2 第三方登录（GitHub、Google、微信）
 - [ ] 双因素认证（2FA / MFA）
@@ -56,7 +57,7 @@
 - [ ] 用户数据导入导出（Excel、CSV）
 - [x] 用户状态管理（启用 / 禁用）
 - [ ] 头像上传管理（本地/云存储）
-- [x] 操作审计日志
+- [x] 操作日志
 - [ ] 用户登录设备管理
 
 ### 👑 角色权限
@@ -65,7 +66,7 @@
 - [x] RBAC 权限控制
 - [x] 权限代码管理
 - [x] 权限分配机制
-- [x] 25个基础权限预设
+- [x] 多模块基础权限预设（通过权限常量与扫描流程同步）
 - [x] 批量删除角色
 - [ ] 数据权限控制（行级、列级）
 - [x] 菜单权限管理
@@ -89,7 +90,7 @@
 - [x] 数据字典维护
 - [x] 菜单动态管理
 - [ ] 系统通知公告
-- [x] 操作审计日志
+- [x] 操作日志
 - [x] 登录日志
 - [x] 操作日志（Interceptor 自动记录）
 - [ ] 系统运行日志
@@ -122,7 +123,7 @@
 - [x] 完整的种子数据（管理员、角色、权限、部门、岗位）
 - [ ] 代码自动生成（CRUD）
 - [ ] 表单在线构建
-- [x] 开发技术文档（README / SWAGGER_USAGE / DOCKER_DEPLOYMENT / UNIFIED_RESPONSE_GUIDE / CLAUDE.md）
+- [x] 开发技术文档（README / DOCKER_DEPLOYMENT / UNIFIED_RESPONSE_GUIDE / CLAUDE.md）
 - [ ] 单元测试覆盖
 - [ ] API 自动化测试
 - [ ] 持续集成/持续部署（CI/CD）
@@ -130,9 +131,9 @@
 ## 🚀 快速开始
 
 ### 环境要求
-- Node.js >= 16
+- Node.js >= 20
 - MySQL >= 8.0
-- pnpm >= 8.0
+- pnpm >= 9（与 `packageManager` 字段一致）
 
 ### 开发环境设置
 ```bash
@@ -147,6 +148,7 @@ pnpm install
 
 # 配置环境变量
 cp .env.example .env
+# 注意：本地开发数据库名建议与 docker-compose.dev.yml 一致（默认 gvray_admin）
 
 # 执行数据库迁移
 pnpm prisma migrate dev
@@ -154,7 +156,7 @@ pnpm prisma migrate dev
 # 初始化基础数据
 pnpm prisma db seed
 
-# 启动开发服务
+# 启动开发服务（默认端口 3000）
 pnpm start:dev
 ```
 
@@ -163,34 +165,34 @@ pnpm start:dev
 # 构建项目
 pnpm build
 
-# 启动服务
+# 启动服务（默认端口 8001，见 docker-compose.yml）
 pnpm start:prod
 ```
 
 ## 👤 默认账户
 
-- 管理员账号：admin@example.com 或 admin
-- 初始密码：123456
+| 角色 | 用户名 | 邮箱 | 密码 |
+|------|--------|------|------|
+| 超级管理员 | `super_admin` | `super@example.com` | `123456`（可通过 `SUPER_ADMIN_INITIAL_PASSWORD` 覆盖） |
+| 管理员 | `admin` | `admin@example.com` | `123456` |
+| 游客 | `guest` | `guest@example.com` | `123456` |
+
+> 注册接口受 `feature.register` 配置控制，默认是否开放以 seed 配置为准。
 
 ## 🔧 API 测试
 
 ### 登录测试
 ```bash
-# 用户名登录
-curl -X POST http://localhost:8001/auth/login \
+# 本地开发（端口 3000）
+curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"account": "admin", "password": "123456"}'
-
-# 邮箱登录
-curl -X POST http://localhost:8001/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"account": "admin@example.com", "password": "123456"}'
 ```
 
 ### 获取用户列表
 ```bash
 # 使用登录返回的 token
-curl -X GET http://localhost:8001/system/users \
+curl -X GET http://localhost:3000/system/users \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -200,7 +202,7 @@ curl -X GET http://localhost:8001/system/users \
 
 - [CLAUDE.md](./CLAUDE.md)：Claude Code 自动加载入口，只保留项目硬规则和按需索引。
 - [.claude/project/](./.claude/project/)：AI 助手按需知识库，包含工作流、架构、DTO、权限、响应格式等细分说明。
-- [docs/](./docs/)：保留给未来产品/API/用户/部署文档；当前 `docs/AGENTS.md` 等旧路径仅作为兼容入口。
+- [docs/](./docs/)：保留给未来产品/API/用户/部署文档。
 
 使用 AI 编程时，先让助手读取相关模块文件；涉及 DTO、权限、响应格式、配置或部署时，再按需读取 `.claude/project/` 下对应文档。
 
@@ -212,11 +214,11 @@ curl -X GET http://localhost:8001/system/users \
 src/
 ├── config/               # 环境配置（.env → configuration.ts）
 ├── core/                 # 基础设施层
-│   ├── decorators/       # @RequirePermissions, @CurrentUser, @Audit 等
+│   ├── decorators/       # @RequirePermissions, @CurrentUser, @OperationLog 等
 │   ├── filters/          # 全局异常过滤器
 │   ├── guards/           # JWT / Roles / Permissions / GuestWrite / FeatureFlag
-│   ├── interceptors/     # 响应格式化 / 操作日志 / 审计
-│   ├── pipes/            # ValidationPipe / EmptyStringTransformPipe
+│   ├── interceptors/     # 响应格式化 / 操作日志
+│   ├── pipes/            # EmptyStringTransformPipe / ValidationPipe
 │   ├── services/         # ApiPermissionSyncService / AuditService
 │   └── strategies/       # Passport JWT Strategy
 ├── modules/              # 业务模块
@@ -235,26 +237,24 @@ src/
 │       ├── positions/    # 岗位管理
 │       ├── roles/        # 角色管理（CRUD + 权限分配）
 │       └── users/        # 用户管理（CRUD + 角色分配 + 重置密码）
-├── prisma/               # Prisma Schema + 迁移 + Seed
+├── prisma/               # Prisma Module / PrismaService（@Global()）
+│   ├── prisma.module.ts
+│   └── prisma.service.ts
+├── prisma/               # Prisma Schema + 迁移 + Seed（根目录）
 │   ├── schema.prisma
 │   ├── migrations/
 │   ├── seeds/            # 种子数据（用户 / 角色 / 权限 / 部门 / 岗位 / 配置）
 │   └── seed.ts
 ├── shared/               # 共享层
 │   ├── constants/        # 权限码 / 用户状态 / 性别等常量
-│   ├── dtos/             # 通用 DTO（PaginationDto）
+│   ├── dtos/             # 通用 DTO（PaginationDto / PaginationSortDto）
 │   ├── interfaces/       # TypeScript 接口
-│   ├── services/         # BaseService（通用分页）
+│   ├── services/         # BaseService（通用分页 + buildWhere）
 │   └── utils/            # 工具函数（ResponseUtil / TimeUtil）
 └── main.ts               # 应用入口（Swagger / 全局管道 / 拦截器）
 
 .claude/                  # Claude Code 配置与 AI 按需知识库
 └── project/              # AI 工作流 / 架构 / DTO / 权限等按需文档
-
-docs/                     # 项目文档目录（预留产品 / API / 用户 / 部署文档）
-├── AGENTS.md             # 旧 AI 文档兼容入口
-├── ARCHITECTURE.md       # 旧架构文档兼容入口
-└── CODING.md             # 旧编码文档兼容入口
 
 docker/                   # Docker 部署配置
 ├── nginx/
@@ -279,7 +279,6 @@ scripts/                  # 构建 & 部署脚本
 
 ### 项目文档
 - [Docker 部署指南](./DOCKER_DEPLOYMENT.md)
-- [Swagger API 文档说明](./SWAGGER_USAGE.md)
 - [统一响应格式指南](./UNIFIED_RESPONSE_GUIDE.md)
 - [系统配置项分析](./CONFIGS_ANALYSIS.md)
 

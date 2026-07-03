@@ -59,8 +59,10 @@ JWT_SECRET=your-strong-secret-here        # 必填，缺失则启动报错
 # 以下有默认值，按需覆盖
 NODE_ENV=production
 MYSQL_ROOT_PASSWORD=password
+# 注意：docker-compose.yml 中 DATABASE_URL 由 MYSQL_ROOT_PASSWORD + MYSQL_DATABASE 自动组装，
+# 直接修改 .env 中的 DATABASE_URL 对 compose 模式不生效
 DATABASE_URL=mysql://root:password@mysql:3306/gvray_admin
-PORT=8001
+PORT=3000
 ENABLE_CORS=false
 IMAGE=gvray/gvray-admin:latest             # 推荐指定固定版本
 ```
@@ -68,7 +70,7 @@ IMAGE=gvray/gvray-admin:latest             # 推荐指定固定版本
 ### 2.2 启动
 
 ```bash
-# 启动（后台）
+# 启动（前台，需另开终端查看日志）
 pnpm docker:up
 
 # 查看日志
@@ -185,7 +187,7 @@ pnpm db:reset          # 重置数据库并重新 seed
 
 ```bash
 # 健康检查
-curl http://localhost:8001/health
+curl http://localhost:3000/health
 
 # 进入容器
 docker exec -it gvray-admin-app sh
@@ -195,7 +197,7 @@ docker logs gvray-admin-app
 docker logs gvray-admin-mysql
 
 # 检查端口占用
-lsof -i :8001
+lsof -i :3000
 ```
 
 **常见问题**
