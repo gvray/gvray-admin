@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
@@ -18,8 +19,9 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 export class ConfigsService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
   ) {
-    super(prisma);
+    super(prisma, configService);
   }
 
   // ==================== CRUD ====================
@@ -157,6 +159,9 @@ export class ConfigsService extends BaseService {
 
   // ==================== 运行时配置（动态聚合）====================
 
+  // TODO: [Redis] 缓存运行时配置聚合结果
+  // 当前 buildRuntimeConfig() 每次请求都全量查 config 表并执行 3 次 COUNT。
+  // 后续接入 Redis 后以 `config:runtime` 缓存聚合后的 JSON，TTL 5-10 分钟。
   async getRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
     return this.buildRuntimeConfig();
   }
@@ -244,6 +249,10 @@ export class ConfigsService extends BaseService {
   /**
    * 检查指定功能开关是否启用
    * 直接查 config 表，不走 getRuntimeConfig，避免不必要的 count 查询
+   *
+   * TODO: [Redis] 缓存功能开关结果
+   * 当前 isFeatureEnabled() 每次调用都查库，FeatureFlagGuard 会在请求链路中高频触发。
+   * 后续接入 Redis 后以 `feature:{key}` 缓存布尔值，TTL 1-5 分钟，配置变更时清除。
    */
   async isFeatureEnabled(key: string): Promise<boolean> {
     const config = await this.prisma.config.findUnique({

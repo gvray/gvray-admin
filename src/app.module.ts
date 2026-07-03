@@ -15,11 +15,14 @@ import { PrismaModule } from '@/prisma/prisma.module';
 import { DashboardModule } from '@/modules/dashboard/dashboard.module';
 import { ProfileModule } from '@/modules/profile/profile.module';
 import { OperationLogsModule } from '@/modules/system/operation-logs/operation-logs.module';
-import configuration from '@/config/configuration';
+import appConfig from '@/config/app.config';
+import databaseConfig from '@/config/database.config';
+import jwtConfig from '@/config/jwt.config';
+import corsConfig from '@/config/cors.config';
+import { validate } from '@/config/env.validation';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
 import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.service';
 
@@ -29,7 +32,8 @@ import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.se
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
-      load: [configuration],
+      load: [appConfig, databaseConfig, jwtConfig, corsConfig],
+      validate,
       expandVariables: true,
       cache: true,
       ignoreEnvFile: false,
@@ -55,10 +59,6 @@ import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.se
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: GuestWriteGuard,
     },
     {
       provide: APP_GUARD,

@@ -1,10 +1,12 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { IUser } from '../interfaces/user.interface';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
+  private readonly logger = new Logger(PermissionsGuard.name);
+
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -20,7 +22,7 @@ export class PermissionsGuard implements CanActivate {
     const { user }: { user: IUser } = context.switchToHttp().getRequest();
 
     if (!user || !user.roles) {
-      console.log('User or roles not found');
+      this.logger.log('User or roles not found');
       return false;
     }
 

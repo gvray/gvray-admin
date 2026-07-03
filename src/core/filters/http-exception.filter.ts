@@ -25,7 +25,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const path = request.url;
 
     let status: number;
     let message: string;
@@ -62,14 +61,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     this.logger.error(
       `HTTP Exception: ${status} - ${message}`,
       exception instanceof Error ? exception.stack : exception,
-      `${request.method} ${path}`,
+      `${request.method} ${request.url}`,
     );
 
     // 获取错误展示类型
     const showType = this.getShowType(status);
 
     // 构建错误响应
-    const errorResponse = ResponseUtil.error(message, status, path, showType);
+    const errorResponse = ResponseUtil.error(message, status, showType);
 
     response.status(this.getHttpStatus(status)).json(errorResponse);
   }

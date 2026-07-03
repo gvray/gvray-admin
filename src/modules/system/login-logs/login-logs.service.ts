@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LogResult } from '@/shared/constants/log-result.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -15,8 +16,11 @@ import { LoginStatsResponse } from './dto/login-stats-response.dto';
 
 @Injectable()
 export class LoginLogsService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   async create(

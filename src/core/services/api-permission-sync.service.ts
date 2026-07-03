@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   OnApplicationBootstrap,
   RequestMethod,
 } from '@nestjs/common';
@@ -13,6 +14,8 @@ import { promises as fs } from 'fs';
 
 @Injectable()
 export class ApiPermissionSyncService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(ApiPermissionSyncService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly discovery: DiscoveryService,
@@ -155,9 +158,9 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
       });
 
       await fs.writeFile(outFile, JSON.stringify(sorted, null, 2), 'utf8');
-      console.log(`权限扫描报告已生成: ${outFile}`);
+      this.logger.log(`权限扫描报告已生成: ${outFile}`);
     } catch (e) {
-      console.warn('写出权限扫描报告失败:', e);
+      this.logger.warn('写出权限扫描报告失败', e);
     }
   }
 }

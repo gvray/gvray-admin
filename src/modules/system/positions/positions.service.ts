@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreatePositionDto } from './dto/create-position.dto';
@@ -14,8 +15,11 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class PositionsService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   async create(

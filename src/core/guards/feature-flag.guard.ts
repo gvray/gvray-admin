@@ -36,6 +36,8 @@ export class FeatureFlagGuard implements CanActivate {
       return true;
     }
 
+    // TODO: [Redis] FeatureFlagGuard 高频触发查库，需配合 isFeatureEnabled() 的 Redis 缓存
+    // 当前每次带 @FeatureFlag() 的请求都会查询 config 表，接口量大时存在性能风险。
     const enabled = await this.configsService.isFeatureEnabled(flag.key);
 
     if (!enabled) {

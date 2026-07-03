@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -21,8 +22,11 @@ import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 
 @Injectable()
 export class UsersService extends BaseService {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   /**
@@ -303,12 +307,13 @@ export class UsersService extends BaseService {
     }
 
     if (query?.createdAtStart || query?.createdAtEnd) {
+      const tzSuffix = this.configService.get<string>('app.tzSuffix', '+08:00');
       where.createdAt = {};
       if (query.createdAtStart) {
-        where.createdAt.gte = startOfDay(query.createdAtStart);
+        where.createdAt.gte = startOfDay(query.createdAtStart, tzSuffix);
       }
       if (query.createdAtEnd) {
-        where.createdAt.lte = endOfDay(query.createdAtEnd);
+        where.createdAt.lte = endOfDay(query.createdAtEnd, tzSuffix);
       }
     }
 

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { ConflictException } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -34,6 +35,12 @@ describe('PermissionsService - Scan Managed Permissions', () => {
               findUnique: jest.fn(),
               update: jest.fn(),
             },
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
           },
         },
       ],

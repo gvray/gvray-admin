@@ -7,7 +7,6 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
-import { Request } from 'express';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { ApiResponse } from '../../shared/interfaces/response.interface';
 
@@ -31,9 +30,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const path: string = request.url;
-
     // 检查是否跳过响应格式化
     const skipFormat = this.reflector.getAllAndOverride<boolean>(
       SKIP_RESPONSE_FORMAT,
@@ -52,17 +48,18 @@ export class ResponseInterceptor<T> implements NestInterceptor<
         }
 
         // 根据HTTP方法确定响应类型
+        const request = context.switchToHttp().getRequest();
         const method: string = request.method;
         switch (method) {
           case 'POST':
-            return ResponseUtil.created(data as T, undefined, path);
+            return ResponseUtil.created(data as T);
           case 'PUT':
           case 'PATCH':
-            return ResponseUtil.updated(data as T, undefined, path);
+            return ResponseUtil.updated(data as T);
           case 'DELETE':
-            return ResponseUtil.deleted(data as T, undefined, path);
+            return ResponseUtil.deleted(data as T);
           default:
-            return ResponseUtil.found(data as T, undefined, path);
+            return ResponseUtil.found(data as T);
         }
       }),
     );

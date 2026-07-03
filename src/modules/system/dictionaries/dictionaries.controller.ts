@@ -26,10 +26,12 @@ import { UpdateDictionaryItemDto } from './dto/update-dictionary-item.dto';
 import { QueryDictionaryItemDto } from './dto/query-dictionary-item.dto';
 import { DictionaryItemResponseDto } from './dto/dictionary-item-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
 import { ResponseUtil } from '@/shared/utils/response.util';
@@ -39,7 +41,7 @@ import { DICTIONARY_PERMISSIONS } from '@/shared/constants/permissions.constant'
 
 @ApiTags('字典管理')
 @Controller('system/dictionaries')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class DictionariesController {
   constructor(private readonly dictionariesService: DictionariesService) {}
@@ -158,6 +160,7 @@ export class DictionariesController {
 
   @Post('types/batch-delete')
   @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
+  @OperationLog({ module: '字典管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除字典类型' })
   @ApiBody({ type: BatchDeleteDictionaryTypesDto })
   async batchDeleteTypes(@Body() dto: BatchDeleteDictionaryTypesDto) {
@@ -265,6 +268,7 @@ export class DictionariesController {
 
   @Post('items/batch-delete')
   @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
+  @OperationLog({ module: '字典管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除字典项' })
   @ApiBody({ type: BatchDeleteDictionaryItemsDto })
   async batchDeleteItems(@Body() dto: BatchDeleteDictionaryItemsDto) {

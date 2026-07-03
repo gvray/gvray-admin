@@ -78,7 +78,7 @@ LABEL org.opencontainers.image.title="gvray-admin" \
       org.opencontainers.image.version="${VERSION}"
 
 ENV NODE_ENV=production \
-    PORT=8001 \
+    PORT=3000 \
     TZ=Asia/Shanghai
 
 # Copy compiled output and node_modules from builder.
@@ -99,12 +99,12 @@ RUN addgroup --system --gid 1001 nodejs \
 
 USER nestjs
 
-EXPOSE 8001
+EXPOSE 3000
 
 # Health check uses Node itself — no need for wget or curl in the image
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e \
-    "require('http').get('http://localhost:' + (process.env.PORT||8001) + '/health', r => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+    "require('http').get('http://localhost:' + (process.env.PORT||3000) + '/health', r => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["/sbin/tini", "--", "./entrypoint.sh"]
 CMD ["node", "dist/src/main.js"]

@@ -19,9 +19,11 @@ import { LoginLogsService } from './login-logs.service';
 import { QueryLoginLogDto } from './dto/query-login-log.dto';
 import { LoginLogResponseDto } from './dto/login-log-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { LOGIN_LOG_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { BatchDeleteLoginLogsDto } from './dto/batch-delete-login-logs.dto';
@@ -29,7 +31,7 @@ import { CleanLoginLogsDto } from './dto/clean-login-logs.dto';
 
 @ApiTags('登录日志管理')
 @Controller('system/login-logs')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class LoginLogsController {
   constructor(private readonly loginLogsService: LoginLogsService) {}
@@ -94,6 +96,7 @@ export class LoginLogsController {
 
   @Post('batch-delete')
   @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
+  @OperationLog({ module: '登录日志管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除登录日志' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiBody({ type: BatchDeleteLoginLogsDto })
@@ -104,6 +107,7 @@ export class LoginLogsController {
 
   @Post('clean')
   @RequirePermissions(LOGIN_LOG_PERMISSIONS.CLEAN)
+  @OperationLog({ module: '登录日志管理', action: 'delete' })
   @ApiOperation({ summary: '清理指定天数之前的登录日志' })
   @ApiResponse({ status: 200, description: '清理成功' })
   @ApiBody({ type: CleanLoginLogsDto })

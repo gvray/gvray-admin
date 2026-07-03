@@ -20,10 +20,11 @@ import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { QueryMenuDto } from './dto/query-menu.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
-import { Audit } from '@/core/decorators/audit.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
@@ -32,14 +33,14 @@ import { MenuResponseDto, MenuTreeNodeDto } from './dto/menu-response.dto';
 
 @ApiTags('菜单管理')
 @Controller('system/menus')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
   @Post()
   @RequirePermissions(MENU_PERMISSIONS.CREATE)
-  @Audit('create')
+  @OperationLog({ module: '菜单管理' })
   @ApiOperation({ summary: '创建菜单' })
   @ApiResponse({ status: 201, description: '创建成功', type: MenuResponseDto })
   async create(
@@ -97,7 +98,7 @@ export class MenuController {
 
   @Patch(':id')
   @RequirePermissions(MENU_PERMISSIONS.UPDATE)
-  @Audit('update')
+  @OperationLog({ module: '菜单管理' })
   @ApiOperation({ summary: '更新菜单' })
   @ApiResponse({ status: 200, description: '更新成功', type: MenuResponseDto })
   @ApiResponse({ status: 404, description: '菜单不存在' })
@@ -112,7 +113,7 @@ export class MenuController {
 
   @Delete(':id')
   @RequirePermissions(MENU_PERMISSIONS.DELETE)
-  @Audit('delete')
+  @OperationLog({ module: '菜单管理' })
   @ApiOperation({ summary: '删除菜单' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '菜单不存在' })

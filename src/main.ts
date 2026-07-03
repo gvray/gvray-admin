@@ -1,19 +1,22 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { EmptyStringTransformPipe } from './core/pipes/empty-string-transform.pipe';
-import { AuditInterceptor } from './core/interceptors/audit.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
 
   // CORS 配置
-  const isDev = process.env.NODE_ENV === 'development';
-  const enableCors = isDev || process.env.ENABLE_CORS === 'true';
+  const isDev = configService.get('app.nodeEnv') === 'development';
+  const enableCors = isDev || configService.get('cors.enabled');
 
   if (enableCors) {
-    const corsOrigins = process.env.CORS_ORIGINS?.split(',')
+    const corsOrigins = configService
+      .get<string>('cors.origins')
+      ?.split(',')
       .map((item) => item.trim())
       .filter(Boolean);
 
@@ -33,19 +36,16 @@ async function bootstrap() {
       maxAge: isDev ? 3600 : 86400, // 24h
     });
 
-    console.log('🌐 CORS enabled');
+    Logger.log('🌐 CORS enabled');
 
     if (isDev) {
-      console.log('📍 Allowed origins: *');
+      Logger.log('📍 Allowed origins: *');
     } else {
-      console.log('📍 Allowed origins:', corsOrigins);
+      Logger.log('📍 Allowed origins: ' + (corsOrigins?.join(', ') || 'none'));
     }
   } else {
-    console.log('🔒 CORS disabled');
+    Logger.log('🔒 CORS disabled');
   }
-
-  // 全局拦截器：审计拦截器
-  app.useGlobalInterceptors(new AuditInterceptor(app.get(Reflector)));
 
   // 全局管道：先转换空字符串，再进行验证
   app.useGlobalPipes(
@@ -56,6 +56,10 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  // TODO: [Redis] 接入基于 Redis 的分布式限流（如 @nestjs/throttler + Redis store）
+  // 当前没有任何接口限流保护，单机内存限流无法在多实例间共享计数。
+  // 后续引入 ThrottlerModule 并使用 Redis Store，针对登录、注册、公开接口等做限流。
 
   // Swagger 配置
   const config = new DocumentBuilder()
@@ -97,11 +101,11 @@ async function bootstrap() {
   });
 
   // 启动应用
-  const port = process.env.PORT || 3000;
+  const port = configService.get<number>('app.port')!;
   await app.listen(port);
-  console.log(`🚀 应用启动成功: http://localhost:${port}`);
-  console.log(`📚 API 文档地址: http://localhost:${port}/api`);
-  console.log(`🔐 默认管理员账户: admin@example.com / 123456`);
+  Logger.log(`🚀 应用启动成功: http://localhost:${port}`);
+  Logger.log(`📚 API 文档地址: http://localhost:${port}/api`);
+  Logger.log(`🔐 默认管理员账户: admin@example.com / 123456`);
 }
 
 bootstrap();

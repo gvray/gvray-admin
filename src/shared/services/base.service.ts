@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { startOfDay, endOfDay } from '../utils/time.util';
 import { PaginationDto, PaginationSortDto } from '../dtos/pagination.dto';
@@ -11,7 +12,10 @@ import { PaginationResponse } from '../interfaces/response.interface';
  */
 @Injectable()
 export abstract class BaseService {
-  constructor(protected readonly prisma: PrismaService) {}
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+) {}
 
   protected buildWhere(params: {
     contains?: Record<string, string | undefined>;
@@ -45,9 +49,10 @@ export abstract class BaseService {
     const d = params.date;
     if (d) {
       if (d.start || d.end) {
+        const tzSuffix = this.configService.get<string>('app.tzSuffix', '+08:00');
         const o: Record<string, Date> = {};
-        if (d.start) o.gte = startOfDay(d.start);
-        if (d.end) o.lte = endOfDay(d.end);
+        if (d.start) o.gte = startOfDay(d.start, tzSuffix);
+        if (d.end) o.lte = endOfDay(d.end, tzSuffix);
         where[d.field] = o;
       }
     }

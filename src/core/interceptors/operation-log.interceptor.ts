@@ -2,8 +2,10 @@ import {
   CallHandler,
   ExecutionContext,
   Injectable,
+  Logger,
   NestInterceptor,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { Observable, catchError, tap, throwError } from 'rxjs';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -39,31 +41,28 @@ function maskSensitive(input: unknown, maskFields: string[]): unknown {
 
 @Injectable()
 export class OperationLogInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(OperationLogInterceptor.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly reflector: Reflector,
+    private readonly configService: ConfigService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const http = context.switchToHttp();
     const req = http.getRequest<Request & any>();
 
-    const enabled = process.env.OPLOG_ENABLED !== 'false';
-    console.log(
-      'OperationLog Interceptor - enabled:',
-      enabled,
-      'method:',
-      req.method,
+    const enabled = this.configService.get<boolean>('app.oLogEnabled', true);
+    this.logger.log(
+      `OperationLog Interceptor - enabled: ${enabled}, method: ${req.method}`,
     );
     if (!enabled) return next.handle();
 
     // 仅拦截变更请求
     const method = (req.method || '').toUpperCase();
-    console.log(
-      'OperationLog Interceptor - method:',
-      method,
-      'should intercept:',
-      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method),
+    this.logger.log(
+      `OperationLog Interceptor - method: ${method}, should intercept: ${['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)}`,
     );
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       return next.handle();
@@ -94,10 +93,11 @@ export class OperationLogInterceptor implements NestInterceptor {
     const ua = (req.headers['user-agent'] || '') as string;
     const path = req.originalUrl || req.url || '';
 
-    const maskFields = (
-      process.env.OPLOG_MASK_FIELDS ||
-      'password,oldPassword,newPassword,token,authorization,secret,captcha'
-    )
+    const maskFields = this.configService
+      .get<string>(
+        'app.oLogMaskFields',
+        'password,oldPassword,newPassword,token,authorization,secret,captcha',
+      )
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
@@ -143,7 +143,7 @@ export class OperationLogInterceptor implements NestInterceptor {
       } catch (e) {
         // 写库失败不影响业务
 
-        console.error('OperationLog write failed:', e);
+        this.logger.error('OperationLog write failed', e);
       }
     };
 

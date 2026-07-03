@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { LogResult } from '@/shared/constants/log-result.constant';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -27,6 +27,8 @@ interface RequestWithHeaders {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -127,11 +129,14 @@ export class AuthService {
         }
       }
     } catch (error) {
-      console.error('Error in validateUser:', error);
+      this.logger.error('Error in validateUser', error);
     }
     return null;
   }
 
+  // TODO: [Redis] 接入分布式登录失败限流与账户锁定
+  // 当前缺少登录失败次数限制，存在暴力破解风险。
+  // 后续接入 Redis 后用 `INCR login:fail:{account}` 计数，超阈值锁定并设 TTL。
   async login(
     loginDto: LoginDto,
     req?: RequestWithHeaders,
@@ -322,6 +327,9 @@ export class AuthService {
     });
   }
 
+  // TODO: [Redis] 接入 Token 黑名单（或分布式会话）
+  // 当前 logout 仅撤销 refresh token，access token 在过期前仍有效，多实例无法同步踢人。
+  // 后续接入 Redis 后以 `blacklist:access:{jti}` 存储登出 token 并设 TTL，在 Guard 中校验。
   async logout(userId: string): Promise<void> {
     // 撤销该用户的所有 refresh token
     await this.prisma.refreshToken.updateMany({
@@ -338,6 +346,9 @@ export class AuthService {
     // refresh token 已在数据库中标记为撤销
   }
 
+  // TODO: [Redis] 缓存用户菜单树
+  // 当前 getMenus() 每次请求都全量查询 menu+permission 并在内存中重建树。
+  // 后续接入 Redis 后以 `menu:tree:{userId}` 缓存序列化后的菜单树，TTL 10-30 分钟。
   async getMenus(userId: string): Promise<AuthMenuResponseDto[]> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
@@ -558,7 +569,7 @@ export class AuthService {
         os,
       });
     } catch (error) {
-      console.error('记录登录日志失败:', error);
+      this.logger.error('记录登录日志失败', error);
     }
   }
 
@@ -588,7 +599,7 @@ export class AuthService {
       );
 
       if (!response.ok) {
-        console.warn(`IP地理位置查询失败: ${response.status}`);
+        this.logger.warn(`IP地理位置查询失败: ${response.status}`);
         return undefined;
       }
 
@@ -613,11 +624,11 @@ export class AuthService {
 
         return locationParts.length > 0 ? locationParts.join('-') : undefined;
       } else {
-        console.warn(`IP地理位置查询失败: ${data.message}`);
+        this.logger.warn(`IP地理位置查询失败: ${data.message}`);
         return undefined;
       }
     } catch (error) {
-      console.warn('获取IP地理位置时发生错误:', error);
+      this.logger.warn('获取IP地理位置时发生错误', error);
       return undefined;
     }
   }

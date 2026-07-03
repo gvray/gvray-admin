@@ -30,8 +30,6 @@ export interface ApiResponse<T = unknown> {
   data?: T | null;
   /** 响应时间戳 */
   timestamp: string;
-  /** 请求路径 */
-  path?: string;
   /** 错误展示类型 - 仅在错误响应时使用 */
   showType?: ErrorShowType;
 }

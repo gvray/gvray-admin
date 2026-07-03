@@ -25,10 +25,12 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { USER_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { QueryUserDto } from './dto/query-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -38,7 +40,7 @@ import { BatchDeleteUsersDto } from './dto/batch-delete-users.dto';
 
 @ApiTags('用户管理')
 @Controller('system/users')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -162,6 +164,7 @@ export class UsersController {
 
   @Post(':userId/reset-password')
   @RequirePermissions(USER_PERMISSIONS.RESET_PASSWORD)
+  @OperationLog({ module: '用户管理', action: 'update' })
   @ApiOperation({ summary: '重置用户密码' })
   @ApiBody({ type: ResetPasswordDto })
   @ApiResponse({ status: 200, description: '密码重置成功', type: UserResponseDto })
@@ -181,6 +184,7 @@ export class UsersController {
 
   @Post('batch-delete')
   @RequirePermissions(USER_PERMISSIONS.DELETE)
+  @OperationLog({ module: '用户管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除用户' })
   @ApiBody({ type: BatchDeleteUsersDto })
   @ApiResponse({ status: 200, description: '删除成功' })

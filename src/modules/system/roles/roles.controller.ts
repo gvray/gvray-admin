@@ -32,11 +32,12 @@ import {
 import { AssignDataScopeDto } from './dto/assign-data-scope.dto';
 
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
-import { Audit } from '@/core/decorators/audit.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
@@ -44,14 +45,14 @@ import { BatchDeleteRolesDto } from './dto/batch-delete-roles.dto';
 
 @ApiTags('角色管理')
 @Controller('system/roles')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
   @RequirePermissions(ROLE_PERMISSIONS.CREATE)
-  @Audit('create')
+  @OperationLog({ module: '角色管理' })
   @ApiOperation({ summary: '创建角色' })
   @ApiResponse({ status: 201, description: '创建成功' })
   async create(
@@ -99,7 +100,7 @@ export class RolesController {
 
   @Patch(':id')
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
-  @Audit('update')
+  @OperationLog({ module: '角色管理' })
   @ApiOperation({ summary: '更新角色' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -204,7 +205,7 @@ export class RolesController {
 
   @Put(':id/data-scope')
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE_DATA_SCOPE)
-  @Audit('update')
+  @OperationLog({ module: '角色管理' })
   @ApiOperation({ summary: '为角色分配数据权限' })
   @ApiResponse({
     status: 200,
@@ -242,7 +243,7 @@ export class RolesController {
 
   @Post('batch-delete')
   @RequirePermissions(ROLE_PERMISSIONS.DELETE)
-  @Audit('delete')
+  @OperationLog({ module: '角色管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除角色' })
   @ApiBody({ type: BatchDeleteRolesDto })
   async batchDelete(@Body() dto: BatchDeleteRolesDto) {

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -18,8 +19,11 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class DepartmentsService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   async create(
@@ -313,10 +317,11 @@ export class DepartmentsService extends BaseService {
         whereConditions.parentId = queryDto.parentId;
       }
       if (queryDto?.createdAtStart || queryDto?.createdAtEnd) {
+        const tzSuffix = this.configService.get<string>('app.tzSuffix', '+08:00');
         const o: { gte?: Date; lte?: Date } = {};
         if (queryDto.createdAtStart)
-          o.gte = startOfDay(queryDto.createdAtStart);
-        if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd);
+          o.gte = startOfDay(queryDto.createdAtStart, tzSuffix);
+        if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd, tzSuffix);
         whereConditions.createdAt = o;
       }
 

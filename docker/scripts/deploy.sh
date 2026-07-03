@@ -166,7 +166,7 @@ cmd_deploy() {
   printf "  ${BOLD}Image     ${NC} %s\n" "${image_tag}"
   printf "  ${BOLD}Platform  ${NC} %s\n" "${PLATFORM}"
   printf "  ${BOLD}Container ${NC} %s\n" "${CONTAINER_NAME}"
-  printf "  ${BOLD}Port      ${NC} %s\n" "${PORT:-8001}"
+  printf "  ${BOLD}Port      ${NC} %s\n" "${PORT:-3000}"
   printf "\n"
 
   # 1. Ensure MySQL is running before starting the app
@@ -198,16 +198,16 @@ cmd_deploy() {
   fi
 
   # 4. Start new container
-  local health_url="http://localhost:${PORT:-8001}/health"
+  local health_url="http://localhost:${PORT:-3000}/health"
   info "Starting new container..."
   docker run -d \
     --name    "$CONTAINER_NAME" \
     --platform "$PLATFORM" \
     --restart unless-stopped \
-    -p "${PORT:-8001}:${PORT:-8001}" \
+    -p "${PORT:-3000}:${PORT:-3000}" \
     -e NODE_ENV="${NODE_ENV:-production}" \
     -e DATABASE_URL="$DATABASE_URL" \
-    -e PORT="${PORT:-8001}" \
+    -e PORT="${PORT:-3000}" \
     -e JWT_SECRET="$JWT_SECRET" \
     -e JWT_EXPIRES_IN="${JWT_EXPIRES_IN:-7d}" \
     -e ENABLE_CORS="${ENABLE_CORS:-false}" \

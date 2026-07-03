@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
@@ -15,8 +16,11 @@ import type { Menu as MenuModel } from '@prisma/client';
 
 @Injectable()
 export class MenuService extends BaseService {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   /**

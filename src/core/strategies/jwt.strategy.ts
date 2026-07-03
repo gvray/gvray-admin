@@ -59,6 +59,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<IUser> {
+    // TODO: [Redis] 缓存用户权限，避免每次请求都查库
+    // 当前每次 JWT 校验都执行 user+roles+permissions 大查询，性能开销大。
+    // 后续接入 Redis 后以 `user:permissions:{userId}` 缓存权限快照，TTL 与 token 过期对齐。
     const user = (await this.prisma.user.findUnique({
       where: { userId: payload.sub },
       select: {

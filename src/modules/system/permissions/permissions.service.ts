@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
@@ -14,8 +15,11 @@ import type { Permission as PermissionModel } from '@prisma/client';
 
 @Injectable()
 export class PermissionsService extends BaseService {
-  constructor(prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   async findAll(

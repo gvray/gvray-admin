@@ -10,9 +10,11 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiBearerAuth, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { OperationLogsService } from './operation-logs.service';
 import { QueryOperationLogDto } from './dto/query-operation-log.dto';
 import { ResponseUtil } from '@/shared/utils/response.util';
@@ -22,7 +24,7 @@ import { CleanOperationLogsDto } from './dto/clean-operation-logs.dto';
 
 @ApiTags('操作日志管理')
 @Controller('system/operation-logs')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class OperationLogsController {
   constructor(private readonly service: OperationLogsService) {}
@@ -67,6 +69,7 @@ export class OperationLogsController {
 
   @Post('batch-delete')
   @RequirePermissions(OPERATION_LOG_PERMISSIONS.DELETE)
+  @OperationLog({ module: '操作日志管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除操作日志（按数值ID）' })
   @ApiBody({ type: BatchDeleteOperationLogsDto })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -77,6 +80,7 @@ export class OperationLogsController {
 
   @Post('clean')
   @RequirePermissions(OPERATION_LOG_PERMISSIONS.CLEAN)
+  @OperationLog({ module: '操作日志管理', action: 'delete' })
   @ApiOperation({ summary: '清理指定天数之前的操作日志' })
   @ApiBody({ type: CleanOperationLogsDto })
   @ApiResponse({ status: 200, description: '清理成功' })

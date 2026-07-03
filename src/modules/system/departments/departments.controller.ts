@@ -22,17 +22,19 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { DEPARTMENT_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { BatchDeleteDepartmentsDto } from './dto/batch-delete-departments.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 @ApiTags('部门管理')
 @ApiBearerAuth('JWT-auth')
 @Controller('system/departments')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
@@ -129,6 +131,7 @@ export class DepartmentsController {
 
   @Post('batch-delete')
   @RequirePermissions(DEPARTMENT_PERMISSIONS.DELETE)
+  @OperationLog({ module: '部门管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除部门' })
   @ApiBody({ type: BatchDeleteDepartmentsDto })
   @ApiResponse({ status: 200, description: '删除成功' })

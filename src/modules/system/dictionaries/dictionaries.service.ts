@@ -1,8 +1,10 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateDictionaryTypeDto } from './dto/create-dictionary-type.dto';
@@ -19,8 +21,13 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class DictionariesService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
-    super(prisma);
+  private readonly logger = new Logger(DictionariesService.name);
+
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   // 字典类型相关方法
@@ -82,7 +89,7 @@ export class DictionariesService extends BaseService {
   async findOneDictionaryType(
     typeId: string,
   ): Promise<DictionaryTypeResponseDto> {
-    console.log('findOneDictionaryType called with typeId:', typeId);
+    this.logger.log(`findOneDictionaryType called with typeId: ${typeId}`);
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { typeId },
       include: {
@@ -289,10 +296,13 @@ export class DictionariesService extends BaseService {
   }
 
   // 根据字典类型编码获取字典项列表
+  // TODO: [Redis] 缓存字典数据
+  // 当前 getDictionaryItemsByTypeCode() 每次请求都查库，字典属于读多写少数据。
+  // 后续接入 Redis 后以 `dict:{typeCode}` 缓存序列化后的字典项数组，TTL 10 分钟以上。
   async getDictionaryItemsByTypeCode(
     typeCode: string,
   ): Promise<DictionaryItemResponseDto[]> {
-    console.log('getDictionaryItemsByTypeCode called with typeCode:', typeCode);
+    this.logger.log(`getDictionaryItemsByTypeCode called with typeCode: ${typeCode}`);
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { code: typeCode },
       include: {
@@ -313,6 +323,9 @@ export class DictionariesService extends BaseService {
   }
 
   // 根据多个字典类型编码获取字典项列表
+  // TODO: [Redis] 缓存字典数据（批量）
+  // 当前 getDictionaryItemsByTypeCodes() 循环查库，前端下拉框等场景会高频调用。
+  // 后续接入 Redis 后以 `dict:{typeCode}` 分批缓存，减少数据库压力。
   async getDictionaryItemsByTypeCodes(
     typeCodes: string[],
   ): Promise<Record<string, Array<{ value: string; label: string }>>> {

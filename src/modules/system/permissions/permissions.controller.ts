@@ -19,10 +19,11 @@ import { PermissionsScannerService } from './permissions-scanner.service';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
-import { Audit } from '@/core/decorators/audit.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { PERMISSION_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
@@ -31,7 +32,7 @@ import { PermissionResponseDto } from './dto/permission-response.dto';
 
 @ApiTags('权限管理')
 @Controller('system/permissions')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class PermissionsController {
   constructor(
@@ -81,7 +82,7 @@ export class PermissionsController {
 
   @Patch(':id')
   @RequirePermissions(PERMISSION_PERMISSIONS.UPDATE)
-  @Audit('update')
+  @OperationLog({ module: '权限管理' })
   @ApiOperation({ summary: '更新权限' })
   @ApiResponse({
     status: 200,
@@ -104,6 +105,7 @@ export class PermissionsController {
 
   @Post('scan')
   @RequirePermissions(PERMISSION_PERMISSIONS.SCAN)
+  @OperationLog({ module: '权限管理', action: 'scan' })
   @ApiOperation({ summary: '扫描控制器并同步权限' })
   @ApiResponse({
     status: 200,

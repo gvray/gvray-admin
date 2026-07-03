@@ -22,10 +22,12 @@ import { UpdateConfigDto } from './dto/update-config.dto';
 import { QueryConfigDto } from './dto/query-config.dto';
 import { ConfigResponseDto } from './dto/config-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
 import { ResponseUtil } from '@/shared/utils/response.util';
@@ -34,7 +36,7 @@ import { CONFIG_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @ApiTags('配置管理')
 @Controller('system/configs')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}
@@ -155,6 +157,7 @@ export class ConfigsController {
 
   @Post('batch-delete')
   @RequirePermissions(CONFIG_PERMISSIONS.DELETE)
+  @OperationLog({ module: '配置管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除配置' })
   @ApiBody({ type: BatchDeleteConfigsDto })
   async batchDelete(@Body() dto: BatchDeleteConfigsDto) {

@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { QueryOperationLogDto } from './dto/query-operation-log.dto';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -13,8 +14,11 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class OperationLogsService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
-    super(prisma);
+  constructor(
+    protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
+  ) {
+    super(prisma, configService);
   }
 
   async findAll(

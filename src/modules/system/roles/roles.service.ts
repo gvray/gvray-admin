@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -21,9 +22,10 @@ import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 export class RolesService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
+    protected readonly configService: ConfigService,
     private readonly dataScopeService: DataScopeService,
   ) {
-    super(prisma);
+    super(prisma, configService);
   }
 
   private async countSuperAdminUsers(): Promise<number> {
@@ -138,12 +140,13 @@ export class RolesService extends BaseService {
     }
 
     if (query?.createdAtStart || query?.createdAtEnd) {
+      const tzSuffix = this.configService.get<string>('app.tzSuffix', '+08:00');
       where.createdAt = {};
       if (query.createdAtStart) {
-        where.createdAt.gte = startOfDay(query.createdAtStart);
+        where.createdAt.gte = startOfDay(query.createdAtStart, tzSuffix);
       }
       if (query.createdAtEnd) {
-        where.createdAt.lte = endOfDay(query.createdAtEnd);
+        where.createdAt.lte = endOfDay(query.createdAtEnd, tzSuffix);
       }
     }
 

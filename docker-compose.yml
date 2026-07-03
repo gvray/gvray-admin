@@ -39,15 +39,17 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-gvray_admin}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      PORT: ${PORT:-8001}
+      JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN:-2h}
+      JWT_REFRESH_TOKEN_EXPIRES_IN: ${JWT_REFRESH_TOKEN_EXPIRES_IN:-7d}
+      PORT: ${PORT:-3000}
       ENABLE_CORS: ${ENABLE_CORS:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     ports:
-      - "${PORT:-8001}:${PORT:-8001}"
+      - "${PORT:-3000}:${PORT:-3000}"
     networks:
       - nest-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:$$PORT/health || exit 1"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:' + (process.env.PORT||3000) + '/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 5

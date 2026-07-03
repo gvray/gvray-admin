@@ -50,7 +50,7 @@ server {
 
     # 代理到 NestJS 应用
     location / {
-        proxy_pass http://127.0.0.1:8001;  # NestJS 应用地址
+        proxy_pass http://127.0.0.1:3000;  # NestJS 应用地址
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -73,7 +73,7 @@ server {
         # allow 10.0.0.0/8;
         # deny all;
         
-        proxy_pass http://127.0.0.1:8001;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -86,7 +86,7 @@ server {
 
     # 健康检查端点
     location /health {
-        proxy_pass http://127.0.0.1:8001;
+        proxy_pass http://127.0.0.1:3000;
         access_log off;
     }
 
@@ -98,7 +98,7 @@ server {
     }
 
     location @proxy {
-        proxy_pass http://127.0.0.1:8001;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -117,7 +117,7 @@ server {
 # 负载均衡配置示例 (多实例部署)
 # upstream gvrayadmin_backend {
 #     least_conn;
-#     server 127.0.0.1:8001 max_fails=3 fail_timeout=30s;
+#     server 127.0.0.1:3000 max_fails=3 fail_timeout=30s;
 #     server 127.0.0.1:8002 max_fails=3 fail_timeout=30s;
 #     server 127.0.0.1:8003 max_fails=3 fail_timeout=30s;
 # }

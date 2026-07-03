@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Logger } from '@nestjs/common';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 
@@ -82,7 +83,7 @@ export class CurrentUserRoleResponseDto {
         })
         .filter((permission: any) => permission !== null);
     } catch (error) {
-      console.error('Transform permissions error:', error);
+      Logger.error('Transform permissions error', error);
       return [];
     }
   })
@@ -226,7 +227,7 @@ export class CurrentUserResponseDto {
         })
         .filter((role: any) => role !== null);
     } catch (error) {
-      console.error('Transform roles error:', error);
+      Logger.error('Transform roles error', error);
       return [];
     }
   })
@@ -264,7 +265,7 @@ export class CurrentUserResponseDto {
         })
         .filter((position: any) => position !== null);
     } catch (error) {
-      console.error('Transform positions error:', error);
+      Logger.error('Transform positions error', error);
       return [];
     }
   })

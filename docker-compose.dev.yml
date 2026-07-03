@@ -42,9 +42,11 @@ services:
       NODE_ENV: development
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-gvray_admin}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-local-only}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN:-2h}
+      JWT_REFRESH_TOKEN_EXPIRES_IN: ${JWT_REFRESH_TOKEN_EXPIRES_IN:-7d}
       PORT: ${PORT:-3000}
       ENABLE_CORS: ${ENABLE_CORS:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     volumes:

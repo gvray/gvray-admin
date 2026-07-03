@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as si from 'systeminformation';
 import * as os from 'os';
 import {
@@ -14,6 +15,8 @@ import {
 @Injectable()
 export class MonitorService {
   private readonly logger = new Logger(MonitorService.name);
+
+  constructor(private readonly configService: ConfigService) {}
 
   async getServerMetrics(): Promise<ServerMetricsResponseDto> {
     const [
@@ -78,7 +81,7 @@ export class MonitorService {
       release: os.release(),
       arch: os.arch(),
       nodeVersion: process.version,
-      env: process.env.NODE_ENV || 'development',
+      env: this.configService.get<string>('app.nodeEnv', 'development'),
     };
   }
 

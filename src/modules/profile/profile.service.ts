@@ -41,6 +41,9 @@ export class ProfileService {
     });
   }
 
+  // TODO: [Redis] 缓存用户权限列表
+  // 当前 getPermissions() 每次请求都走数据库大查询并用内存 Map 去重。
+  // 后续接入 Redis 后以 `user:permissions:{userId}` 缓存去重后的权限数组，TTL 与 token 过期对齐。
   async getPermissions(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { userId },
