@@ -58,6 +58,26 @@ export class UsersService extends BaseService {
   }
 
   /**
+   * 层级保护：非超级管理员不能操作超级管理员
+   * @param targetUserId 目标用户ID
+   * @param currentUserId 当前操作用户ID
+   * @param action 操作描述（用于异常消息）
+   */
+  private async checkSuperAdminHierarchy(
+    targetUserId: string,
+    currentUserId?: string,
+    action = '操作',
+  ): Promise<void> {
+    if (
+      currentUserId &&
+      !(await this.isSuperAdmin(currentUserId)) &&
+      (await this.isSuperAdmin(targetUserId))
+    ) {
+      throw new ForbiddenException(`无权${action}超级管理员`);
+    }
+  }
+
+  /**
    * 检查角色ID列表中是否包含超级管理员角色
    * @param roleIds 角色ID列表
    * @returns 是否包含超级管理员角色
@@ -153,6 +173,15 @@ export class UsersService extends BaseService {
     }
 
     await this.validateRoleIds(uniqueRoleIds);
+
+    // 非超级管理员不能创建超级管理员
+    if (
+      currentUserId &&
+      !(await this.isSuperAdmin(currentUserId)) &&
+      (await this.containsSuperAdminRole(uniqueRoleIds))
+    ) {
+      throw new ForbiddenException('无权创建超级管理员');
+    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -452,6 +481,30 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不能禁用自己账号');
     }
 
+    // 不能禁用最后一个活跃超级管理员
+    if (
+      updateUserDto.status === UserStatus.DISABLED &&
+      (await this.isSuperAdmin(userId))
+    ) {
+      const activeSuperAdminCount = await this.prisma.user.count({
+        where: {
+          status: UserStatus.ENABLED,
+          userRoles: {
+            some: {
+              role: {
+                roleKey: SUPER_ROLE_KEY,
+              },
+            },
+          },
+        },
+      });
+      if (activeSuperAdminCount <= 1) {
+        throw new ForbiddenException('不能禁用最后一个活跃超级管理员');
+      }
+    }
+
+    await this.checkSuperAdminHierarchy(userId, currentUserId, '修改');
+
     // 验证部门是否存在
     if (departmentId) {
       const department = await this.prisma.department.findUnique({
@@ -562,6 +615,15 @@ export class UsersService extends BaseService {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
+    // 非超级管理员不能重置超级管理员的密码
+    if (
+      currentUserId &&
+      !(await this.isSuperAdmin(currentUserId)) &&
+      (await this.isSuperAdmin(userId))
+    ) {
+      throw new ForbiddenException('无权重置超级管理员密码');
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await this.prisma.user.update({
@@ -635,6 +697,8 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不能删除自己账号');
     }
 
+    await this.checkSuperAdminHierarchy(userId, currentUserId, '删除');
+
     if (
       (await this.isSuperAdmin(userId)) &&
       (await this.countSuperAdminUsers()) <= 1
@@ -665,6 +729,8 @@ export class UsersService extends BaseService {
     if (userId === currentUserId) {
       throw new ForbiddenException('不能修改自己的角色');
     }
+
+    await this.checkSuperAdminHierarchy(userId, currentUserId, '修改角色');
 
     await this.validateRoleIds(roleIds);
 
@@ -765,6 +831,8 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不能修改自己的角色');
     }
 
+    await this.checkSuperAdminHierarchy(userId, currentUserId, '修改角色');
+
     await this.validateRoleIds(roleIds);
 
     const removesSuperRole = await this.containsSuperAdminRole(roleIds);
@@ -852,6 +920,7 @@ export class UsersService extends BaseService {
     for (const u of users) {
       if (await this.isSuperAdmin(u.userId)) {
         deletingSuperAdminCount++;
+        await this.checkSuperAdminHierarchy(u.userId, currentUserId, '删除');
       }
     }
     if (

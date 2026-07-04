@@ -2,9 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
+import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -24,12 +26,32 @@ export class ConfigsService extends BaseService {
     super(prisma, configService);
   }
 
+  private async isSuperAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userRoles: {
+          select: { role: { select: { roleKey: true } } },
+        },
+      },
+    });
+    if (!user) return false;
+    return user.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
+  }
+
+  private async checkSuperAdmin(userId: string): Promise<void> {
+    if (!(await this.isSuperAdmin(userId))) {
+      throw new ForbiddenException('系统配置仅限超级管理员操作');
+    }
+  }
+
   // ==================== CRUD ====================
 
   async create(
     createConfigDto: CreateConfigDto,
     userId: string,
   ): Promise<ConfigResponseDto> {
+    await this.checkSuperAdmin(userId);
     const config = await this.prisma.config.create({
       data: {
         ...createConfigDto,
@@ -117,6 +139,8 @@ export class ConfigsService extends BaseService {
     updateConfigDto: UpdateConfigDto,
     userId: string,
   ): Promise<ConfigResponseDto> {
+    await this.checkSuperAdmin(userId);
+
     const config = await this.prisma.config.findUnique({
       where: { configId },
     });
@@ -135,7 +159,9 @@ export class ConfigsService extends BaseService {
     });
   }
 
-  async remove(configId: string): Promise<void> {
+  async remove(configId: string, userId: string): Promise<void> {
+    await this.checkSuperAdmin(userId);
+
     const config = await this.prisma.config.findUnique({
       where: { configId },
     });
@@ -145,7 +171,9 @@ export class ConfigsService extends BaseService {
     await this.prisma.config.delete({ where: { configId } });
   }
 
-  async removeMany(ids: string[]): Promise<void> {
+  async removeMany(ids: string[], userId: string): Promise<void> {
+    await this.checkSuperAdmin(userId);
+
     const validIds = ids.filter(
       (id) => typeof id === 'string' && id.length > 0,
     );

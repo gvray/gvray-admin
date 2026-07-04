@@ -159,6 +159,19 @@ export const MONITOR_PERMISSIONS = {
   VIEW: `${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
 } as const;
 
+// ==================== 超管专属权限 ====================
+// 扫描权限时只绑定 super_admin 角色，admin / guest 不分配
+export const SUPER_ADMIN_ONLY_PERMISSIONS: readonly string[] = [
+  CONFIG_PERMISSIONS.CREATE,
+  CONFIG_PERMISSIONS.UPDATE,
+  CONFIG_PERMISSIONS.DELETE,
+  PERMISSION_PERMISSIONS.SCAN,
+  LOGIN_LOG_PERMISSIONS.CLEAR,
+  LOGIN_LOG_PERMISSIONS.CLEAN,
+  OPERATION_LOG_PERMISSIONS.CLEAR,
+  OPERATION_LOG_PERMISSIONS.CLEAN,
+] as const;
+
 // ==================== 导出所有权限配置 ====================
 export const PERMISSIONS = {
   USER: USER_PERMISSIONS,

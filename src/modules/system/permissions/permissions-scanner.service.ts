@@ -4,6 +4,7 @@ import { METHOD_METADATA } from '@nestjs/common/constants';
 import { PrismaService } from '@/prisma/prisma.service';
 import { PERMISSIONS_KEY } from '@/core/decorators/permissions.decorator';
 import { SUPER_ROLE_KEY, ADMIN_ROLE_KEY, GUEST_ROLE_KEY } from '@/shared/constants/role.constant';
+import { SUPER_ADMIN_ONLY_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 interface ScannedPermission {
   code: string;
@@ -204,7 +205,7 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
    */
   private async assignPermissionsToRole(
     roleKey: string,
-    filter?: { httpMethod?: string },
+    filter?: { httpMethod?: string; excludePermissionIds?: string[] },
   ): Promise<{ newAssigned: number; total: number }> {
     const role = await this.prisma.role.findFirst({
       where: { roleKey },
@@ -219,12 +220,19 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       where,
       select: { permissionId: true },
     });
+
+    // 排除超管专属权限（给其他角色时）
+    const excludeSet = new Set(filter?.excludePermissionIds ?? []);
+    const filteredPermissions = allPermissions.filter(
+      (p) => !excludeSet.has(p.permissionId),
+    );
+
     const existingLinks = await this.prisma.rolePermission.findMany({
       where: { roleId: role.roleId },
       select: { permissionId: true },
     });
     const linkedIds = new Set(existingLinks.map((l) => l.permissionId));
-    const toAssign = allPermissions.filter(
+    const toAssign = filteredPermissions.filter(
       (p) => !linkedIds.has(p.permissionId),
     );
 
@@ -250,17 +258,29 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
   /**
    * 扫描完成后自动分配权限：
-   * - super_admin：全部权限
-   * - admin：全部权限
-   * - guest：全部权限（用于前端菜单/按钮展示，写操作由 GuestWriteGuard 拦截）
+   * - super_admin：全部权限（含超管专属）
+   * - admin：全部权限，但排除超管专属权限
+   * - guest：仅 GET 权限，且排除超管专属权限
    */
   private async assignAllRolePermissions(): Promise<{
     superAdmin: { newAssigned: number; total: number };
     admin: { newAssigned: number; total: number };
     guest: { newAssigned: number; total: number };
   }> {
+    // 查询超管专属权限的 permissionId 列表
+    const superAdminOnlyPerms = await this.prisma.permission.findMany({
+      where: {
+        code: { in: [...SUPER_ADMIN_ONLY_PERMISSIONS] },
+        deletedAt: null,
+      },
+      select: { permissionId: true },
+    });
+    const excludeIds = superAdminOnlyPerms.map((p) => p.permissionId);
+
     const superAdmin = await this.assignPermissionsToRole(SUPER_ROLE_KEY);
-    const admin = await this.assignPermissionsToRole(ADMIN_ROLE_KEY);
+    const admin = await this.assignPermissionsToRole(ADMIN_ROLE_KEY, {
+      excludePermissionIds: excludeIds,
+    });
     const guest = await this.assignPermissionsToRole(GUEST_ROLE_KEY);
 
     return { superAdmin, admin, guest };

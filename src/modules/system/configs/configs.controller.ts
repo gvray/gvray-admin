@@ -153,8 +153,11 @@ export class ConfigsController {
     status: 200,
     description: '删除成功',
   })
-  async remove(@Param('configId') configId: string) {
-    await this.configsService.remove(configId);
+  async remove(
+    @Param('configId') configId: string,
+    @CurrentUser() user: IUser,
+  ) {
+    await this.configsService.remove(configId, user.userId);
     return ResponseUtil.deleted(null, '删除成功');
   }
 
@@ -163,8 +166,11 @@ export class ConfigsController {
   @OperationLog({ module: '配置管理', action: 'delete' })
   @ApiOperation({ summary: '批量删除配置' })
   @ApiBody({ type: BatchDeleteConfigsDto })
-  async batchDelete(@Body() dto: BatchDeleteConfigsDto) {
-    await this.configsService.removeMany(dto.ids);
+  async batchDelete(
+    @Body() dto: BatchDeleteConfigsDto,
+    @CurrentUser() user: IUser,
+  ) {
+    await this.configsService.removeMany(dto.ids, user.userId);
     return ResponseUtil.deleted(null, '删除成功');
   }
 }

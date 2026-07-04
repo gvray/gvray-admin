@@ -17,6 +17,7 @@ import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { SUPER_ADMIN_ONLY_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @Injectable()
 export class RolesService extends BaseService {
@@ -40,6 +41,21 @@ export class RolesService extends BaseService {
         },
       },
     });
+  }
+
+  private async isSuperAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userRoles: {
+          select: {
+            role: { select: { roleKey: true } },
+          },
+        },
+      },
+    });
+    if (!user) return false;
+    return user.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
   }
 
   private async validatePermissionIds(permissionIds: string[]): Promise<void> {
@@ -357,6 +373,20 @@ export class RolesService extends BaseService {
 
     await this.validatePermissionIds(permissionIds);
 
+    // 非超级管理员角色不能绑定超管专属权限
+    if (role.roleKey !== SUPER_ROLE_KEY && permissionIds.length > 0) {
+      const perms = await this.prisma.permission.findMany({
+        where: { permissionId: { in: permissionIds } },
+        select: { code: true },
+      });
+      const hasSuperOnly = perms.some((p) =>
+        SUPER_ADMIN_ONLY_PERMISSIONS.includes(p.code),
+      );
+      if (hasSuperOnly) {
+        throw new ForbiddenException('无权分配超级管理员专属权限');
+      }
+    }
+
     // 删除现有的角色权限关联
     await this.prisma.rolePermission.deleteMany({
       where: { roleId: role.roleId },
@@ -478,6 +508,15 @@ export class RolesService extends BaseService {
       }
     }
 
+    // 非超级管理员不能对超级管理员角色分配用户
+    if (
+      currentUserId &&
+      role.roleKey === SUPER_ROLE_KEY &&
+      !(await this.isSuperAdmin(currentUserId))
+    ) {
+      throw new ForbiddenException('无权对超级管理员角色分配用户');
+    }
+
     // 验证用户是否存在
     const users = await this.prisma.user.findMany({
       where: {
@@ -568,6 +607,15 @@ export class RolesService extends BaseService {
       if ((await this.countSuperAdminUsers()) - removingCount < 1) {
         throw new ForbiddenException('至少保留 1 个超级管理员');
       }
+    }
+
+    // 非超级管理员不能对超级管理员角色移除用户
+    if (
+      currentUserId &&
+      role.roleKey === SUPER_ROLE_KEY &&
+      !(await this.isSuperAdmin(currentUserId))
+    ) {
+      throw new ForbiddenException('无权对超级管理员角色移除用户');
     }
 
     await this.prisma.userRole.deleteMany({
