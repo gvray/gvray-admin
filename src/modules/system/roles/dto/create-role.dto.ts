@@ -10,6 +10,10 @@ export class CreateRoleDto {
   @IsString({ message: '角色标识键必须是字符串' })
   roleKey: string;
 
+  @ApiProperty({ description: '角色模板ID' })
+  @IsString({ message: '角色模板ID必须是字符串' })
+  templateId: string;
+
   @ApiPropertyOptional({ description: '角色描述' })
   @IsOptional()
   @IsString({ message: '角色描述必须是字符串' })

@@ -8,6 +8,31 @@
  * - action: 操作名（必须使用标准 action 词库）
  */
 
+// ==================== 权限元数据 ====================
+export interface PermissionMeta {
+  level?: number; // 0=普通, 1=管理员, 2=超管
+  tags?: string[];
+}
+
+const metaMap = new Map<string, PermissionMeta>();
+
+/**
+ * 定义权限代码并记录元数据（供扫描器写入数据库）
+ * @param code 权限代码
+ * @param meta 元数据（level / tags）
+ * @returns 权限代码
+ */
+export function definePermission(
+  code: string,
+  meta: PermissionMeta = {},
+): string {
+  metaMap.set(code, meta);
+  return code;
+}
+
+/** 权限代码 → 元数据映射（扫描器使用） */
+export const PERMISSION_METADATA_MAP = metaMap;
+
 // ==================== 标准 Action 词库 ====================
 export const PERMISSION_ACTIONS = {
   // 查询
@@ -43,124 +68,150 @@ export const PERMISSION_ACTIONS = {
 // ==================== 用户管理权限 ====================
 const USER_RESOURCE = 'system:user';
 export const USER_PERMISSIONS = {
-  LIST: `${USER_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${USER_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${USER_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${USER_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-  IMPORT: `${USER_RESOURCE}:${PERMISSION_ACTIONS.IMPORT}`,
-  EXPORT: `${USER_RESOURCE}:${PERMISSION_ACTIONS.EXPORT}`,
-  UPDATE_ROLES: `${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_ROLES}`,
-  RESET_PASSWORD: `${USER_RESOURCE}:${PERMISSION_ACTIONS.RESET_PASSWORD}`,
+  LIST: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  IMPORT: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.IMPORT}`),
+  EXPORT: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.EXPORT}`),
+  UPDATE_ROLES: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_ROLES}`),
+  RESET_PASSWORD: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.RESET_PASSWORD}`),
 } as const;
 
 // ==================== 角色管理权限 ====================
 const ROLE_RESOURCE = 'system:role';
 export const ROLE_PERMISSIONS = {
-  LIST: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-  UPDATE_PERMISSIONS: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_PERMISSIONS}`,
-  UPDATE_USERS: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_USERS}`,
-  UPDATE_DATA_SCOPE: `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_DATA_SCOPE}`,
+  LIST: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  UPDATE_PERMISSIONS: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_PERMISSIONS}`),
+  UPDATE_USERS: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_USERS}`),
+  UPDATE_DATA_SCOPE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_DATA_SCOPE}`),
 } as const;
 
 // ==================== 权限管理权限 ====================
 const PERMISSION_RESOURCE = 'system:permission';
 export const PERMISSION_PERMISSIONS = {
-  LIST: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  UPDATE: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  SCAN: `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.SCAN}`,
+  LIST: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  UPDATE: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  SCAN: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.SCAN}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
 } as const;
 
 // ==================== 部门管理权限 ====================
 const DEPARTMENT_RESOURCE = 'system:department';
 export const DEPARTMENT_PERMISSIONS = {
-  LIST: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  LIST: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
 } as const;
 
 // ==================== 岗位管理权限 ====================
 const POSITION_RESOURCE = 'system:position';
 export const POSITION_PERMISSIONS = {
-  LIST: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${POSITION_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  LIST: definePermission(`${POSITION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${POSITION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${POSITION_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${POSITION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${POSITION_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
 } as const;
 
 // ==================== 字典管理权限 ====================
 const DICTIONARY_RESOURCE = 'system:dictionary';
 export const DICTIONARY_PERMISSIONS = {
-  LIST: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  LIST: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
 } as const;
 
 // ==================== 配置管理权限 ====================
 const CONFIG_RESOURCE = 'system:config';
 export const CONFIG_PERMISSIONS = {
-  LIST: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  LIST: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
+  UPDATE: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
+  DELETE: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
 } as const;
 
 // ==================== 菜单管理权限 ====================
 const MENU_RESOURCE = 'system:menu';
 export const MENU_PERMISSIONS = {
-  LIST: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  CREATE: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
-  UPDATE: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
-  DELETE: `${MENU_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  LIST: definePermission(`${MENU_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${MENU_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${MENU_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${MENU_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${MENU_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
 } as const;
 
 // ==================== 日志管理权限 ====================
 const LOG_RESOURCE = 'system:log';
 export const LOG_PERMISSIONS = {
-  VIEW: `${LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
+  VIEW: definePermission(`${LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
 } as const;
 
 // ==================== 登录日志权限 ====================
 const LOGIN_LOG_RESOURCE = 'system:log-login';
 export const LOGIN_LOG_PERMISSIONS = {
-  LIST: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  DELETE: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-  CLEAN: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`,
-  CLEAR: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`,
+  LIST: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  DELETE: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  CLEAN: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
+  CLEAR: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
 } as const;
 
 // ==================== 操作日志权限 ====================
 const OPERATION_LOG_RESOURCE = 'system:log-operation';
 export const OPERATION_LOG_PERMISSIONS = {
-  LIST: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-  DELETE: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
-  CLEAN: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`,
-  CLEAR: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`,
+  LIST: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  DELETE: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  CLEAN: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
+  CLEAR: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`, {
+    level: 2,
+    tags: ['super-admin-only'],
+  }),
 } as const;
 
 // ==================== 系统监控权限 ====================
 const MONITOR_RESOURCE = 'monitor:server';
 export const MONITOR_PERMISSIONS = {
-  LIST: `${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
-  VIEW: `${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
+  LIST: definePermission(`${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
 } as const;
 
 // ==================== 超管专属权限 ====================
-// 扫描权限时只绑定 super_admin 角色，admin / guest 不分配
+/**
+ * @deprecated 请改用 PERMISSION_METADATA_MAP 或查询数据库 roleLevel/tags
+ */
 export const SUPER_ADMIN_ONLY_PERMISSIONS: readonly string[] = [
   CONFIG_PERMISSIONS.CREATE,
   CONFIG_PERMISSIONS.UPDATE,

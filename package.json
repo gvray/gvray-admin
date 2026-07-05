@@ -37,8 +37,7 @@
     "docker:dev:logs": "docker compose -f docker-compose.dev.yml logs -f app",
     "docker:up": "docker compose up",
     "docker:down": "docker compose down -v --remove-orphans",
-    "docker:logs": "docker compose logs -f app",
-    "api:import": "ts-node scripts/import-api-permissions.ts"
+    "docker:logs": "docker compose logs -f app"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.2",

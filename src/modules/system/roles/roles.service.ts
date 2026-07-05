@@ -16,8 +16,8 @@ import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
-import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
-import { SUPER_ADMIN_ONLY_PERMISSIONS } from '@/shared/constants/permissions.constant';
+import { SUPER_ROLE_KEY, ROLE_TEMPLATE_RULES } from '@/shared/constants/role.constant';
+// SUPER_ADMIN_ONLY_PERMISSIONS 已迁移为 roleLevel/tags 数据驱动，本文件不再引用
 
 @Injectable()
 export class RolesService extends BaseService {
@@ -75,12 +75,60 @@ export class RolesService extends BaseService {
     }
   }
 
+  /**
+   * 获取角色模板规则（从代码常量读取，数据库仅存储 templateKey 用于关联）
+   */
+  private async getTemplateRules(
+    templateId: string,
+  ): Promise<{ maxRoleLevel?: number; excludeTags?: string[] } | null> {
+    const template = await this.prisma.roleTemplate.findUnique({
+      where: { templateId },
+      select: { templateKey: true },
+    });
+    if (!template) return null;
+    return ROLE_TEMPLATE_RULES[template.templateKey] ?? null;
+  }
+
+  private checkPermissionAgainstRules(
+    perm: { roleLevel: number; tags: unknown },
+    rules: { maxRoleLevel?: number; excludeTags?: string[] },
+  ): boolean {
+    if (
+      rules.maxRoleLevel !== undefined &&
+      perm.roleLevel > rules.maxRoleLevel
+    ) {
+      return false;
+    }
+    const permTags = Array.isArray(perm.tags) ? perm.tags : [];
+    if (
+      rules.excludeTags &&
+      permTags.some((t: string) => rules.excludeTags!.includes(t))
+    ) {
+      return false;
+    }
+    return true;
+  }
+
   async create(
     createRoleDto: CreateRoleDto,
     currentUserId?: string,
   ): Promise<RoleResponseDto> {
-    const { name, roleKey, description, remark, sort, status, permissionIds } =
-      createRoleDto;
+    const {
+      name,
+      roleKey,
+      templateId,
+      description,
+      remark,
+      sort,
+      status,
+      permissionIds,
+    } = createRoleDto;
+
+    // 校验模板是否存在
+    const rules = await this.getTemplateRules(templateId);
+    if (!rules) {
+      throw new NotFoundException('角色模板不存在');
+    }
 
     await this.validatePermissionIds(permissionIds ?? []);
 
@@ -89,10 +137,27 @@ export class RolesService extends BaseService {
       throw new ForbiddenException('不允许创建超级管理员角色');
     }
 
+    // 创建角色时按模板规则过滤权限
+    if (permissionIds && permissionIds.length > 0) {
+      const perms = await this.prisma.permission.findMany({
+        where: { permissionId: { in: permissionIds } },
+        select: { permissionId: true, roleLevel: true, tags: true },
+      });
+      const invalid = perms.filter(
+        (p) => !this.checkPermissionAgainstRules(p, rules),
+      );
+      if (invalid.length > 0) {
+        throw new ForbiddenException(
+          `权限超出角色模板允许范围: ${invalid.map((p) => p.permissionId).join(', ')}`,
+        );
+      }
+    }
+
     const role = await this.prisma.role.create({
       data: {
         name,
         roleKey,
+        templateId,
         description,
         remark,
         sort: sort ?? 0,
@@ -373,17 +438,22 @@ export class RolesService extends BaseService {
 
     await this.validatePermissionIds(permissionIds);
 
-    // 非超级管理员角色不能绑定超管专属权限
-    if (role.roleKey !== SUPER_ROLE_KEY && permissionIds.length > 0) {
-      const perms = await this.prisma.permission.findMany({
-        where: { permissionId: { in: permissionIds } },
-        select: { code: true },
-      });
-      const hasSuperOnly = perms.some((p) =>
-        SUPER_ADMIN_ONLY_PERMISSIONS.includes(p.code),
-      );
-      if (hasSuperOnly) {
-        throw new ForbiddenException('无权分配超级管理员专属权限');
+    // 按角色模板规则校验权限
+    if (role.templateId && permissionIds.length > 0) {
+      const rules = await this.getTemplateRules(role.templateId);
+      if (rules) {
+        const perms = await this.prisma.permission.findMany({
+          where: { permissionId: { in: permissionIds } },
+          select: { permissionId: true, roleLevel: true, tags: true },
+        });
+        const invalid = perms.filter(
+          (p) => !this.checkPermissionAgainstRules(p, rules),
+        );
+        if (invalid.length > 0) {
+          throw new ForbiddenException(
+            `权限超出角色模板允许范围: ${invalid.map((p) => p.permissionId).join(', ')}`,
+          );
+        }
       }
     }
 
