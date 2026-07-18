@@ -58,7 +58,7 @@ export async function seedUsers(
 
   // 创建管理员用户
   console.log('创建管理员用户...');
-  const hashedAdminPassword = await bcrypt.hash('123456', 10);
+  const hashedAdminPassword = await bcrypt.hash(rawSuperPassword, 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {
