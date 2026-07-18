@@ -16,8 +16,7 @@ import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
-import { SUPER_ROLE_KEY, ROLE_TEMPLATE_RULES } from '@/shared/constants/role.constant';
-// SUPER_ADMIN_ONLY_PERMISSIONS 已迁移为 roleLevel/tags 数据驱动，本文件不再引用
+import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 
 @Injectable()
 export class RolesService extends BaseService {
@@ -76,37 +75,71 @@ export class RolesService extends BaseService {
   }
 
   /**
-   * 获取角色模板规则（从代码常量读取，数据库仅存储 templateKey 用于关联）
+   * 获取当前用户拥有的所有权限ID
    */
-  private async getTemplateRules(
-    templateId: string,
-  ): Promise<{ maxRoleLevel?: number; excludeTags?: string[] } | null> {
-    const template = await this.prisma.roleTemplate.findUnique({
-      where: { templateId },
-      select: { templateKey: true },
+  private async getCurrentUserPermissionIds(userId: string): Promise<Set<string>> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                rolePermissions: {
+                  select: {
+                    permission: { select: { permissionId: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
-    if (!template) return null;
-    return ROLE_TEMPLATE_RULES[template.templateKey] ?? null;
+    if (!user) return new Set();
+    const ids = new Set<string>();
+    for (const ur of user.userRoles) {
+      for (const rp of ur.role.rolePermissions) {
+        ids.add(rp.permission.permissionId);
+      }
+    }
+    return ids;
   }
 
-  private checkPermissionAgainstRules(
-    perm: { roleLevel: number; tags: unknown },
-    rules: { maxRoleLevel?: number; excludeTags?: string[] },
-  ): boolean {
-    if (
-      rules.maxRoleLevel !== undefined &&
-      perm.roleLevel > rules.maxRoleLevel
-    ) {
-      return false;
+  /**
+   * 检查是否修改自己所属角色的权限
+   */
+  private async checkOwnRole(roleId: string, currentUserId?: string): Promise<void> {
+    if (!currentUserId) return;
+    const membership = await this.prisma.userRole.findUnique({
+      where: {
+        userId_roleId: {
+          userId: currentUserId,
+          roleId,
+        },
+      },
+    });
+    if (membership) {
+      throw new ForbiddenException('不能修改自己所属角色的权限');
     }
-    const permTags = Array.isArray(perm.tags) ? perm.tags : [];
-    if (
-      rules.excludeTags &&
-      permTags.some((t: string) => rules.excludeTags!.includes(t))
-    ) {
-      return false;
+  }
+
+  /**
+   * 检查当前用户是否有权分配这些权限
+   * 超级管理员不受限制
+   */
+  private async validatePermissionAssignment(
+    permissionIds: string[],
+    currentUserId?: string,
+  ): Promise<void> {
+    if (!currentUserId || permissionIds.length === 0) return;
+    if (await this.isSuperAdmin(currentUserId)) return;
+
+    const allowedIds = await this.getCurrentUserPermissionIds(currentUserId);
+    const invalid = permissionIds.filter((id) => !allowedIds.has(id));
+    if (invalid.length > 0) {
+      throw new ForbiddenException('无权分配自身未拥有的权限');
     }
-    return true;
   }
 
   async create(
@@ -116,7 +149,6 @@ export class RolesService extends BaseService {
     const {
       name,
       roleKey,
-      templateId,
       description,
       remark,
       sort,
@@ -124,40 +156,18 @@ export class RolesService extends BaseService {
       permissionIds,
     } = createRoleDto;
 
-    // 校验模板是否存在
-    const rules = await this.getTemplateRules(templateId);
-    if (!rules) {
-      throw new NotFoundException('角色模板不存在');
-    }
-
     await this.validatePermissionIds(permissionIds ?? []);
+    await this.validatePermissionAssignment(permissionIds ?? [], currentUserId);
 
     // 检查是否尝试创建超级角色
     if (roleKey === SUPER_ROLE_KEY) {
       throw new ForbiddenException('不允许创建超级管理员角色');
     }
 
-    // 创建角色时按模板规则过滤权限
-    if (permissionIds && permissionIds.length > 0) {
-      const perms = await this.prisma.permission.findMany({
-        where: { permissionId: { in: permissionIds } },
-        select: { permissionId: true, roleLevel: true, tags: true },
-      });
-      const invalid = perms.filter(
-        (p) => !this.checkPermissionAgainstRules(p, rules),
-      );
-      if (invalid.length > 0) {
-        throw new ForbiddenException(
-          `权限超出角色模板允许范围: ${invalid.map((p) => p.permissionId).join(', ')}`,
-        );
-      }
-    }
-
     const role = await this.prisma.role.create({
       data: {
         name,
         roleKey,
-        templateId,
         description,
         remark,
         sort: sort ?? 0,
@@ -327,7 +337,9 @@ export class RolesService extends BaseService {
       throw new ForbiddenException('超级管理员角色不允许修改');
     }
 
+    await this.checkOwnRole(roleId, currentUserId);
     await this.validatePermissionIds(permissionIds ?? []);
+    await this.validatePermissionAssignment(permissionIds ?? [], currentUserId);
 
     // 更新角色基本信息
     await this.prisma.role.update({
@@ -436,26 +448,9 @@ export class RolesService extends BaseService {
       throw new ForbiddenException('超级管理员角色不允许修改权限');
     }
 
+    await this.checkOwnRole(roleId, currentUserId);
     await this.validatePermissionIds(permissionIds);
-
-    // 按角色模板规则校验权限
-    if (role.templateId && permissionIds.length > 0) {
-      const rules = await this.getTemplateRules(role.templateId);
-      if (rules) {
-        const perms = await this.prisma.permission.findMany({
-          where: { permissionId: { in: permissionIds } },
-          select: { permissionId: true, roleLevel: true, tags: true },
-        });
-        const invalid = perms.filter(
-          (p) => !this.checkPermissionAgainstRules(p, rules),
-        );
-        if (invalid.length > 0) {
-          throw new ForbiddenException(
-            `权限超出角色模板允许范围: ${invalid.map((p) => p.permissionId).join(', ')}`,
-          );
-        }
-      }
-    }
+    await this.validatePermissionAssignment(permissionIds, currentUserId);
 
     // 删除现有的角色权限关联
     await this.prisma.rolePermission.deleteMany({
@@ -560,8 +555,8 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);
     }
 
-    if (role.roleKey === SUPER_ROLE_KEY && userIds.length === 0) {
-      throw new ForbiddenException('至少保留 1 个超级管理员');
+    if (role.roleKey === SUPER_ROLE_KEY && userIds.length < 2) {
+      throw new ForbiddenException('超级管理员角色至少保留 2 个用户');
     }
 
     if (currentUserId) {
@@ -674,8 +669,8 @@ export class RolesService extends BaseService {
           userId: { in: userIds },
         },
       });
-      if ((await this.countSuperAdminUsers()) - removingCount < 1) {
-        throw new ForbiddenException('至少保留 1 个超级管理员');
+      if ((await this.countSuperAdminUsers()) - removingCount < 2) {
+        throw new ForbiddenException('至少保留 2 个超级管理员');
       }
     }
 

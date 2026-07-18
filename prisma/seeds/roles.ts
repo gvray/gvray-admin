@@ -5,13 +5,7 @@ import {
 } from '../../src/shared/constants/role.constant';
 import { CommonStatus } from '../../src/shared/constants/common-status.constant';
 
-export async function seedRoles(
-  prisma: PrismaClient,
-  templates: Record<
-    string,
-    { templateId: string; templateKey: string }
-  >,
-) {
+export async function seedRoles(prisma: PrismaClient) {
   console.log('开始创建角色...');
 
   // 创建超级角色（不允许删除、创建和修改）
@@ -25,7 +19,6 @@ export async function seedRoles(
       remark: '系统超级管理员角色，具有最高权限且受保护',
       sort: 0,
       status: CommonStatus.ENABLED,
-      templateId: templates.super_admin?.templateId,
     },
   });
 
@@ -40,7 +33,6 @@ export async function seedRoles(
       remark: '系统默认管理员角色，具有最高权限',
       sort: 1,
       status: CommonStatus.ENABLED,
-      templateId: templates.admin?.templateId,
     },
   });
 
@@ -55,7 +47,6 @@ export async function seedRoles(
       remark: '系统默认普通用户角色，具有基础查看权限',
       sort: 10,
       status: CommonStatus.ENABLED,
-      templateId: templates.user?.templateId,
     },
   });
 
@@ -70,7 +61,6 @@ export async function seedRoles(
       remark: '部门经理角色，可以管理本部门用户和资源',
       sort: 5,
       status: CommonStatus.ENABLED,
-      templateId: templates.user?.templateId,
     },
   });
 
@@ -85,7 +75,6 @@ export async function seedRoles(
       remark: '供访客浏览系统使用，拥有完整的界面访问权限但仅限查看数据',
       sort: 99,
       status: CommonStatus.ENABLED,
-      templateId: templates.super_admin?.templateId,
     },
   });
 

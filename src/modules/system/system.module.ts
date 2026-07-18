@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
-import { RoleTemplatesModule } from './role-templates/role-templates.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { MenuModule } from './menu/menu.module';
 import { DepartmentsModule } from './departments/departments.module';
@@ -15,7 +14,6 @@ import { MonitorModule } from './monitor/monitor.module';
   imports: [
     UsersModule,
     RolesModule,
-    RoleTemplatesModule,
     PermissionsModule,
     MenuModule,
     DepartmentsModule,
@@ -28,7 +26,6 @@ import { MonitorModule } from './monitor/monitor.module';
   exports: [
     UsersModule,
     RolesModule,
-    RoleTemplatesModule,
     PermissionsModule,
     MenuModule,
     DepartmentsModule,

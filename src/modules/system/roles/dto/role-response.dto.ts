@@ -91,10 +91,6 @@ export class RoleResponseDto {
   @Expose()
   status: number;
 
-  @ApiPropertyOptional({ description: '角色模板ID' })
-  @Expose()
-  templateId?: string;
-
   @ApiPropertyOptional({
     description: '权限列表',
     type: [RolePermissionResponseDto],

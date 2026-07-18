@@ -3,7 +3,6 @@ import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { METHOD_METADATA } from '@nestjs/common/constants';
 import { PrismaService } from '@/prisma/prisma.service';
 import { PERMISSIONS_KEY } from '@/core/decorators/permissions.decorator';
-import { SUPER_ROLE_KEY, ADMIN_ROLE_KEY, GUEST_ROLE_KEY } from '@/shared/constants/role.constant';
 import { PERMISSION_METADATA_MAP } from '@/shared/constants/permissions.constant';
 
 interface ScannedPermission {
@@ -37,11 +36,7 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     created: number;
     updated: number;
     deleted: number;
-    assigned: {
-      superAdmin: { newAssigned: number; total: number };
-      admin: { newAssigned: number; total: number };
-      guest: { newAssigned: number; total: number };
-    };
+    sensitive: string[];
   }> {
     this.logger.log('🔍 开始扫描控制器权限...');
 
@@ -102,20 +97,16 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     this.logger.log(`   - 新增: ${stats.created} 个`);
     this.logger.log(`   - 更新: ${stats.updated} 个`);
     this.logger.log(`   - 删除: ${stats.deleted} 个`);
-    this.logger.log(
-      `   - 超级管理员: 已绑定 ${stats.assigned.superAdmin.total} 个，本次新增 ${stats.assigned.superAdmin.newAssigned} 个`,
-    );
-    this.logger.log(
-      `   - 管理员: 已绑定 ${stats.assigned.admin.total} 个，本次新增 ${stats.assigned.admin.newAssigned} 个`,
-    );
-    this.logger.log(
-      `   - 游客: 已绑定 ${stats.assigned.guest.total} 个，本次新增 ${stats.assigned.guest.newAssigned} 个`,
-    );
 
-    return {
-      scanned: scannedPermissions.length,
-      ...stats,
-    };
+    if (stats.sensitive.length > 0) {
+      this.logger.warn(`   ⚠️ 敏感权限: ${stats.sensitive.length} 个`);
+      for (const code of stats.sensitive) {
+        const meta = PERMISSION_METADATA_MAP.get(code);
+        this.logger.warn(`      - ${code}${meta?.notes ? ` (${meta.notes})` : ''}`);
+      }
+    }
+
+    return { scanned: scannedPermissions.length, ...stats };
   }
 
   /**
@@ -127,14 +118,11 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     created: number;
     updated: number;
     deleted: number;
-    assigned: {
-      superAdmin: { newAssigned: number; total: number };
-      admin: { newAssigned: number; total: number };
-      guest: { newAssigned: number; total: number };
-    };
+    sensitive: string[];
   }> {
     let created = 0;
     let updated = 0;
+    const sensitive: string[] = [];
 
     const existingPermissions = await this.prisma.permission.findMany({
       where: {
@@ -153,15 +141,17 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
     for (const perm of scannedPermissions) {
       const existing = existingPermissions.find((p) => p.code === perm.code);
-      const meta = PERMISSION_METADATA_MAP.get(perm.code) ?? {};
+      const meta = PERMISSION_METADATA_MAP.get(perm.code);
+
+      if (meta?.sensitive) {
+        sensitive.push(perm.code);
+      }
 
       await this.prisma.permission.upsert({
         where: { code: perm.code },
         update: {
           name: perm.name,
           httpMethod: perm.httpMethod,
-          roleLevel: meta.level ?? 0,
-          tags: meta.tags ?? [],
           mutable: false,
           origin: 'SYSTEM',
           deletedAt: null,
@@ -170,8 +160,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
           code: perm.code,
           name: perm.name,
           httpMethod: perm.httpMethod,
-          roleLevel: meta.level ?? 0,
-          tags: meta.tags ?? [],
           mutable: false,
           origin: 'SYSTEM',
         },
@@ -202,82 +190,7 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       deleted++;
     }
 
-    const assigned = await this.assignAllRolePermissions();
-
-    return { created, updated, deleted, assigned };
-  }
-
-  /**
-   * 为指定角色分配权限
-   */
-  private async assignPermissionsToRole(
-    roleKey: string,
-    filter?: { maxRoleLevel?: number },
-  ): Promise<{ newAssigned: number; total: number }> {
-    const role = await this.prisma.role.findFirst({
-      where: { roleKey },
-      select: { roleId: true },
-    });
-    if (!role) return { newAssigned: 0, total: 0 };
-
-    const where: Record<string, unknown> = { deletedAt: null };
-    if (filter?.maxRoleLevel !== undefined) {
-      where['roleLevel'] = { lte: filter.maxRoleLevel };
-    }
-
-    const allPermissions = await this.prisma.permission.findMany({
-      where,
-      select: { permissionId: true },
-    });
-
-    const existingLinks = await this.prisma.rolePermission.findMany({
-      where: { roleId: role.roleId },
-      select: { permissionId: true },
-    });
-    const linkedIds = new Set(existingLinks.map((l) => l.permissionId));
-    const toAssign = allPermissions.filter(
-      (p) => !linkedIds.has(p.permissionId),
-    );
-
-    if (toAssign.length > 0) {
-      await this.prisma.rolePermission.createMany({
-        data: toAssign.map((p) => ({
-          roleId: role.roleId,
-          permissionId: p.permissionId,
-        })),
-        skipDuplicates: true,
-      });
-    }
-
-    const total = await this.prisma.rolePermission.count({
-      where: {
-        roleId: role.roleId,
-        permission: { deletedAt: null },
-      },
-    });
-
-    return { newAssigned: toAssign.length, total };
-  }
-
-  /**
-   * 扫描完成后自动分配权限：
-   * - super_admin：全部权限（含超管专属）
-   * - admin：全部权限，但排除 roleLevel > 1 的权限
-   * - guest：全部权限（写操作由 GuestWriteGuard 拦截）
-   * TODO: guest 角色为演示系统临时设计，后续项目 fork 后应全面移除
-   */
-  private async assignAllRolePermissions(): Promise<{
-    superAdmin: { newAssigned: number; total: number };
-    admin: { newAssigned: number; total: number };
-    guest: { newAssigned: number; total: number };
-  }> {
-    const superAdmin = await this.assignPermissionsToRole(SUPER_ROLE_KEY);
-    const admin = await this.assignPermissionsToRole(ADMIN_ROLE_KEY, {
-      maxRoleLevel: 1,
-    });
-    const guest = await this.assignPermissionsToRole(GUEST_ROLE_KEY);
-
-    return { superAdmin, admin, guest };
+    return { created, updated, deleted, sensitive };
   }
 
   /**

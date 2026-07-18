@@ -70,8 +70,8 @@ export class UsersService extends BaseService {
   ): Promise<void> {
     if (
       currentUserId &&
-      !(await this.isSuperAdmin(currentUserId)) &&
-      (await this.isSuperAdmin(targetUserId))
+      (await this.isSuperAdmin(targetUserId)) &&
+      currentUserId !== targetUserId
     ) {
       throw new ForbiddenException(`无权${action}超级管理员`);
     }
@@ -481,7 +481,7 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不能禁用自己账号');
     }
 
-    // 不能禁用最后一个活跃超级管理员
+    // 不能禁用导致活跃超级管理员少于 2 个
     if (
       updateUserDto.status === UserStatus.DISABLED &&
       (await this.isSuperAdmin(userId))
@@ -498,8 +498,8 @@ export class UsersService extends BaseService {
           },
         },
       });
-      if (activeSuperAdminCount <= 1) {
-        throw new ForbiddenException('不能禁用最后一个活跃超级管理员');
+      if (activeSuperAdminCount <= 2) {
+        throw new ForbiddenException('不能禁用导致活跃超级管理员少于 2 个');
       }
     }
 
@@ -615,13 +615,13 @@ export class UsersService extends BaseService {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    // 非超级管理员不能重置超级管理员的密码
+    // 超级管理员密码只能由本人重置
     if (
       currentUserId &&
-      !(await this.isSuperAdmin(currentUserId)) &&
-      (await this.isSuperAdmin(userId))
+      (await this.isSuperAdmin(userId)) &&
+      currentUserId !== userId
     ) {
-      throw new ForbiddenException('无权重置超级管理员密码');
+      throw new ForbiddenException('超级管理员密码只能由本人重置');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -701,9 +701,9 @@ export class UsersService extends BaseService {
 
     if (
       (await this.isSuperAdmin(userId)) &&
-      (await this.countSuperAdminUsers()) <= 1
+      (await this.countSuperAdminUsers()) <= 2
     ) {
-      throw new ForbiddenException('不能删除最后一个超级管理员');
+      throw new ForbiddenException('不能删除导致超级管理员少于 2 个');
     }
 
     await this.prisma.user.delete({
@@ -739,9 +739,9 @@ export class UsersService extends BaseService {
     if (
       targetIsSuperAdmin &&
       !containsSuperRole &&
-      (await this.countSuperAdminUsers()) <= 1
+      (await this.countSuperAdminUsers()) <= 2
     ) {
-      throw new ForbiddenException('至少保留 1 个超级管理员');
+      throw new ForbiddenException('至少保留 2 个超级管理员');
     }
 
     // 先删除现有的角色关联
@@ -839,9 +839,9 @@ export class UsersService extends BaseService {
     if (
       removesSuperRole &&
       (await this.isSuperAdmin(userId)) &&
-      (await this.countSuperAdminUsers()) <= 1
+      (await this.countSuperAdminUsers()) <= 2
     ) {
-      throw new ForbiddenException('至少保留 1 个超级管理员');
+      throw new ForbiddenException('至少保留 2 个超级管理员');
     }
 
     // 删除指定的角色关联
@@ -925,9 +925,9 @@ export class UsersService extends BaseService {
     }
     if (
       deletingSuperAdminCount > 0 &&
-      (await this.countSuperAdminUsers()) - deletingSuperAdminCount < 1
+      (await this.countSuperAdminUsers()) - deletingSuperAdminCount < 2
     ) {
-      throw new ForbiddenException('至少保留 1 个超级管理员');
+      throw new ForbiddenException('至少保留 2 个超级管理员');
     }
     await this.prisma.user.deleteMany({
       where: { userId: { in: ids } },

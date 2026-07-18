@@ -2,11 +2,11 @@ import { PrismaClient } from '@prisma/client';
 import { seedMenus } from './seeds/menus';
 import { seedDepartments } from './seeds/department';
 import { seedPositions } from './seeds/positions';
-import { seedRoleTemplates } from './seeds/role-templates';
 import { seedRoles } from './seeds/roles';
 import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
 import { seedConfigs } from './seeds/configs';
+import { seedPermissionsAndAssignments } from './seeds/permissions';
 
 const prisma = new PrismaClient();
 
@@ -22,14 +22,11 @@ async function main() {
   // 3. 创建岗位
   const { managerPosition, hrPosition } = await seedPositions(prisma);
 
-  // 4. 创建角色模板
-  const roleTemplates = await seedRoleTemplates(prisma);
+  // 4. 创建角色
+  const { superRole, adminRole, userRole, guestRole } = await seedRoles(prisma);
 
-  // 5. 创建角色
-  const { superRole, adminRole, userRole, guestRole } = await seedRoles(
-    prisma,
-    roleTemplates,
-  );
+  // 5. 创建权限并分配系统角色权限
+  await seedPermissionsAndAssignments(prisma);
 
   // 6. 创建用户
   const { superUser, adminUser } = await seedUsers(

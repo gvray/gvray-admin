@@ -53,7 +53,41 @@ export class PermissionsService extends BaseService {
     };
   }
 
-  async findAllFlat(): Promise<PermissionResponseDto[]> {
+  async findAllFlat(
+    mine = false,
+    userId?: string,
+  ): Promise<PermissionResponseDto[]> {
+    if (mine && userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { userId },
+        select: {
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  rolePermissions: {
+                    select: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      const permMap = new Map<string, PermissionModel>();
+      for (const ur of user?.userRoles ?? []) {
+        for (const rp of ur.role.rolePermissions) {
+          permMap.set(rp.permission.permissionId, rp.permission);
+        }
+      }
+      const items = Array.from(permMap.values());
+      return plainToInstance(PermissionResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
+    }
+
     const items = await this.prisma.permission.findMany({
       where: { deletedAt: null },
       orderBy: [{ code: 'asc' }],

@@ -10,16 +10,16 @@
 
 // ==================== 权限元数据 ====================
 export interface PermissionMeta {
-  level?: number; // 0=普通, 1=管理员, 2=超管
-  tags?: string[];
+  sensitive?: boolean; // 是否敏感操作（仅开发时标记，不入数据库）
+  notes?: string; // 开发备注
 }
 
 const metaMap = new Map<string, PermissionMeta>();
 
 /**
- * 定义权限代码并记录元数据（供扫描器写入数据库）
+ * 定义权限代码并记录元数据（供扫描器日志使用，不入数据库）
  * @param code 权限代码
- * @param meta 元数据（level / tags）
+ * @param meta 元数据（sensitive / notes）
  * @returns 权限代码
  */
 export function definePermission(
@@ -99,8 +99,8 @@ export const PERMISSION_PERMISSIONS = {
   VIEW: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
   UPDATE: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
   SCAN: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.SCAN}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '扫描权限目录，影响系统权限配置',
   }),
 } as const;
 
@@ -140,16 +140,16 @@ export const CONFIG_PERMISSIONS = {
   LIST: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
   CREATE: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '创建系统配置项',
   }),
   UPDATE: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '修改系统配置项',
   }),
   DELETE: definePermission(`${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '删除系统配置项',
   }),
 } as const;
 
@@ -176,12 +176,12 @@ export const LOGIN_LOG_PERMISSIONS = {
   VIEW: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
   DELETE: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
   CLEAN: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '按条件清理登录日志',
   }),
   CLEAR: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '清空全部登录日志，不可恢复',
   }),
 } as const;
 
@@ -192,12 +192,12 @@ export const OPERATION_LOG_PERMISSIONS = {
   VIEW: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
   DELETE: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
   CLEAN: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '按条件清理操作日志',
   }),
   CLEAR: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`, {
-    level: 2,
-    tags: ['super-admin-only'],
+    sensitive: true,
+    notes: '清空全部操作日志，不可恢复',
   }),
 } as const;
 
@@ -207,21 +207,6 @@ export const MONITOR_PERMISSIONS = {
   LIST: definePermission(`${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
 } as const;
-
-// ==================== 超管专属权限 ====================
-/**
- * @deprecated 请改用 PERMISSION_METADATA_MAP 或查询数据库 roleLevel/tags
- */
-export const SUPER_ADMIN_ONLY_PERMISSIONS: readonly string[] = [
-  CONFIG_PERMISSIONS.CREATE,
-  CONFIG_PERMISSIONS.UPDATE,
-  CONFIG_PERMISSIONS.DELETE,
-  PERMISSION_PERMISSIONS.SCAN,
-  LOGIN_LOG_PERMISSIONS.CLEAR,
-  LOGIN_LOG_PERMISSIONS.CLEAN,
-  OPERATION_LOG_PERMISSIONS.CLEAR,
-  OPERATION_LOG_PERMISSIONS.CLEAN,
-] as const;
 
 // ==================== 导出所有权限配置 ====================
 export const PERMISSIONS = {

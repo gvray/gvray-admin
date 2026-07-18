@@ -92,8 +92,6 @@ model Role {
   dataScope       Int              @default(1) // 数据权限：1-仅本人, 2-本部门, 3-本部门及以下, 4-自定义, 5-全部
   sort            Int              @default(0) // 排序权重
   remark          String?          @db.Text // 备注信息
-  templateId    String?
-  template      RoleTemplate?    @relation(fields: [templateId], references: [templateId])
   userRoles       UserRole[]
   rolePermissions RolePermission[]
   roleDepartments RoleDepartment[] // 角色-部门关联（一对多）
@@ -149,22 +147,6 @@ model RoleDepartment {
   @@map("role_departments")
 }
 
-model RoleTemplate {
-  id          Int      @id @default(autoincrement())
-  templateId  String   @unique @default(uuid())
-  templateKey String   @unique
-  name        String   @unique
-  description String?
-  status      String   @default("enabled") @db.VarChar(16)
-  sort        Int      @default(0)
-  remark      String?
-  roles       Role[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("role_templates")
-}
-
 model Permission {
   id              Int              @id @default(autoincrement())
   permissionId    String           @unique @default(uuid())
@@ -174,8 +156,6 @@ model Permission {
   description     String?          @db.Text // 权限描述
   origin          PermissionOrigin @default(SYSTEM) // 来源：SYSTEM=系统扫描
   deletedAt       DateTime? // API 权限软删除时间，非空表示已删除
-  roleLevel       Int              @default(0) // 0=普通, 1=管理员, 2=超管
-  tags            Json?            @default("[]") // ["super-admin-only", "dangerous"]
   mutable         Boolean          @default(true) // SYSTEM=false, 不允许人工改元数据
   rolePermissions RolePermission[]
 

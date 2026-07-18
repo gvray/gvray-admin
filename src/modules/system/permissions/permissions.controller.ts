@@ -61,8 +61,14 @@ export class PermissionsController {
     description: '全部权限平铺列表',
     type: [PermissionResponseDto],
   })
-  async findAllFlat() {
-    const data = await this.permissionsService.findAllFlat();
+  async findAllFlat(
+    @Query('mine') mine: string,
+    @CurrentUser() user: IUser,
+  ) {
+    const data = await this.permissionsService.findAllFlat(
+      mine === 'true',
+      user?.userId,
+    );
     return ResponseUtil.found(data, '获取全部权限成功');
   }
 
@@ -117,40 +123,10 @@ export class PermissionsController {
         created: { type: 'number', description: '新增的权限数量' },
         updated: { type: 'number', description: '更新的权限数量' },
         deleted: { type: 'number', description: '删除的权限数量' },
-        assigned: {
-          type: 'object',
-          properties: {
-            superAdmin: {
-              type: 'object',
-              properties: {
-                total: { type: 'number', description: '超级管理员已绑定总数' },
-                newAssigned: {
-                  type: 'number',
-                  description: '本次新增绑定数量',
-                },
-              },
-            },
-            admin: {
-              type: 'object',
-              properties: {
-                total: { type: 'number', description: '管理员已绑定总数' },
-                newAssigned: {
-                  type: 'number',
-                  description: '本次新增绑定数量',
-                },
-              },
-            },
-            guest: {
-              type: 'object',
-              properties: {
-                total: { type: 'number', description: '游客已绑定总数' },
-                newAssigned: {
-                  type: 'number',
-                  description: '本次新增绑定数量',
-                },
-              },
-            },
-          },
+        sensitive: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '扫描到的敏感权限代码列表',
         },
       },
     },

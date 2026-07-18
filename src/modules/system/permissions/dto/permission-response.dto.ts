@@ -30,14 +30,6 @@ export class PermissionResponseDto {
   @Expose()
   origin: string;
 
-  @ApiProperty({ description: '权限等级', example: 0 })
-  @Expose()
-  roleLevel: number;
-
-  @ApiPropertyOptional({ description: '权限标签', example: ['super-admin-only'] })
-  @Expose()
-  tags?: string[];
-
   @ApiProperty({ description: '是否可人工修改' })
   @Expose()
   mutable: boolean;
