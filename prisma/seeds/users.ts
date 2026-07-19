@@ -17,7 +17,13 @@ export async function seedUsers(
   // ================================
   console.log('创建超级管理员用户...');
 
-  const rawSuperPassword = process.env.SUPER_ADMIN_INITIAL_PASSWORD ?? '123456';
+  const rawSuperPassword = process.env.SUPER_ADMIN_INITIAL_PASSWORD;
+  if (!rawSuperPassword) {
+    throw new Error(
+      'SUPER_ADMIN_INITIAL_PASSWORD environment variable is required. ' +
+      'Set it before running seed.',
+    );
+  }
 
   const hashedSuperPassword = await bcrypt.hash(rawSuperPassword, 10);
   console.log('⚠️ 请登录后立即修改密码');

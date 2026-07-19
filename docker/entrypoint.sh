@@ -14,6 +14,12 @@ set -e
 
 MIGRATIONS_DIR="prisma/migrations"
 
+# ── 0. Security checks ────────────────────────────────────────────────────────
+if [ -z "$SUPER_ADMIN_INITIAL_PASSWORD" ]; then
+  echo "[entrypoint] WARNING: SUPER_ADMIN_INITIAL_PASSWORD not set, using default password."
+  echo "[entrypoint] For production, set SUPER_ADMIN_INITIAL_PASSWORD in your environment."
+fi
+
 # ── 1. Schema ─────────────────────────────────────────────────────────────────
 if [ -d "$MIGRATIONS_DIR" ] && [ -n "$(ls -A "$MIGRATIONS_DIR" 2>/dev/null)" ]; then
   echo "[entrypoint] Running prisma migrate deploy..."
