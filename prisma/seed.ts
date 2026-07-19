@@ -43,17 +43,19 @@ async function main() {
   await seedConfigs();
 
   console.log('数据库初始化完成！');
+  const seedPassword = process.env.SUPER_ADMIN_INITIAL_PASSWORD || '未设置';
+
   console.log('超级管理员账户信息:');
   console.log(`  邮箱: ${superUser.email}`);
   console.log(`  用户名: ${superUser.username}`);
   console.log(`  手机号: ${superUser.phone}`);
-  console.log(`  密码: 123456`);
+  console.log(`  密码: ${seedPassword}`);
 
   console.log('管理员账户信息:');
   console.log(`  邮箱: ${adminUser.email}`);
   console.log(`  用户名: ${adminUser.username}`);
   console.log(`  手机号: ${adminUser.phone}`);
-  console.log(`  密码: 123456`);
+  console.log(`  密码: ${seedPassword}`);
 }
 
 main()
