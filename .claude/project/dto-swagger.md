@@ -2,7 +2,7 @@
 
 DTO 是前后端契约，字段、必填状态、类型和响应结构必须通过 Swagger 明确表达。
 
-## Swagger 注解规则
+## 注解规则
 
 | 场景 | 注解 | 要求 |
 |------|------|------|
@@ -19,92 +19,35 @@ DTO 是前后端契约，字段、必填状态、类型和响应结构必须通�
 
 ## 请求 DTO
 
-全局启用 `EmptyStringTransformPipe` 和 `ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true })`：
-
-- 未在 DTO 中声明的字段会被拒绝。
-- 新增接口入参必须同步 DTO 和 Swagger 注解。
-- Query 中的 number / boolean / date 不要只依赖隐式转换，复杂场景使用 `@Type()` / `@Transform()` 明确语义。
-- 可选字段要考虑 `undefined`、`null`、空字符串被转换后的行为。
+全局启用 `EmptyStringTransformPipe` 和 `ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true })`：未声明字段被拒绝，空字符串转为 `null`。
 
 ```typescript
 export class CreateUserDto {
   @ApiProperty({ description: '用户名', example: 'admin', type: 'string' })
-  @IsString()
-  @MinLength(3)
+  @IsString() @MinLength(3)
   username: string;
 
   @ApiPropertyOptional({ description: '邮箱', example: 'admin@example.com', type: 'string' })
-  @IsOptional()
-  @IsEmail()
+  @IsOptional() @IsEmail()
   email?: string;
 
   @ApiProperty({ description: '状态', enum: UserStatus, example: UserStatus.ENABLED })
   @IsEnum(UserStatus)
   status: UserStatus;
-
-  @ApiPropertyOptional({ description: '角色ID列表', type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  roleIds?: string[];
 }
 ```
 
-## Update DTO
-
-Update DTO 通常继承 Create DTO，并排除不可修改字段：
-
-```typescript
-export class UpdateUserDto extends PartialType(
-  OmitType(CreateUserDto, ['password'] as const),
-) {}
-```
-
-## Query DTO
-
-Query DTO 通常继承分页 DTO，查询条件全部可选：
-
-```typescript
-export class QueryUserDto extends PaginationSortDto {
-  @ApiPropertyOptional({ description: '关键词', type: 'string' })
-  @IsOptional()
-  keyword?: string;
-}
-```
+Update DTO 通常继承 Create DTO 并排除不可修改字段：`extends PartialType(OmitType(CreateUserDto, ['password'] as const))`。
+Query DTO 通常继承 `PaginationSortDto`，查询条件全部可选。
 
 ## 响应 DTO
 
-响应 DTO 必须精确控制输出：
-
-1. 每个对外字段必须有 `@ApiProperty()` 或 `@ApiPropertyOptional()`。
-2. 暴露字段用 `@Expose()`，隐藏字段用 `@Exclude()`。
-3. 数据库自增 `id` 不作为对外字段；对外暴露业务 UUID，如 `userId`、`roleId`。
-4. 敏感字段（尤其 `password`、token、secret）不能出现在响应 DTO 中。
-5. 嵌套对象用 `@Type(() => XxxResponseDto)`。
-6. 需要兼容 `null` 或转换 Prisma 关联结构时使用 `@Transform()`。
-7. 使用 DTO 时要确保转换真正生效，常见模式是 `plainToInstance(XxxResponseDto, data, { excludeExtraneousValues: true })`。
-8. Prisma 查询优先用 `select` 排除敏感字段；DTO 是第二道防线，不要依赖 DTO 才隐藏密码或内部 id。
-
-```typescript
-export class UserResponseDto {
-  @ApiProperty({ description: '用户ID', type: 'string' })
-  @Expose()
-  userId: string;
-
-  @ApiProperty({ description: '用户名', type: 'string' })
-  @Expose()
-  username: string;
-
-  @ApiPropertyOptional({ description: '邮箱', type: 'string' })
-  @Expose()
-  @Transform(({ value }): string => value ?? '')
-  email?: string;
-
-  @ApiProperty({ description: '创建时间', type: 'string', format: 'date-time' })
-  @Expose()
-  createdAt: Date;
-}
-```
+- 每个对外字段必须有 `@ApiProperty()` 或 `@ApiPropertyOptional()`。
+- 暴露字段用 `@Expose()`，隐藏字段用 `@Exclude()`；对外暴露业务 UUID（如 `userId`），不暴露数据库自增 `id`。
+- 敏感字段（尤其 `password`、token、secret）不能出现在响应 DTO 中。
+- 嵌套对象用 `@Type(() => XxxResponseDto)`，兼容 `null` 或转换 Prisma 关联结构时使用 `@Transform()`。
+- 使用 `plainToInstance(XxxResponseDto, data, { excludeExtraneousValues: true })` 确保转换生效。
+- Prisma 查询优先用 `select` 排除敏感字段；DTO 是第二道防线。
 
 ## 禁止事项
 
@@ -112,5 +55,5 @@ export class UserResponseDto {
 - 禁止必填字段使用 `@ApiPropertyOptional()`。
 - 禁止数组、枚举、数字、布尔、日期不标 `type` 或 `enum`。
 - 禁止响应 DTO 出现 `password`、token、secret 等敏感字段。
-- 禁止响应 DTO 以 `@ApiProperty()` 对外暴露数据库自增 `id`。
+- 禁止响应 DTO 暴露数据库自增 `id`。
 - 禁止把 Prisma 模型完整复制成响应 DTO。

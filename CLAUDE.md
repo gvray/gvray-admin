@@ -24,17 +24,20 @@ GVRAY Admin 是 NestJS 11 + TypeScript 后端，使用 Prisma 6 + MySQL、JWT �
 - 路径使用 tsconfig alias，避免深层相对路径。
 - 改动涉及接口/权限/配置/响应/部署时，同步更新对应文档。
 - 未经确认不运行数据库重置/迁移/seed、权限导入、部署发布等破坏性命令。
+- 不确定文件位置时先 `grep` / `glob`，不假设路径。
+- 错误信息、Swagger 描述统一使用中文。
+- 提交使用 conventional commits（`feat:` / `fix:` / `refactor:` 等）。
 
 ## 按需阅读
 
-- AI 工作流和上下文策略：[.claude/project/workflow.md](.claude/project/workflow.md)
-- 架构、模块、权限、Prisma 总则：[.claude/project/architecture.md](.claude/project/architecture.md)
-- DTO / Swagger 详细规范：[.claude/project/dto-swagger.md](.claude/project/dto-swagger.md)
-- 编码、安全、日志规范：[.claude/project/coding.md](.claude/project/coding.md)
-- 权限码和扫描流程：[.claude/project/permissions.md](.claude/project/permissions.md)
-- 统一响应摘要：[.claude/project/response-format.md](.claude/project/response-format.md)
-- 配置项摘要：[.claude/project/configs.md](.claude/project/configs.md)
-- 部署摘要：[.claude/project/deployment.md](.claude/project/deployment.md)
+- 改 DTO / Swagger → [.claude/project/dto-swagger.md](.claude/project/dto-swagger.md)
+- 改权限码 / 权限扫描 → [.claude/project/permissions.md](.claude/project/permissions.md)
+- 改统一响应格式 → [.claude/project/response-format.md](.claude/project/response-format.md)
+- 改配置项或 seed 配置 → [.claude/project/configs.md](.claude/project/configs.md)
+- 改部署、Docker、环境变量 → [.claude/project/deployment.md](.claude/project/deployment.md)
+- 改密码/日志/审计/安全策略 → [.claude/project/coding.md](.claude/project/coding.md)
+- 新增/重构业务模块 → [.claude/project/architecture.md](.claude/project/architecture.md) + dto-swagger.md + permissions.md
+- 工作流和上下文策略 → [.claude/project/workflow.md](.claude/project/workflow.md)
 
 ## 常用命令
 
