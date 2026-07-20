@@ -1,8 +1,13 @@
 # GVRAY Admin
 
-✨ **GVRAY Admin** 是面向 AI 驱动开发的企业级后台管理系统，基于 [NestJS](https://nestjs.com/)、[Prisma](https://www.prisma.io/)、MySQL 和 RESTful API 构建，内置完整的 AI 编程助手配置。项目提供 `CLAUDE.md` 及模块化文档，AI 助手可自动理解项目架构并生成符合规范的代码。
+>✨ 基于 NestJS 的现代后台管理脚手架，内置 RBAC 权限管理、Prisma ORM、JWT 认证、Swagger 与 Docker，开箱即用，适用于生产环境。
 
-> 🖥️ **配套前端**：[`gvray-react`](https://github.com/gvray/gvray-react) — React + TypeScript 管理后台
+GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构建中后台系统。项目采用 NestJS、Prisma、MySQL 和 RESTful API 构建，提供完整的 RBAC 权限体系、JWT 身份认证、系统管理模块以及规范的工程架构。
+
+与传统后台模板不同，GVRAY Admin 内置 **AI-Ready** 开发体验，提供 `CLAUDE.md` 与模块化 AI 文档，使 Claude Code、Cursor 和 GitHub Copilot 能快速理解项目架构、编码规范和业务模块，生成符合项目规范的代码。
+
+> 🖥️ 配套前端：[gvray-react](https://github.com/gvray/gvray-react) — React + TypeScript 管理后台
+
 
 ## 💫 特性亮点
 
@@ -20,6 +25,7 @@
 ## 🚀 技术栈
 
 ### 后端技术
+
 - **[NestJS](https://nestjs.com/)** - 渐进式 Node.js 框架，支持完整的依赖注入
 - **[Prisma](https://www.prisma.io/)** - 下一代 ORM，类型安全且高性能
 - **[MySQL](https://www.mysql.com/)** - 企业级关系型数据库
@@ -28,6 +34,7 @@
 - **[Swagger](https://swagger.io/)** - API 文档生成与测试工具
 
 ### 开发工具
+
 - **ESLint** - 代码质量检查
 - **Prettier** - 代码格式化
 - **Jest** - 单元测试框架
@@ -36,6 +43,7 @@
 ## ✨ 功能特性
 
 ### 🔐 认证与授权
+
 - [x] 完整的注册登录流程
 - [x] JWT 令牌认证机制
 - [x] 支持用户名、邮箱、手机号登录
@@ -50,6 +58,7 @@
 - [ ] 登录失败限制与账号锁定
 
 ### 👥 用户管理
+
 - [x] 用户基础管理（CRUD）
 - [x] 灵活的角色分配
 - [x] 部门岗位关联
@@ -61,6 +70,7 @@
 - [ ] 用户登录设备管理
 
 ### 👑 角色权限
+
 - [x] 角色基础管理（CRUD）
 - [x] 角色权限管理
 - [x] RBAC 权限控制
@@ -77,6 +87,7 @@
 - [ ] 权限继承机制
 
 ### 🏢 组织架构
+
 - [x] 部门管理（CRUD）
 - [x] 岗位管理（CRUD）
 - [x] 部门岗位关联
@@ -86,6 +97,7 @@
 - [ ] 岗位权限模板
 
 ### ⚙️ 系统管理
+
 - [x] 系统参数配置（键值对配置管理）
 - [x] 数据字典维护
 - [x] 菜单动态管理
@@ -98,6 +110,7 @@
 - [ ] 敏感数据加密
 
 ### 📚 接口文档
+
 - [x] Swagger 接口文档（OpenAPI 3.0）
 - [x] 详细的API描述和示例
 - [x] Bearer Token 认证支持
@@ -108,6 +121,7 @@
 - [ ] Mock 数据支持
 
 ### 🔍 系统监控
+
 - [ ] 在线用户监控（实时统计）
 - [x] 服务器状态监控（CPU、内存、磁盘）
 - [ ] 数据库性能监控
@@ -118,6 +132,7 @@
 - [ ] 告警通知机制
 
 ### 🛠️ 开发支持
+
 - [x] 数据库迁移工具（Prisma Migrate）
 - [x] 数据填充脚本（Seed）
 - [x] 完整的种子数据（管理员、角色、权限、部门、岗位）
@@ -131,11 +146,13 @@
 ## 🚀 快速开始
 
 ### 环境要求
+
 - Node.js >= 20
 - MySQL >= 8.0
 - pnpm >= 9（与 `packageManager` 字段一致）
 
 ### 开发环境设置
+
 ```bash
 # 克隆项目
 git clone https://github.com/gvray/nest-admin.git
@@ -161,6 +178,7 @@ pnpm start:dev
 ```
 
 ### 生产环境部署
+
 ```bash
 # 构建项目
 pnpm build
@@ -174,27 +192,20 @@ pnpm start:prod
 | 角色 | 用户名 | 邮箱 | 密码 |
 |------|--------|------|------|
 | 超级管理员 | `super_admin` | `super@example.com` | `123456`（可通过 `SUPER_ADMIN_INITIAL_PASSWORD` 覆盖） |
-| 管理员 | `admin` | `admin@example.com` | `123456` |
+| 管理员 | `admin` | `admin@example.com` | `123456`（可通过 `SUPER_ADMIN_INITIAL_PASSWORD` 覆盖） |
 | 游客 | `guest` | `guest@example.com` | `123456` |
 
-> 注册接口受 `feature.register` 配置控制，默认是否开放以 seed 配置为准。
+> 注册接口受 `feature.register` 配置控制，默认关闭（seed 中值为 `false`），可在系统配置中开启。
 
 ## 🔧 API 测试
 
-### 登录测试
-```bash
-# 本地开发（端口 3000）
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"account": "admin", "password": "123456"}'
+服务启动后，访问 Swagger UI 进行接口调试：
+
+```text
+http://localhost:3000/api
 ```
 
-### 获取用户列表
-```bash
-# 使用登录返回的 token
-curl -X GET http://localhost:3000/system/users \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
-```
+点击「Authorize」输入登录接口返回的 `accessToken`（格式：`Bearer xxx`）即可测试受保护接口。默认账户见上表。
 
 ## 🤖 AI 编程支持
 
@@ -278,14 +289,17 @@ scripts/                  # 构建 & 部署脚本
 ## 📚 相关文档
 
 ### 项目文档
+
 - [Docker 部署指南](./DOCKER_DEPLOYMENT.md)
 - [统一响应格式指南](./UNIFIED_RESPONSE_GUIDE.md)
 - [系统配置项分析](./CONFIGS_ANALYSIS.md)
 
 ### 配套前端
+
 - [gvray-react](https://github.com/gvray/gvray-react) — React + TypeScript 管理后台
 
 ### 外部参考
+
 - [NestJS 官方文档](https://docs.nestjs.com/)
 - [Prisma 官方文档](https://www.prisma.io/docs/)
 - [TypeScript 官方文档](https://www.typescriptlang.org/docs/)
