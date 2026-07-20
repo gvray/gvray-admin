@@ -7,7 +7,8 @@ export async function seedConfigs() {
   console.log('🌱 开始创建可配置数据...');
 
   const configsData = [
-    // ====================== 系统配置 (全部公开) ======================
+    // ====================== 系统配置 (全部公开，前端消费) ======================
+    // 【已实现】公开运行时配置返回，前端可消费（页面标题、邮件签名等）
     {
       key: 'system.name',
       value: 'GVRAY Admin',
@@ -20,6 +21,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '品牌基础配置',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（顶部导航栏及登录页 Logo）
     {
       key: 'system.logo',
       value: '/logo.svg',
@@ -32,6 +34,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '品牌视觉配置',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（浏览器标签页 Favicon）
     {
       key: 'system.favicon',
       value: '/favicon.ico',
@@ -44,6 +47,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '品牌视觉配置',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（页脚版权文案）
     {
       key: 'system.copyright',
       value: '© 2025 GVRAY Admin. All rights reserved.',
@@ -56,6 +60,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '法律信息配置',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（页脚 ICP 备案号）
     {
       key: 'system.icp',
       value: '',
@@ -68,6 +73,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '法律信息配置',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（系统默认时区）
     {
       key: 'system.timezone',
       value: 'Asia/Shanghai',
@@ -82,6 +88,7 @@ export async function seedConfigs() {
     },
 
     // ====================== 安全配置 ======================
+    // 【已实现】公开运行时配置返回，前端可消费（水印开关状态）
     {
       key: 'security.watermarkEnabled',
       value: 'true',
@@ -94,6 +101,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '数据防泄漏',
     },
+    // 【未实现】密码复杂度规则：最小/最大长度，是否要求大写字母、数字、特殊字符。后端注册/改密逻辑未读取
     {
       key: 'security.passwordPolicy',
       value: JSON.stringify({
@@ -112,6 +120,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '密码策略',
     },
+    // 【未实现】密码强制重置周期，0 表示永不过期。后端未读取
     {
       key: 'security.passwordExpiryDays',
       value: '0',
@@ -124,6 +133,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '密码策略',
     },
+    // 【未实现】新用户或重置密码后首次登录必须修改密码。后端未读取
     {
       key: 'security.mustChangePassword',
       value: 'true',
@@ -136,6 +146,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '账号安全',
     },
+    // 【未实现】连续登录失败达到该次数后锁定账号。后端未读取
     {
       key: 'security.loginFailureLockCount',
       value: '5',
@@ -148,6 +159,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '暴力破解防护',
     },
+    // 【未实现】登录失败锁定后自动解锁的时间。后端未读取
     {
       key: 'security.loginFailureLockDuration',
       value: '30',
@@ -160,6 +172,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '暴力破解防护',
     },
+    // 【未实现】同一账号同时在线的最大设备数。后端未读取
     {
       key: 'security.sessionConcurrentLimit',
       value: '3',
@@ -174,6 +187,7 @@ export async function seedConfigs() {
     },
 
     // ====================== 用户配置 ======================
+    // 【已实现】后端 auth.service.ts 注册逻辑中直接读取，分配默认角色
     {
       key: 'feature.registerDefaultRole',
       value: 'user',
@@ -186,6 +200,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '注册准入',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（用户未上传头像时的默认头像）
     {
       key: 'user.defaultAvatar',
       value: 'https://api.dicebear.com/9.x/bottts/svg?seed=GVRAY',
@@ -199,7 +214,8 @@ export async function seedConfigs() {
       remark: '用户初始化',
     },
 
-    // ====================== 界面配置 (全部公开) ======================
+    // ====================== 界面配置 (全部公开，前端消费) ======================
+    // 【已实现】公开运行时配置返回，前端可消费（系统默认主题）
     {
       key: 'ui.defaultTheme',
       value: 'light',
@@ -212,6 +228,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '界面主题',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（系统默认语言）
     {
       key: 'ui.defaultLanguage',
       value: 'zh-CN',
@@ -224,6 +241,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '国际化',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（表格默认分页条数）
     {
       key: 'ui.defaultPageSize',
       value: '10',
@@ -236,6 +254,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '界面偏好',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（侧边栏默认折叠状态）
     {
       key: 'ui.defaultSidebarCollapsed',
       value: 'false',
@@ -248,6 +267,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '界面布局',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（主题主色）
     {
       key: 'ui.defaultColorPrimary',
       value: '#1890ff',
@@ -260,6 +280,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '品牌色',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（新用户默认通知开关）
     {
       key: 'ui.defaultEnableNotification',
       value: 'true',
@@ -272,6 +293,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '通知偏好',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（全站灰度模式开关）
     {
       key: 'ui.grayMode',
       value: 'false',
@@ -286,6 +308,7 @@ export async function seedConfigs() {
     },
 
     // ====================== 功能开关 (全部公开) ======================
+    // 【已实现】FeatureFlagGuard + isFeatureEnabled('register') 控制注册接口开关
     {
       key: 'feature.register',
       value: 'false',
@@ -298,6 +321,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '准入控制',
     },
+    // 【未实现】审计日志开关当前由环境变量 OPLOG_ENABLED 控制，未读取本配置。纯后端功能，无需暴露给前端
     {
       key: 'feature.auditLog',
       value: 'true',
@@ -307,9 +331,10 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 1,
-      isPublic: true,
+      isPublic: false,
       remark: '安全审计',
     },
+    // 【未实现】当前无邮件发送模块。纯后端功能开关，无需暴露给前端
     {
       key: 'feature.emailNotification',
       value: 'true',
@@ -319,9 +344,10 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 2,
-      isPublic: true,
+      isPublic: false,
       remark: '通知通道',
     },
+    // 【未实现】当前无短信发送模块。纯后端功能开关，无需暴露给前端
     {
       key: 'feature.smsNotification',
       value: 'false',
@@ -331,9 +357,10 @@ export async function seedConfigs() {
       group: 'feature',
       status: CommonStatus.ENABLED,
       sort: 3,
-      isPublic: true,
+      isPublic: false,
       remark: '通知通道',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（MFA 功能开关展示）
     {
       key: 'feature.mfa',
       value: 'false',
@@ -346,7 +373,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '身份安全',
     },
-
+    // 【已实现】公开运行时配置返回，前端可消费（登录页游客试用账号）
     {
       key: 'feature.guestAccount',
       value: JSON.stringify({ username: 'guest', password: '123456' }),
@@ -361,6 +388,7 @@ export async function seedConfigs() {
     },
 
     // ====================== 存储配置 ======================
+    // 【未实现】文件上传存储后端。当前无文件上传模块，后端未读取
     {
       key: 'storage.provider',
       value: 'local',
@@ -373,6 +401,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '存储后端',
     },
+    // 【未实现】前端可消费用于上传前预校验，但后端文件上传模块尚未实现，无法做实际上传大小限制
     {
       key: 'storage.maxFileSize',
       value: '10485760',
@@ -385,6 +414,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '上传限制',
     },
+    // 【未实现】前端可消费用于上传前预校验，但后端文件上传模块尚未实现，无法做实际上传类型校验
     {
       key: 'storage.allowedTypes',
       value: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
@@ -397,6 +427,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: '上传限制',
     },
+    // 【未实现】文件访问基础 URL。当前无文件上传模块，后端未读取
     {
       key: 'storage.baseUrl',
       value: '',
@@ -410,7 +441,8 @@ export async function seedConfigs() {
       remark: '访问配置',
     },
 
-    // ====================== 第三方登录 (全部公开) ======================
+    // ====================== 第三方登录 (全部公开，前端消费) ======================
+    // 【已实现】公开运行时配置返回，前端可消费（GitHub OAuth 登录开关展示）
     {
       key: 'oauth.githubEnabled',
       value: 'false',
@@ -423,6 +455,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: 'OAuth 开关',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（Google OAuth 登录开关展示）
     {
       key: 'oauth.googleEnabled',
       value: 'false',
@@ -435,6 +468,7 @@ export async function seedConfigs() {
       isPublic: true,
       remark: 'OAuth 开关',
     },
+    // 【已实现】公开运行时配置返回，前端可消费（微信登录开关展示）
     {
       key: 'oauth.wechatEnabled',
       value: 'false',
@@ -449,6 +483,7 @@ export async function seedConfigs() {
     },
 
     // ====================== 邮件配置 (全部不公开) ======================
+    // 【未实现】SMTP 邮件发送功能总开关。当前无邮件发送模块
     {
       key: 'mail.enabled',
       value: 'false',
@@ -461,6 +496,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '邮件总开关',
     },
+    // 【未实现】SMTP 服务器地址。当前无邮件发送模块
     {
       key: 'mail.host',
       value: '',
@@ -473,6 +509,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: 'SMTP 连接',
     },
+    // 【未实现】SMTP 服务器端口。当前无邮件发送模块
     {
       key: 'mail.port',
       value: '465',
@@ -485,6 +522,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: 'SMTP 连接',
     },
+    // 【未实现】邮件发送方显示地址。当前无邮件发送模块
     {
       key: 'mail.from',
       value: '',
@@ -497,6 +535,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '邮件发送方',
     },
+    // 【未实现】SMTP SSL/TLS 加密开关。当前无邮件发送模块
     {
       key: 'mail.ssl',
       value: 'true',
@@ -511,6 +550,7 @@ export async function seedConfigs() {
     },
 
     // ====================== 短信配置 (全部不公开) ======================
+    // 【未实现】短信发送功能总开关。当前无短信发送模块
     {
       key: 'sms.enabled',
       value: 'false',
@@ -523,6 +563,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '短信总开关',
     },
+    // 【未实现】短信服务商选择。当前无短信发送模块
     {
       key: 'sms.provider',
       value: 'aliyun',
@@ -535,6 +576,7 @@ export async function seedConfigs() {
       isPublic: false,
       remark: '服务商选择',
     },
+    // 【未实现】短信模板签名。当前无短信发送模块
     {
       key: 'sms.signature',
       value: '',
