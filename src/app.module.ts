@@ -19,10 +19,13 @@ import appConfig from '@/config/app.config';
 import databaseConfig from '@/config/database.config';
 import jwtConfig from '@/config/jwt.config';
 import corsConfig from '@/config/cors.config';
+import redisConfig from '@/config/redis.config';
 import { validate } from '@/config/env.validation';
+import { RedisModule } from '@/redis/redis.module';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
+import { SessionHeartbeatInterceptor } from '@/core/interceptors/session-heartbeat.interceptor';
 import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
 
 @Module({
@@ -31,13 +34,14 @@ import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
-      load: [appConfig, databaseConfig, jwtConfig, corsConfig],
+      load: [appConfig, databaseConfig, jwtConfig, corsConfig, redisConfig],
       validate,
       expandVariables: true,
       cache: true,
       ignoreEnvFile: false,
     }),
     PrismaModule,
+    RedisModule,
     AuthModule,
     SystemModule,
     DashboardModule,
@@ -50,6 +54,10 @@ import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SessionHeartbeatInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

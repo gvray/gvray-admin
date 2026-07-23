@@ -36,6 +36,22 @@ class EnvironmentVariables {
   @IsOptional()
   APP_TZ_SUFFIX: string = '+08:00';
 
+  @IsString()
+  @IsOptional()
+  REDIS_HOST: string = 'localhost';
+
+  @IsInt()
+  @IsOptional()
+  REDIS_PORT: number = 6379;
+
+  @IsString()
+  @IsOptional()
+  REDIS_PASSWORD: string = '';
+
+  @IsInt()
+  @IsOptional()
+  REDIS_DB: number = 0;
+
   @IsBoolean()
   @IsOptional()
   OPLOG_ENABLED: boolean = true;

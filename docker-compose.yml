@@ -68,8 +68,26 @@ services:
     networks:
       - nest-net
 
+  redis:
+    image: redis:7-alpine
+    container_name: gvray-admin-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - nest-net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
 volumes:
   mysql-data:
+  redis-data:
 
 networks:
   nest-net:

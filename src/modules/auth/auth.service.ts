@@ -17,6 +17,9 @@ import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
 import { UAParser } from 'ua-parser-js';
 import * as crypto from 'crypto';
+import { TokenService } from './token.service';
+import { RateLimiterService } from '@/redis/rate-limiter.service';
+import { RedisKeys } from '@/redis/constants/redis-key.constant';
 
 interface RequestWithHeaders {
   headers?: Record<string, string | string[]>;
@@ -35,6 +38,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly loginLogsService: LoginLogsService,
+    private readonly tokenService: TokenService,
+    private readonly rateLimiter: RateLimiterService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{
@@ -133,9 +138,6 @@ export class AuthService {
     return result;
   }
 
-  // TODO: [Redis] 接入分布式登录失败限流与账户锁定
-  // 当前缺少登录失败次数限制，存在暴力破解风险。
-  // 后续接入 Redis 后用 `INCR login:fail:{account}` 计数，超阈值锁定并设 TTL。
   async login(
     loginDto: LoginDto,
     req?: RequestWithHeaders,
@@ -153,11 +155,26 @@ export class AuthService {
     let failReason = '';
 
     try {
+      // 登录失败限流检查
+      const limitKey = RedisKeys.auth.loginFail(loginDto.account);
+      const limitResult = await this.rateLimiter.check(limitKey, 5, 15 * 60); // 5 次 / 15 分钟
+      if (!limitResult.allowed) {
+        throw new UnauthorizedException(
+          `登录失败次数过多，请 ${Math.ceil((limitResult.resetAt - Date.now()) / 60000)} 分钟后重试`,
+        );
+      }
+
       const user = await this.validateUser(loginDto.account, loginDto.password);
       if (!user) {
         failReason = '用户名/邮箱/手机号或密码错误';
         throw new UnauthorizedException(failReason);
       }
+
+      // 登录成功，清除失败计数
+      await this.rateLimiter.reset(limitKey);
+
+      // 检查是否被全局踢出
+      await this.tokenService.clearKickout(user.userId);
 
       loginStatus = 1; // 成功
 
@@ -168,7 +185,8 @@ export class AuthService {
       };
 
       // 生成 access token 和 refresh token
-      const accessToken = this.generateAccessToken(payload);
+      const { token: accessToken, jti: accessTokenJti } =
+        this.generateAccessToken(payload);
       const refreshToken = await this.generateRefreshToken(
         user.userId,
         ipAddress,
@@ -177,12 +195,22 @@ export class AuthService {
 
       // 计算过期时间戳
       const accessTokenExpiresIn = this.parseExpiresIn(
-        this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h',
+        this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m',
       );
       const refreshTokenExpiresIn = this.parseExpiresIn(
         this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
       );
       const now = Date.now();
+
+      // 存入 Redis（同时记录 AT jti，用于后续踢下线）
+      await this.tokenService.storeRefreshToken(
+        user.userId,
+        refreshToken,
+        { ipAddress, userAgent },
+        refreshTokenExpiresIn,
+        accessTokenJti,
+        accessTokenExpiresIn,
+      );
 
       const result = {
         access_token: accessToken,
@@ -326,17 +354,42 @@ export class AuthService {
     });
   }
 
-  async logout(userId: string): Promise<void> {
-    // 撤销该用户的所有 refresh token
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId,
-        isRevoked: false,
-      },
-      data: {
-        isRevoked: true,
-      },
-    });
+  async logout(userId: string, accessTokenJti?: string): Promise<void> {
+    // 撤销当前设备的 RT（通过 AT jti 反向索引找到）
+    if (accessTokenJti) {
+      await this.tokenService.revokeByAccessTokenJti(accessTokenJti);
+    }
+  }
+
+  async logoutAllDevices(
+    userId: string,
+    exceptAccessTokenJti?: string,
+  ): Promise<void> {
+    // 将当前 AT 加入黑名单（如果是"退出所有设备"场景，包括当前设备）
+    if (exceptAccessTokenJti) {
+      const accessTokenExpiresIn = this.parseExpiresIn(
+        this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m',
+      );
+      await this.tokenService.blacklistAccessToken(
+        exceptAccessTokenJti,
+        accessTokenExpiresIn,
+      );
+    }
+
+    // 设置全局踢出标记
+    await this.tokenService.kickoutUser(userId);
+
+    // 撤销所有 RT
+    await this.tokenService.revokeAllUserTokens(userId);
+  }
+
+  async getSessions(userId: string): Promise<ReturnType<TokenService['getUserSessions']>> {
+    return this.tokenService.getUserSessions(userId);
+  }
+
+  async revokeSession(userId: string, tokenHash: string): Promise<void> {
+    // 删除指定 session 的 Redis key
+    await this.tokenService.revokeRefreshTokenByHash(userId, tokenHash);
   }
 
   // TODO: [Redis] 缓存用户菜单树
@@ -627,16 +680,21 @@ export class AuthService {
   }
 
   /**
-   * 生成 Access Token
+   * 生成 Access Token（带 jti）
    */
   private generateAccessToken(payload: {
     sub: string;
     email: string | null;
     username: string;
-  }): string {
+  }): { token: string; jti: string } {
     const expiresIn =
-      this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h';
-    return this.jwtService.sign(payload, { expiresIn: expiresIn as any });
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m';
+    const jti = crypto.randomUUID();
+    const token = this.jwtService.sign(
+      { ...payload, jti },
+      { expiresIn: expiresIn as any },
+    );
+    return { token, jti };
   }
 
   /**
@@ -679,28 +737,16 @@ export class AuthService {
     refresh_token_expires_in: number;
     expires_at: number;
   }> {
-    // 查找 refresh token
-    const tokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-    });
+    // 通过 TokenService 验证（优先 Redis，fallback 数据库）
+    const verified = await this.tokenService.verifyRefreshToken(refreshToken);
 
-    if (!tokenRecord) {
-      throw new UnauthorizedException('Refresh token 无效');
-    }
-
-    // 检查是否已撤销
-    if (tokenRecord.isRevoked) {
-      throw new UnauthorizedException('Refresh token 已被撤销');
-    }
-
-    // 检查是否过期
-    if (new Date() > tokenRecord.expiresAt) {
-      throw new UnauthorizedException('Refresh token 已过期');
+    if (!verified) {
+      throw new UnauthorizedException('Refresh token 无效或已过期');
     }
 
     // 获取用户信息
     const user = await this.prisma.user.findUnique({
-      where: { userId: tokenRecord.userId },
+      where: { userId: verified.userId },
     });
 
     if (!user) {
@@ -713,28 +759,36 @@ export class AuthService {
       email: user.email,
       username: user.username,
     };
-    const accessToken = this.generateAccessToken(payload);
+    const { token: accessToken, jti: accessTokenJti } =
+      this.generateAccessToken(payload);
 
-    // 生成新的 refresh token（可选：可以选择复用旧的或生成新的）
+    // 生成新的 refresh token
     const newRefreshToken = await this.generateRefreshToken(
       user.userId,
-      tokenRecord.ipAddress || undefined,
-      tokenRecord.userAgent || undefined,
+      verified.metadata.ipAddress,
+      verified.metadata.userAgent,
     );
 
     // 撤销旧的 refresh token
-    await this.prisma.refreshToken.update({
-      where: { token: refreshToken },
-      data: { isRevoked: true },
-    });
+    await this.tokenService.revokeRefreshToken(user.userId, refreshToken);
 
-    // 计算过期时间戳
-    const accessTokenExpiresIn = this.parseExpiresIn(
-      this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h',
-    );
+    // 存储新的 refresh token 到 Redis
     const refreshTokenExpiresIn = this.parseExpiresIn(
       this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
     );
+    const accessTokenExpiresIn = this.parseExpiresIn(
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m',
+    );
+    await this.tokenService.storeRefreshToken(
+      user.userId,
+      newRefreshToken,
+      verified.metadata,
+      refreshTokenExpiresIn,
+      accessTokenJti,
+      accessTokenExpiresIn,
+    );
+
+    // 计算过期时间戳
     const now = Date.now();
 
     return {

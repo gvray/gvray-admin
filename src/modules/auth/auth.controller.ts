@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Delete, Param, UseGuards, Req } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -16,11 +16,15 @@ import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
 import { AllowGuestWrite } from '../../core/decorators/allow-guest-write.decorator';
 import { FeatureFlag } from '../../core/decorators/feature-flag.decorator';
+import { JwtService } from '@nestjs/jwt';
 
 @ApiTags('认证管理')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   @Post('register')
   @FeatureFlag('register', '注册功能已关闭')
@@ -185,9 +189,74 @@ export class AuthController {
       },
     },
   })
-  async logout(@CurrentUser() user: { userId: string }) {
-    await this.authService.logout(user.userId);
+  async logout(
+    @CurrentUser() user: { userId: string },
+    @Req() req: { headers: { authorization?: string } },
+  ) {
+    // 提取当前 AT 的 jti 加入黑名单
+    let jti: string | undefined;
+    const authHeader = req.headers?.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = this.jwtService.decode(token) as { jti?: string } | null;
+        jti = payload?.jti;
+      } catch {
+        // 忽略解码失败
+      }
+    }
+
+    await this.authService.logout(user.userId, jti);
     return ResponseUtil.success(null, '退出登录成功');
+  }
+
+  @Post('logout-all')
+  @UseGuards(JwtAuthGuard)
+  @AllowGuestWrite()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '退出所有设备' })
+  @ApiResponse({ status: 200, description: '退出所有设备成功' })
+  async logoutAll(
+    @CurrentUser() user: { userId: string },
+    @Req() req: { headers: { authorization?: string } },
+  ) {
+    let jti: string | undefined;
+    const authHeader = req.headers?.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = this.jwtService.decode(token) as { jti?: string } | null;
+        jti = payload?.jti;
+      } catch {
+        // 忽略解码失败
+      }
+    }
+
+    await this.authService.logoutAllDevices(user.userId, jti);
+    return ResponseUtil.success(null, '已退出所有设备');
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前用户所有会话' })
+  @ApiResponse({ status: 200, description: '会话列表' })
+  async sessions(@CurrentUser() user: { userId: string }) {
+    const data = await this.authService.getSessions(user.userId);
+    return ResponseUtil.found(data, '获取会话列表成功');
+  }
+
+  @Delete('sessions/:tokenHash')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '撤销指定会话（踢掉其他设备）' })
+  @ApiResponse({ status: 200, description: '会话已撤销' })
+  async revokeSession(
+    @CurrentUser() user: { userId: string },
+    @Param('tokenHash') tokenHash: string,
+  ) {
+    await this.authService.revokeSession(user.userId, tokenHash);
+    return ResponseUtil.success(null, '会话已撤销');
   }
 
   @Get('me')

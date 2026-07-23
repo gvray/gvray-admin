@@ -7,6 +7,7 @@ import { UsersModule } from '@/modules/system/users/users.module';
 import { LoginLogsModule } from '@/modules/system/login-logs/login-logs.module';
 import { JwtStrategy } from '@/core/strategies/jwt.strategy';
 import { RolesGuard } from '@/core/guards/roles.guard';
+import { TokenService } from './token.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { RolesGuard } from '@/core/guards/roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard],
-  exports: [AuthService, JwtStrategy, RolesGuard],
+  providers: [AuthService, TokenService, JwtStrategy, RolesGuard],
+  exports: [AuthService, TokenService, JwtStrategy, RolesGuard],
 })
 export class AuthModule {}
