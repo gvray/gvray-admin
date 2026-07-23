@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 import { PrismaService } from '@/prisma/prisma.service';
+import { CacheService } from '@/redis/cache.service';
+import { Cacheable, CacheEvict } from '@/redis/decorators';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { QueryConfigDto } from './dto/query-config.dto';
@@ -22,6 +24,7 @@ export class ConfigsService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
+    private readonly cacheService: CacheService,
   ) {
     super(prisma, configService);
   }
@@ -47,6 +50,7 @@ export class ConfigsService extends BaseService {
 
   // ==================== CRUD ====================
 
+  @CacheEvict({ pattern: 'sys:config:*' })
   async create(
     createConfigDto: CreateConfigDto,
     userId: string,
@@ -110,6 +114,7 @@ export class ConfigsService extends BaseService {
     });
   }
 
+  @Cacheable({ key: 'sys:config:key:{0}', ttl: 600 })
   async findByKey(key: string): Promise<ConfigResponseDto> {
     const config = await this.prisma.config.findUnique({
       where: { key },
@@ -122,6 +127,7 @@ export class ConfigsService extends BaseService {
     });
   }
 
+  @Cacheable({ key: 'sys:config:group:{0}', ttl: 600 })
   async findByGroup(group: string): Promise<ConfigResponseDto[]> {
     const configs = await this.prisma.config.findMany({
       where: { group, status: CommonStatus.ENABLED },
@@ -134,6 +140,7 @@ export class ConfigsService extends BaseService {
     );
   }
 
+  @CacheEvict({ pattern: 'sys:config:*' })
   async update(
     configId: string,
     updateConfigDto: UpdateConfigDto,
@@ -159,6 +166,7 @@ export class ConfigsService extends BaseService {
     });
   }
 
+  @CacheEvict({ pattern: 'sys:config:*' })
   async remove(configId: string, userId: string): Promise<void> {
     await this.checkSuperAdmin(userId);
 
@@ -171,6 +179,7 @@ export class ConfigsService extends BaseService {
     await this.prisma.config.delete({ where: { configId } });
   }
 
+  @CacheEvict({ pattern: 'sys:config:*' })
   async removeMany(ids: string[], userId: string): Promise<void> {
     await this.checkSuperAdmin(userId);
 
@@ -187,9 +196,7 @@ export class ConfigsService extends BaseService {
 
   // ==================== 运行时配置（动态聚合）====================
 
-  // TODO: [Redis] 缓存运行时配置聚合结果
-  // 当前 buildRuntimeConfig() 每次请求都全量查 config 表并执行 3 次 COUNT。
-  // 后续接入 Redis 后以 `config:runtime` 缓存聚合后的 JSON，TTL 5-10 分钟。
+  @Cacheable({ key: 'sys:config:runtime', ttl: 300 })
   async getRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
     return this.buildRuntimeConfig();
   }
@@ -198,6 +205,7 @@ export class ConfigsService extends BaseService {
    * 获取公开运行时配置（供前端无鉴权初始化使用）
    * 仅返回 config 表中 isPublic=true 的配置，按 group 动态分组聚合
    */
+  @Cacheable({ key: 'sys:config:runtime:public', ttl: 300 })
   async getPublicRuntimeConfig(): Promise<Partial<RuntimeConfigResponseDto>> {
     return this.buildPublicRuntimeConfig();
   }
@@ -274,51 +282,33 @@ export class ConfigsService extends BaseService {
 
   // ==================== 功能开关（Feature Flag）====================
 
-  private featureCache = new Map<
-    string,
-    { value: boolean; expiresAt: number }
-  >();
-  private readonly FEATURE_CACHE_TTL_MS = 60_000; // 60 秒内存缓存
-
   /**
    * 检查指定功能开关是否启用
    * 直接查 config 表，不走 getRuntimeConfig，避免不必要的 count 查询
    *
-   * 带 60 秒内存缓存，减轻高频请求时的数据库压力。
-   * TODO: [Redis] 后续接入 Redis 后以 `feature:{key}` 缓存布尔值，TTL 1-5 分钟，配置变更时清除。
+   * 缓存 key: sys:feature:{key}，TTL 5 分钟
    */
+  @Cacheable({ key: 'sys:feature:{0}', ttl: 300 })
   async isFeatureEnabled(key: string): Promise<boolean> {
-    const cacheKey = `feature.${key}`;
-    const cached = this.featureCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value;
-    }
-
     const config = await this.prisma.config.findUnique({
-      where: { key: cacheKey },
+      where: { key: `feature.${key}` },
     });
 
-    const enabled =
+    return (
       !!config &&
       config.status === CommonStatus.ENABLED &&
-      this.castValue(config.value, config.type) === true;
-
-    this.featureCache.set(cacheKey, {
-      value: enabled,
-      expiresAt: Date.now() + this.FEATURE_CACHE_TTL_MS,
-    });
-
-    return enabled;
+      this.castValue(config.value, config.type) === true
+    );
   }
 
   /**
    * 清除功能开关缓存（配置变更后调用）
    */
-  clearFeatureCache(key?: string): void {
+  async clearFeatureCache(key?: string): Promise<void> {
     if (key) {
-      this.featureCache.delete(`feature.${key}`);
+      await this.cacheService.del(`sys:feature:${key}`);
     } else {
-      this.featureCache.clear();
+      await this.cacheService.delPattern('sys:feature:*');
     }
   }
 

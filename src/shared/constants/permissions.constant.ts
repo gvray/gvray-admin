@@ -201,11 +201,33 @@ export const OPERATION_LOG_PERMISSIONS = {
   }),
 } as const;
 
+// ==================== 在线用户管理权限 ====================
+const ONLINE_USER_RESOURCE = 'monitor:online-user';
+export const ONLINE_USER_PERMISSIONS = {
+  LIST: definePermission(`${ONLINE_USER_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${ONLINE_USER_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  KICK: definePermission(`${ONLINE_USER_RESOURCE}:kick`, {
+    sensitive: true,
+    notes: '强制踢用户下线',
+  }),
+} as const;
+
 // ==================== 系统监控权限 ====================
 const MONITOR_RESOURCE = 'monitor:server';
 export const MONITOR_PERMISSIONS = {
   LIST: definePermission(`${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${MONITOR_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+} as const;
+
+// ==================== 缓存监控权限 ====================
+const CACHE_RESOURCE = 'monitor:cache';
+export const CACHE_PERMISSIONS = {
+  LIST: definePermission(`${CACHE_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${CACHE_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CLEAR: definePermission(`${CACHE_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`, {
+    sensitive: true,
+    notes: '清理 Redis 缓存数据',
+  }),
 } as const;
 
 // ==================== 导出所有权限配置 ====================
@@ -221,6 +243,8 @@ export const PERMISSIONS = {
   LOG: LOG_PERMISSIONS,
   LOGIN_LOG: LOGIN_LOG_PERMISSIONS,
   OPERATION_LOG: OPERATION_LOG_PERMISSIONS,
+  ONLINE_USER: ONLINE_USER_PERMISSIONS,
   MONITOR: MONITOR_PERMISSIONS,
+  CACHE: CACHE_PERMISSIONS,
 } as const;
 

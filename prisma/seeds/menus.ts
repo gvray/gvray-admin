@@ -29,6 +29,22 @@ export async function seedMenus(prisma: PrismaClient) {
           icon: 'DashboardOutlined',
           sort: 1,
         },
+        {
+          type: 'MENU',
+          name: '在线用户',
+          permissionCode: 'monitor:online-user:list',
+          path: '/monitor/online-user',
+          icon: 'TeamOutlined',
+          sort: 2,
+        },
+        {
+          type: 'MENU',
+          name: '缓存监控',
+          permissionCode: 'monitor:cache:list',
+          path: '/monitor/cache',
+          icon: 'DatabaseOutlined',
+          sort: 3,
+        },
       ],
     },
     {

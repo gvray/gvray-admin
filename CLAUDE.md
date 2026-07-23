@@ -47,7 +47,6 @@ pnpm build
 pnpm test
 pnpm prisma:generate
 pnpm prisma:migrate   # 会改变数据库结构，执行前确认
-pnpm prisma:seed      # 会写入数据，执行前确认
+pnpm prisma:seed      # 会写入/更新种子数据（含权限、菜单），执行前确认
 pnpm db:reset         # 会重置数据库，必须明确确认
-pnpm api:import       # 会同步权限数据，执行前确认
 ```

@@ -7,6 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
+import { CacheService } from '@/redis/cache.service';
+import { Cacheable, CacheEvict } from '@/redis/decorators';
 import { CreateDictionaryTypeDto } from './dto/create-dictionary-type.dto';
 import { UpdateDictionaryTypeDto } from './dto/update-dictionary-type.dto';
 import { QueryDictionaryTypeDto } from './dto/query-dictionary-type.dto';
@@ -26,11 +28,13 @@ export class DictionariesService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
+    private readonly cacheService: CacheService,
   ) {
     super(prisma, configService);
   }
 
   // 字典类型相关方法
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async createDictionaryType(
     createDictionaryTypeDto: CreateDictionaryTypeDto,
     currentUserId?: string,
@@ -109,6 +113,7 @@ export class DictionariesService extends BaseService {
     });
   }
 
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async updateDictionaryType(
     typeId: string,
     updateDictionaryTypeDto: UpdateDictionaryTypeDto,
@@ -149,6 +154,7 @@ export class DictionariesService extends BaseService {
     });
   }
 
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async removeDictionaryType(typeId: string): Promise<void> {
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { typeId },
@@ -171,6 +177,7 @@ export class DictionariesService extends BaseService {
   }
 
   // 字典项相关方法
+  @CacheEvict({ key: 'sys:dict:items:{0.typeCode}' })
   async createDictionaryItem(
     createDictionaryItemDto: CreateDictionaryItemDto,
     currentUserId?: string,
@@ -255,6 +262,7 @@ export class DictionariesService extends BaseService {
     });
   }
 
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async updateDictionaryItem(
     itemId: string,
     updateDictionaryItemDto: UpdateDictionaryItemDto,
@@ -281,6 +289,7 @@ export class DictionariesService extends BaseService {
     });
   }
 
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async removeDictionaryItem(itemId: string): Promise<void> {
     const dictionaryItem = await this.prisma.dictionaryItem.findUnique({
       where: { itemId },
@@ -296,9 +305,7 @@ export class DictionariesService extends BaseService {
   }
 
   // 根据字典类型编码获取字典项列表
-  // TODO: [Redis] 缓存字典数据
-  // 当前 getDictionaryItemsByTypeCode() 每次请求都查库，字典属于读多写少数据。
-  // 后续接入 Redis 后以 `dict:{typeCode}` 缓存序列化后的字典项数组，TTL 10 分钟以上。
+  @Cacheable({ key: 'sys:dict:items:{0}', ttl: 1800 })
   async getDictionaryItemsByTypeCode(
     typeCode: string,
   ): Promise<DictionaryItemResponseDto[]> {
@@ -323,9 +330,7 @@ export class DictionariesService extends BaseService {
   }
 
   // 根据多个字典类型编码获取字典项列表
-  // TODO: [Redis] 缓存字典数据（批量）
-  // 当前 getDictionaryItemsByTypeCodes() 循环查库，前端下拉框等场景会高频调用。
-  // 后续接入 Redis 后以 `dict:{typeCode}` 分批缓存，减少数据库压力。
+  // 复用 getDictionaryItemsByTypeCode() 的缓存（通过 @Cacheable 拦截器自动管理）
   async getDictionaryItemsByTypeCodes(
     typeCodes: string[],
   ): Promise<Record<string, Array<{ value: string; label: string }>>> {
@@ -333,25 +338,8 @@ export class DictionariesService extends BaseService {
 
     for (const typeCode of typeCodes) {
       try {
-        // 首先检查字典类型是否存在
-        const dictionaryType = await this.prisma.dictionaryType.findUnique({
-          where: { code: typeCode },
-        });
-
-        if (!dictionaryType) {
-          result[typeCode] = [];
-          continue;
-        }
-
-        const dictionaryItems = await this.prisma.dictionaryItem.findMany({
-          where: {
-            typeCode: typeCode,
-            status: CommonStatus.ENABLED,
-          },
-          orderBy: { sort: 'asc' },
-        });
-
-        result[typeCode] = dictionaryItems.map((item) => ({
+        const items = await this.getDictionaryItemsByTypeCode(typeCode);
+        result[typeCode] = items.map((item) => ({
           value: item.value,
           label: item.label,
         }));
@@ -363,6 +351,7 @@ export class DictionariesService extends BaseService {
     return result;
   }
 
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async removeManyDictionaryTypes(ids: string[]): Promise<void> {
     const types = await this.prisma.dictionaryType.findMany({
       where: { typeId: { in: ids } },
@@ -379,6 +368,7 @@ export class DictionariesService extends BaseService {
     });
   }
 
+  @CacheEvict({ pattern: 'sys:dict:*' })
   async removeManyDictionaryItems(ids: string[]): Promise<void> {
     await this.prisma.dictionaryItem.deleteMany({
       where: { itemId: { in: ids } },
