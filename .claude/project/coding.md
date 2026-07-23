@@ -32,5 +32,5 @@
 
 ## 语言与提交
 
-- 错误信息、Swagger 描述、日志 message 统一使用中文。
+- 错误信息、Swagger 描述、日志 message 统一使用英文。
 - 提交使用 conventional commits：`feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`。

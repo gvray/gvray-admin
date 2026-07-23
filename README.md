@@ -21,6 +21,7 @@ GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构�
 - 🛡️ **安全防护** - JWT 认证、密码 bcrypt 哈希、RBAC 权限控制、CORS、操作日志脱敏
 - 🔑 **灵活登录** - 支持用户名、邮箱、手机号、userId 登录
 - 🏢 **组织架构** - 完整的部门和岗位管理体系
+- ⚡ **Redis 缓存** - 集成 Redis 实现会话管理、在线用户、接口限流、分布式锁与声明式缓存
 
 ## 🚀 技术栈
 
@@ -29,6 +30,7 @@ GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构�
 - **[NestJS](https://nestjs.com/)** - 渐进式 Node.js 框架，支持完整的依赖注入
 - **[Prisma](https://www.prisma.io/)** - 下一代 ORM，类型安全且高性能
 - **[MySQL](https://www.mysql.com/)** - 企业级关系型数据库
+- **[Redis](https://redis.io/)** - 高性能缓存与会话存储
 - **[TypeScript](https://www.typescriptlang.org/)** - JavaScript 的超集，提供类型系统
 - **[JWT](https://jwt.io/)** - JSON Web Token 认证机制
 - **[Swagger](https://swagger.io/)** - API 文档生成与测试工具
@@ -80,7 +82,7 @@ GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构�
 - [x] 批量删除角色
 - [ ] 数据权限控制（行级、列级）
 - [x] 菜单权限管理
-- [ ] 权限缓存优化（Redis）
+- [x] 权限缓存优化（Redis）
 - [ ] 权限树形结构
 - [x] 动态权限加载（API 自动扫描）
 - [ ] 临时权限分配
@@ -122,10 +124,10 @@ GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构�
 
 ### 🔍 系统监控
 
-- [ ] 在线用户监控（实时统计）
+- [x] 在线用户监控（实时统计，基于 Redis 会话心跳）
 - [x] 服务器状态监控（CPU、内存、磁盘）
 - [ ] 数据库性能监控
-- [ ] 缓存系统监控
+- [x] 缓存系统监控（Redis 命中率、Key 统计、内存分析）
 - [ ] 定时任务管理（任务调度）
 - [x] 服务健康检查（/health）
 - [ ] 性能分析工具
@@ -149,6 +151,7 @@ GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构�
 
 - Node.js >= 20
 - MySQL >= 8.0
+- Redis >= 6.0（项目使用 Redis 7，docker-compose 已内置）
 - pnpm >= 9（与 `packageManager` 字段一致）
 
 ### 开发环境设置
@@ -166,6 +169,9 @@ pnpm install
 # 配置环境变量
 cp .env.example .env
 # 注意：本地开发数据库名建议与 docker-compose.dev.yml 一致（默认 gvray_admin）
+
+# 启动 MySQL + Redis（docker-compose.dev.yml 已内置）
+docker compose -f docker-compose.dev.yml up -d mysql redis
 
 # 执行数据库迁移
 pnpm prisma migrate dev
@@ -236,6 +242,12 @@ src/
 │   ├── dashboard/        # 仪表盘数据
 │   ├── profile/          # 个人中心（修改密码 / 偏好设置）
 │   └── system/           # 系统管理
+├── redis/                # Redis 基础设施（全局模块）
+│   ├── cache.service.ts      # 通用缓存读写
+│   ├── lock.service.ts       # 分布式锁
+│   ├── rate-limiter.service.ts # 接口限流
+│   ├── cacheable.decorator.ts  # 声明式缓存装饰器
+│   └── constants/            # Redis Key 常量
 │       ├── configs/      # 配置管理（键值对系统参数）
 │       ├── departments/  # 部门管理（CRUD + 树形结构）
 │       ├── dictionaries/ # 数据字典
