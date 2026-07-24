@@ -62,6 +62,8 @@ model User {
   updatedConfigs         Config[]         @relation("ConfigUpdatedBy")
   createdRoleDepartments RoleDepartment[] @relation("RoleDepartmentCreatedBy")
   updatedRoleDepartments RoleDepartment[] @relation("RoleDepartmentUpdatedBy")
+  createdNotices         Notice[]         @relation("NoticeCreatedBy")
+  updatedNotices         Notice[]         @relation("NoticeUpdatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -438,4 +440,39 @@ model OperationLog {
   @@index([action])
   @@index([result])
   @@map("operation_logs")
+}
+
+model Notice {
+  id          Int     @id @default(autoincrement())
+  noticeId    String  @unique @default(uuid())
+  title       String
+  content     String  @db.Text
+  type        String  @default("notice") @db.VarChar(16) // notice: 通知, announcement: 通告
+  status      String  @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
+  sort        Int     @default(0)
+
+  // 用户已读关联
+  userReads UserNoticeRead[]
+
+  // 审计字段
+  createdById String?
+  createdBy   User?   @relation("NoticeCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  updatedById String?
+  updatedBy   User?   @relation("NoticeUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notices")
+}
+
+model UserNoticeRead {
+  id       Int      @id @default(autoincrement())
+  userId   String
+  noticeId String
+  notice   Notice   @relation(fields: [noticeId], references: [noticeId], onDelete: Cascade)
+  readAt   DateTime @default(now())
+
+  @@unique([userId, noticeId])
+  @@map("user_notice_reads")
 }

@@ -7,6 +7,7 @@ import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
 import { seedConfigs } from './seeds/configs';
 import { seedPermissionsAndAssignments } from './seeds/permissions';
+import { seedNotices } from './seeds/notices';
 
 const prisma = new PrismaClient();
 
@@ -36,10 +37,13 @@ async function main() {
     { superRole, adminRole, userRole, guestRole },
   );
 
-  // 6. 创建字典数据
+  // 6. 创建通知通告数据
+  await seedNotices(prisma);
+
+  // 7. 创建字典数据
   await seedDictionaries(prisma);
 
-  // 7. 创建配置数据
+  // 8. 创建配置数据
   await seedConfigs();
 
   console.log('数据库初始化完成！');

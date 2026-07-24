@@ -230,6 +230,16 @@ export const CACHE_PERMISSIONS = {
   }),
 } as const;
 
+// ==================== 通知通告管理权限 ====================
+const NOTICE_RESOURCE = 'system:notice';
+export const NOTICE_PERMISSIONS = {
+  LIST: definePermission(`${NOTICE_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
+  VIEW: definePermission(`${NOTICE_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
+  CREATE: definePermission(`${NOTICE_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
+  UPDATE: definePermission(`${NOTICE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  DELETE: definePermission(`${NOTICE_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+} as const;
+
 // ==================== 导出所有权限配置 ====================
 export const PERMISSIONS = {
   USER: USER_PERMISSIONS,
@@ -246,5 +256,6 @@ export const PERMISSIONS = {
   ONLINE_USER: ONLINE_USER_PERMISSIONS,
   MONITOR: MONITOR_PERMISSIONS,
   CACHE: CACHE_PERMISSIONS,
+  NOTICE: NOTICE_PERMISSIONS,
 } as const;
 

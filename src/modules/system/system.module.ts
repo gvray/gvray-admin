@@ -10,6 +10,7 @@ import { ConfigsModule } from './configs/configs.module';
 import { LoginLogsModule } from './login-logs/login-logs.module';
 import { MonitorModule } from './monitor/monitor.module';
 import { OnlineUsersModule } from './online-users/online-users.module';
+import { NoticesModule } from './notices/notices.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { OnlineUsersModule } from './online-users/online-users.module';
     LoginLogsModule,
     MonitorModule,
     OnlineUsersModule,
+    NoticesModule,
   ],
   exports: [
     UsersModule,
@@ -37,6 +39,7 @@ import { OnlineUsersModule } from './online-users/online-users.module';
     LoginLogsModule,
     MonitorModule,
     OnlineUsersModule,
+    NoticesModule,
   ],
 })
 export class SystemModule {}

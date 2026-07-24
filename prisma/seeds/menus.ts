@@ -119,11 +119,19 @@ export async function seedMenus(prisma: PrismaClient) {
           sort: 8,
         },
         {
+          type: 'MENU',
+          name: '通知通告',
+          permissionCode: 'system:notice:list',
+          path: '/system/notice',
+          icon: 'BellOutlined',
+          sort: 9,
+        },
+        {
           type: 'CATALOG',
           name: '日志管理',
           path: '/system/log',
           icon: 'FileTextOutlined',
-          sort: 9,
+          sort: 10,
           children: [
             {
               type: 'MENU',

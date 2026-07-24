@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { TokenService } from '@/modules/auth/token.service';
+import { PermissionCacheService } from '@/redis/permission-cache.service';
 import { OnlineUserItemDto } from './dto/online-user-item.dto';
 import { SessionDetailDto } from './dto/session-detail.dto';
 
@@ -9,6 +10,7 @@ export class OnlineUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokenService: TokenService,
+    private readonly permissionCache: PermissionCacheService,
   ) {}
 
   async getOnlineUsers(
@@ -94,8 +96,8 @@ export class OnlineUsersService {
   }
 
   async kickUser(userId: string): Promise<void> {
-    await this.tokenService.kickoutUser(userId);
     await this.tokenService.revokeAllUserTokens(userId);
+    await this.permissionCache.del(userId);
   }
 
   async kickUserSession(userId: string, tokenHash: string): Promise<void> {
