@@ -25,7 +25,7 @@ import { RedisModule } from '@/redis/redis.module';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
-import { SessionHeartbeatInterceptor } from '@/core/interceptors/session-heartbeat.interceptor';
+// import { SessionHeartbeatInterceptor } from '@/core/interceptors/session-heartbeat.interceptor';
 import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
 
 @Module({
@@ -55,10 +55,10 @@ import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: SessionHeartbeatInterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: SessionHeartbeatInterceptor,
+    // },
     {
       provide: APP_INTERCEPTOR,
       useClass: OperationLogInterceptor,

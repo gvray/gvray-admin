@@ -216,23 +216,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '退出所有设备' })
   @ApiResponse({ status: 200, description: '退出所有设备成功' })
-  async logoutAll(
-    @CurrentUser() user: { userId: string },
-    @Req() req: { headers: { authorization?: string } },
-  ) {
-    let jti: string | undefined;
-    const authHeader = req.headers?.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      try {
-        const payload = this.jwtService.decode(token) as { jti?: string } | null;
-        jti = payload?.jti;
-      } catch {
-        // 忽略解码失败
-      }
-    }
-
-    await this.authService.logoutAllDevices(user.userId, jti);
+  async logoutAll(@CurrentUser() user: { userId: string }) {
+    await this.authService.logoutAllDevices(user.userId);
     return ResponseUtil.success(null, '已退出所有设备');
   }
 

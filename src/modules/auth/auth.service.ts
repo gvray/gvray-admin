@@ -19,6 +19,7 @@ import { UAParser } from 'ua-parser-js';
 import * as crypto from 'crypto';
 import { TokenService } from './token.service';
 import { RateLimiterService } from '@/redis/rate-limiter.service';
+import { PermissionCacheService } from '@/redis/permission-cache.service';
 import { RedisKeys } from '@/redis/constants/redis-key.constant';
 
 interface RequestWithHeaders {
@@ -40,6 +41,7 @@ export class AuthService {
     private readonly loginLogsService: LoginLogsService,
     private readonly tokenService: TokenService,
     private readonly rateLimiter: RateLimiterService,
+    private readonly permissionCache: PermissionCacheService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{
@@ -173,20 +175,46 @@ export class AuthService {
       // 登录成功，清除失败计数
       await this.rateLimiter.reset(limitKey);
 
-      // 检查是否被全局踢出
-      await this.tokenService.clearKickout(user.userId);
-
       loginStatus = 1; // 成功
 
-      const payload = {
-        sub: user.userId,
-        email: user.email,
-        username: user.username,
-      };
+      // 查询用户角色权限并预热 Permission Cache
+      const userWithRoles = await this.prisma.user.findUnique({
+        where: { userId: user.userId },
+        include: {
+          userRoles: {
+            include: {
+              role: {
+                include: {
+                  rolePermissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
 
-      // 生成 access token 和 refresh token
+      const permissionCodes = Array.from(
+        new Set(
+          (userWithRoles?.userRoles || [])
+            .flatMap((ur) => ur.role?.rolePermissions || [])
+            .map((rp) => rp.permission?.code)
+            .filter(
+              (code): code is string =>
+                typeof code === 'string' && code.length > 0,
+            ),
+        ),
+      );
+
+      // 预热 Permission Cache
+      await this.permissionCache.set(user.userId, permissionCodes);
+
+      // 生成极简 access token 和 refresh token
       const { token: accessToken, jti: accessTokenJti } =
-        this.generateAccessToken(payload);
+        this.generateAccessToken(user.userId);
       const refreshToken = await this.generateRefreshToken(
         user.userId,
         ipAddress,
@@ -202,14 +230,13 @@ export class AuthService {
       );
       const now = Date.now();
 
-      // 存入 Redis（同时记录 AT jti，用于后续踢下线）
+      // 存入 Redis
       await this.tokenService.storeRefreshToken(
         user.userId,
         refreshToken,
         { ipAddress, userAgent },
         refreshTokenExpiresIn,
         accessTokenJti,
-        accessTokenExpiresIn,
       );
 
       const result = {
@@ -361,24 +388,7 @@ export class AuthService {
     }
   }
 
-  async logoutAllDevices(
-    userId: string,
-    exceptAccessTokenJti?: string,
-  ): Promise<void> {
-    // 将当前 AT 加入黑名单（如果是"退出所有设备"场景，包括当前设备）
-    if (exceptAccessTokenJti) {
-      const accessTokenExpiresIn = this.parseExpiresIn(
-        this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m',
-      );
-      await this.tokenService.blacklistAccessToken(
-        exceptAccessTokenJti,
-        accessTokenExpiresIn,
-      );
-    }
-
-    // 设置全局踢出标记
-    await this.tokenService.kickoutUser(userId);
-
+  async logoutAllDevices(userId: string): Promise<void> {
     // 撤销所有 RT
     await this.tokenService.revokeAllUserTokens(userId);
   }
@@ -680,18 +690,14 @@ export class AuthService {
   }
 
   /**
-   * 生成 Access Token（带 jti）
+   * 生成极简 Access Token（只含 sub + sid + iat + exp）
    */
-  private generateAccessToken(payload: {
-    sub: string;
-    email: string | null;
-    username: string;
-  }): { token: string; jti: string } {
+  private generateAccessToken(userId: string): { token: string; jti: string } {
     const expiresIn =
       this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m';
     const jti = crypto.randomUUID();
     const token = this.jwtService.sign(
-      { ...payload, jti },
+      { sub: userId, sid: jti },
       { expiresIn: expiresIn as any },
     );
     return { token, jti };
@@ -713,16 +719,20 @@ export class AuthService {
       this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d';
     const expiresAt = this.calculateExpirationDate(refreshTokenExpiresIn);
 
-    // 存储到数据库
-    await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        token,
-        expiresAt,
-        ipAddress,
-        userAgent,
-      },
-    });
+    // 异步归档到数据库（不阻塞登录流程）
+    this.prisma.refreshToken
+      .create({
+        data: {
+          userId,
+          token,
+          expiresAt,
+          ipAddress,
+          userAgent,
+        },
+      })
+      .catch(() => {
+        // 归档失败不影响业务
+      });
 
     return token;
   }
@@ -744,23 +754,48 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token 无效或已过期');
     }
 
-    // 获取用户信息
+    // 获取用户信息（含角色权限）
     const user = await this.prisma.user.findUnique({
       where: { userId: verified.userId },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
 
-    // 生成新的 access token
-    const payload = {
-      sub: user.userId,
-      email: user.email,
-      username: user.username,
-    };
+    const permissionCodes = Array.from(
+      new Set(
+        (user.userRoles || [])
+          .flatMap((ur) => ur.role?.rolePermissions || [])
+          .map((rp) => rp.permission?.code)
+          .filter(
+            (code): code is string =>
+              typeof code === 'string' && code.length > 0,
+          ),
+      ),
+    );
+
+    // 刷新 Permission Cache
+    await this.permissionCache.set(user.userId, permissionCodes);
+
+    // 生成新的极简 access token
     const { token: accessToken, jti: accessTokenJti } =
-      this.generateAccessToken(payload);
+      this.generateAccessToken(user.userId);
 
     // 生成新的 refresh token
     const newRefreshToken = await this.generateRefreshToken(
@@ -785,7 +820,6 @@ export class AuthService {
       verified.metadata,
       refreshTokenExpiresIn,
       accessTokenJti,
-      accessTokenExpiresIn,
     );
 
     // 计算过期时间戳

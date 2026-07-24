@@ -17,6 +17,7 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { PermissionCacheService } from '@/redis/permission-cache.service';
 import { plainToInstance } from 'class-transformer';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 
@@ -25,6 +26,7 @@ export class UsersService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
+    private readonly permissionCache: PermissionCacheService,
   ) {
     super(prisma, configService);
   }
@@ -808,6 +810,8 @@ export class UsersService extends BaseService {
       },
     });
 
+    await this.permissionCache.del(userId);
+
     return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
     });
@@ -901,6 +905,8 @@ export class UsersService extends BaseService {
         },
       },
     });
+
+    await this.permissionCache.del(userId);
 
     return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,

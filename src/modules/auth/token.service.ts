@@ -48,7 +48,6 @@ export class TokenService {
     metadata: SessionMetadata,
     expiresInSeconds: number,
     accessTokenJti?: string,
-    accessTokenExpiresIn?: number,
   ): Promise<void> {
     const tokenHash = this.hashToken(token);
     const key = RedisKeys.auth.refreshToken(userId, tokenHash);
@@ -70,14 +69,14 @@ export class TokenService {
       if (accessTokenJti) {
         await this.redisService.hSet(key, 'accessTokenJti', accessTokenJti);
       }
-      if (accessTokenExpiresIn) {
-        await this.redisService.hSet(
-          key,
-          'accessTokenExpiresIn',
-          String(accessTokenExpiresIn),
-        );
-      }
       await this.redisService.expire(key, expiresInSeconds);
+
+      // 建立 tokenHash → userId 索引（纯 Redis 验证 RT 用）
+      await this.redisService.set(
+        RedisKeys.auth.rtIndex(tokenHash),
+        userId,
+        { ttlSeconds: expiresInSeconds },
+      );
 
       // 建立 AT jti → RT hash 反向索引（logout 时定位 RT）
       if (accessTokenJti) {
@@ -151,32 +150,22 @@ export class TokenService {
   ): Promise<{ userId: string; metadata: SessionMetadata } | null> {
     const tokenHash = this.hashToken(token);
 
-    // Step 1: 从 DB 获取基础记录（RT 是纯随机字符串，必须查 DB 获取 userId）
-    const tokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { token },
-      select: {
-        userId: true,
-        isRevoked: true,
-        expiresAt: true,
-        userAgent: true,
-        ipAddress: true,
-      },
-    });
-
-    if (!tokenRecord) {
-      return null;
-    }
-
-    const key = RedisKeys.auth.refreshToken(tokenRecord.userId, tokenHash);
-
-    // Step 2: 大厂主路径 — 查 Redis Session（快路径，99% 请求走这里）
+    // 纯 Redis 验证：先查 tokenHash → userId 索引
     try {
+      const userId = await this.redisService.get(
+        RedisKeys.auth.rtIndex(tokenHash),
+      );
+
+      if (!userId) {
+        return null;
+      }
+
+      const key = RedisKeys.auth.refreshToken(userId, tokenHash);
       const hash = await this.redisService.hGetAll(key);
 
       if (Object.keys(hash).length > 0) {
-        // Redis 命中 → session 活跃，直接通过
         return {
-          userId: tokenRecord.userId,
+          userId,
           metadata: {
             userAgent: hash.userAgent || undefined,
             ipAddress: hash.ipAddress || undefined,
@@ -184,31 +173,12 @@ export class TokenService {
         };
       }
 
-      // Redis 存在但 key 不存在 → session 已过期/被清理，直接拒绝
-      // （不需要 fallback 到 DB，Redis 是 session 的真实来源）
-      this.logger.debug(`[RT Verify] Redis session 不存在: ${key}`);
+      // Redis key 不存在 → session 已过期/被清理
       return null;
     } catch (e) {
       if (e instanceof RedisUnavailableError) {
-        // Step 3: 兜底路径 — Redis 不可用时 fallback 到 DB
-        this.logger.warn(
-          '[RT Verify] Redis unavailable, fallback to DB validation',
-        );
-
-        if (tokenRecord.isRevoked) {
-          return null;
-        }
-        if (new Date() > tokenRecord.expiresAt) {
-          return null;
-        }
-
-        return {
-          userId: tokenRecord.userId,
-          metadata: {
-            userAgent: tokenRecord.userAgent || undefined,
-            ipAddress: tokenRecord.ipAddress || undefined,
-          },
-        };
+        this.logger.warn('[RT Verify] Redis unavailable');
+        return null;
       }
       throw e;
     }
@@ -218,11 +188,13 @@ export class TokenService {
     const tokenHash = this.hashToken(token);
     await this.revokeRefreshTokenByHash(userId, tokenHash);
 
-    // 同时更新数据库
-    await this.prisma.refreshToken.updateMany({
-      where: { token },
-      data: { isRevoked: true },
-    });
+    // 异步归档到数据库
+    this.prisma.refreshToken
+      .updateMany({
+        where: { token },
+        data: { isRevoked: true },
+      })
+      .catch(() => {});
   }
 
   async revokeRefreshTokenByHash(
@@ -232,21 +204,14 @@ export class TokenService {
     try {
       const key = RedisKeys.auth.refreshToken(userId, tokenHash);
 
-      // 先读取 AT jti，用于加入黑名单
+      // 读取 AT jti，删除反向索引
       const jti = await this.redisService.hGet(key, 'accessTokenJti');
-      const ttlRaw = await this.redisService.hGet(
-        key,
-        'accessTokenExpiresIn',
-      );
-
       if (jti) {
-        const ttl = ttlRaw ? parseInt(ttlRaw, 10) : 15 * 60;
-        await this.blacklistAccessToken(jti, ttl);
-        // 删除反向索引
         await this.redisService.del(RedisKeys.auth.atJtiMap(jti));
       }
 
       await this.redisService.del(key);
+      await this.redisService.del(RedisKeys.auth.rtIndex(tokenHash));
       await this.redisService.sRem(
         RedisKeys.auth.sessionsSet(userId),
         tokenHash,
@@ -309,78 +274,6 @@ export class TokenService {
       where: { userId, isRevoked: false },
       data: { isRevoked: true },
     });
-  }
-
-  // ===== Access Token 黑名单 =====
-
-  async blacklistAccessToken(jti: string, ttlSeconds: number): Promise<void> {
-    try {
-      await this.redisService.set(RedisKeys.auth.blacklist(jti), '1', {
-        ttlSeconds,
-      });
-    } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        this.logger.warn('Redis unavailable, skipping blacklist');
-      }
-    }
-  }
-
-  async isAccessTokenBlacklisted(jti: string): Promise<boolean> {
-    try {
-      const exists = await this.redisService.exists(
-        RedisKeys.auth.blacklist(jti),
-      );
-      return exists > 0;
-    } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        return false; // 降级：不拦截
-      }
-      throw e;
-    }
-  }
-
-  // ===== 踢下线 =====
-
-  async kickoutUser(userId: string): Promise<void> {
-    const kickoutAt = Date.now();
-    try {
-      await this.redisService.set(
-        RedisKeys.auth.kickout(userId),
-        String(kickoutAt),
-        { ttlSeconds: 7 * 24 * 60 * 60 }, // 7 天
-      );
-    } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        this.logger.warn('Redis unavailable, skipping kickout marker');
-      }
-    }
-  }
-
-  async isUserKickedOut(
-    userId: string,
-    tokenIssuedAt: number,
-  ): Promise<boolean> {
-    try {
-      const raw = await this.redisService.get(RedisKeys.auth.kickout(userId));
-      if (!raw) return false;
-      const kickoutAt = parseInt(raw, 10);
-      return tokenIssuedAt < kickoutAt;
-    } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        return false; // 降级：不拦截
-      }
-      throw e;
-    }
-  }
-
-  async clearKickout(userId: string): Promise<void> {
-    try {
-      await this.redisService.del(RedisKeys.auth.kickout(userId));
-    } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        this.logger.warn('Redis unavailable, skipping clear kickout');
-      }
-    }
   }
 
   // ===== 会话管理（在线用户）=====

@@ -4,6 +4,7 @@ import { CacheService } from './cache.service';
 import { LockService } from './lock.service';
 import { RateLimiterService } from './rate-limiter.service';
 import { CacheableExplorer } from './cacheable.explorer';
+import { PermissionCacheService } from './permission-cache.service';
 
 @Global()
 @Module({
@@ -13,7 +14,14 @@ import { CacheableExplorer } from './cacheable.explorer';
     LockService,
     RateLimiterService,
     CacheableExplorer,
+    PermissionCacheService,
   ],
-  exports: [RedisService, CacheService, LockService, RateLimiterService],
+  exports: [
+    RedisService,
+    CacheService,
+    LockService,
+    RateLimiterService,
+    PermissionCacheService,
+  ],
 })
 export class RedisModule {}

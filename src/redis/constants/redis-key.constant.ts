@@ -8,10 +8,9 @@ export const RedisKeys = {
     session: (userId: string, tokenHash: string) =>
       `auth:session:${userId}:${tokenHash}`,
     sessionsSet: (userId: string) => `auth:sessions:${userId}`,
-    blacklist: (jti: string) => `auth:blacklist:${jti}`,
-    kickout: (userId: string) => `auth:kickout:${userId}`,
     loginFail: (account: string) => `auth:login:fail:${account}`,
     atJtiMap: (jti: string) => `auth:at-jti:${jti}`, // AT jti → userId:tokenHash
+    rtIndex: (tokenHash: string) => `auth:rt-index:${tokenHash}`, // tokenHash → userId
   },
   // 预留：后续 configs/dicts 等场景复用
   system: {

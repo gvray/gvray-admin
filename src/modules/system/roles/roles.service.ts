@@ -17,12 +17,14 @@ import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { PermissionCacheService } from '@/redis/permission-cache.service';
 
 @Injectable()
 export class RolesService extends BaseService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
+    private readonly permissionCache: PermissionCacheService,
     private readonly dataScopeService: DataScopeService,
   ) {
     super(prisma, configService);
@@ -371,6 +373,9 @@ export class RolesService extends BaseService {
           })),
         });
       }
+
+      // 清除该角色下所有用户的权限缓存
+      await this.invalidateRoleUserCache(roleId);
     }
 
     const result = await this.prisma.role.findUnique({
@@ -484,6 +489,9 @@ export class RolesService extends BaseService {
       },
     });
 
+    // 清除该角色下所有用户的权限缓存
+    await this.invalidateRoleUserCache(roleId);
+
     return plainToInstance(RoleResponseDto, result, {
       excludeExtraneousValues: true,
     });
@@ -536,9 +544,22 @@ export class RolesService extends BaseService {
       },
     });
 
+    // 清除该角色下所有用户的权限缓存
+    await this.invalidateRoleUserCache(roleId);
+
     return plainToInstance(RoleResponseDto, result, {
       excludeExtraneousValues: true,
     });
+  }
+
+  private async invalidateRoleUserCache(roleId: string): Promise<void> {
+    const userRoles = await this.prisma.userRole.findMany({
+      where: { roleId },
+      select: { userId: true },
+    });
+    for (const ur of userRoles) {
+      await this.permissionCache.del(ur.userId);
+    }
   }
 
   // 为角色分配用户
