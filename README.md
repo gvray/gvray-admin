@@ -8,6 +8,9 @@ GVRAY Admin 是一个现代化的后台管理模板，帮助开发者快速构�
 
 > 🖥️ 配套前端：[gvray-react](https://github.com/gvray/gvray-react) — React + TypeScript 管理后台
 
+<p align="center">
+  <img src="https://cdn.jsdelivr.net/gh/gvray/images@main/console/demo.webp" alt="GVRAY Admin 预览" width="100%" />
+</p>
 
 ## 💫 特性亮点
 
