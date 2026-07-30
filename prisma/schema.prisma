@@ -154,7 +154,7 @@ model Permission {
   permissionId    String           @unique @default(uuid())
   name            String
   code            String           @unique // API 权限代码，如：system:user:list
-  httpMethod      String // HTTP 方法：GET, POST, PUT, PATCH, DELETE
+  httpMethod      String? // HTTP 方法：GET, POST, PUT, PATCH, DELETE（扫描器写入，seed 阶段可为空）
   description     String?          @db.Text // 权限描述
   origin          PermissionOrigin @default(SYSTEM) // 来源：SYSTEM=系统扫描
   deletedAt       DateTime? // API 权限软删除时间，非空表示已删除

@@ -30,15 +30,21 @@ export async function seedPermissionsAndAssignments(prisma: PrismaClient) {
     }
   }
 
-  // 2. 创建/更新权限记录（确保存在，供后续分配）
+  // 2. 创建/更新权限记录（确保存在并修正元数据，被软删除的也恢复）
+  // httpMethod 由启动时的扫描器从真实路由装饰器读取并覆盖，seed 只负责占位创建
   for (const code of allCodes) {
     await prisma.permission.upsert({
       where: { code },
-      update: {},
+      update: {
+        name: code,
+        origin: 'SYSTEM',
+        mutable: false,
+        deletedAt: null,
+        // httpMethod 不覆盖：已有的记录由扫描器维护，seed 推断不准
+      },
       create: {
         code,
         name: code,
-        httpMethod: 'GET',
         origin: 'SYSTEM',
         mutable: false,
       },

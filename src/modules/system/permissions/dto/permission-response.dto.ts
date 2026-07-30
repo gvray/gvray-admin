@@ -22,9 +22,9 @@ export class PermissionResponseDto {
   @Expose()
   code: string;
 
-  @ApiProperty({ description: 'HTTP 方法' })
+  @ApiPropertyOptional({ description: 'HTTP 方法（扫描器写入，seed 阶段可能为空）' })
   @Expose()
-  httpMethod: string;
+  httpMethod: string | null;
 
   @ApiProperty({ description: '权限来源', enum: ['USER', 'SYSTEM'] })
   @Expose()

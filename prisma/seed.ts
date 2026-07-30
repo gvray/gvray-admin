@@ -14,52 +14,66 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('开始初始化数据库...');
 
-  // 1. 初始化菜单数据（目录 + 菜单）
-  await seedMenus(prisma);
+  // 加 MySQL 应用锁，防止多个 seed 进程并发执行导致唯一键冲突
+  const lockResult = await prisma.$queryRaw<
+    Array<{ result: number }>
+  >`SELECT GET_LOCK('nest_admin_seed', 30) as result`;
+  if (!lockResult[0]?.result) {
+    throw new Error('无法获取 seed 锁，可能有其他 seed 进程正在运行');
+  }
 
-  // 2. 创建部门
-  const { itDepartment, hrDepartment } = await seedDepartments(prisma);
+  try {
+    // 1. 初始化菜单数据（目录 + 菜单）
+    await seedMenus(prisma);
 
-  // 3. 创建岗位
-  const { managerPosition, hrPosition } = await seedPositions(prisma);
+    // 2. 创建部门
+    const { itDepartment, hrDepartment } = await seedDepartments(prisma);
 
-  // 4. 创建角色
-  const { superRole, adminRole, userRole, guestRole } = await seedRoles(prisma);
+    // 3. 创建岗位
+    const { managerPosition, hrPosition } = await seedPositions(prisma);
 
-  // 5. 创建权限并分配系统角色权限
-  await seedPermissionsAndAssignments(prisma);
+    // 4. 创建角色
+    const { superRole, adminRole, userRole, guestRole } =
+      await seedRoles(prisma);
 
-  // 6. 创建用户
-  const { superUser, adminUser } = await seedUsers(
-    prisma,
-    { itDepartment, hrDepartment },
-    { managerPosition, hrPosition },
-    { superRole, adminRole, userRole, guestRole },
-  );
+    // 5. 创建权限并分配系统角色权限
+    await seedPermissionsAndAssignments(prisma);
 
-  // 6. 创建通知通告数据
-  await seedNotices(prisma);
+    // 6. 创建用户
+    const { superUser, adminUser } = await seedUsers(
+      prisma,
+      { itDepartment, hrDepartment },
+      { managerPosition, hrPosition },
+      { superRole, adminRole, userRole, guestRole },
+    );
 
-  // 7. 创建字典数据
-  await seedDictionaries(prisma);
+    // 6. 创建通知通告数据
+    await seedNotices(prisma);
 
-  // 8. 创建配置数据
-  await seedConfigs();
+    // 7. 创建字典数据
+    await seedDictionaries(prisma);
 
-  console.log('数据库初始化完成！');
-  const seedPassword = process.env.SUPER_ADMIN_INITIAL_PASSWORD || '未设置';
+    // 8. 创建配置数据
+    await seedConfigs();
 
-  console.log('超级管理员账户信息:');
-  console.log(`  邮箱: ${superUser.email}`);
-  console.log(`  用户名: ${superUser.username}`);
-  console.log(`  手机号: ${superUser.phone}`);
-  console.log(`  密码: ${seedPassword}`);
+    console.log('数据库初始化完成！');
+    const seedPassword = process.env.SUPER_ADMIN_INITIAL_PASSWORD || '未设置';
 
-  console.log('管理员账户信息:');
-  console.log(`  邮箱: ${adminUser.email}`);
-  console.log(`  用户名: ${adminUser.username}`);
-  console.log(`  手机号: ${adminUser.phone}`);
-  console.log(`  密码: ${seedPassword}`);
+    console.log('超级管理员账户信息:');
+    console.log(`  邮箱: ${superUser.email}`);
+    console.log(`  用户名: ${superUser.username}`);
+    console.log(`  手机号: ${superUser.phone}`);
+    console.log(`  密码: ${seedPassword}`);
+
+    console.log('管理员账户信息:');
+    console.log(`  邮箱: ${adminUser.email}`);
+    console.log(`  用户名: ${adminUser.username}`);
+    console.log(`  手机号: ${adminUser.phone}`);
+    console.log(`  密码: ${seedPassword}`);
+  } finally {
+    // 释放 MySQL 应用锁（连接断开时也会自动释放）
+    await prisma.$executeRaw`SELECT RELEASE_LOCK('nest_admin_seed')`;
+  }
 }
 
 main()

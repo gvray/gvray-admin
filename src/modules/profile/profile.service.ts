@@ -96,7 +96,7 @@ export class ProfileService {
         permissionId: string;
         name: string;
         code: string;
-        httpMethod: string;
+        httpMethod: string | null;
         description: string | null;
       }
     >();
