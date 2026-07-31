@@ -184,6 +184,7 @@ model Menu {
   name           String
   type           MenuType
   permissionCode String? // 绑定权限码，如：system:user:list
+  code           String?  @unique // 国际化键，如：system.management
   path           String?  @unique
   icon           String?
   hidden         Boolean  @default(false)

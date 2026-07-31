@@ -9,6 +9,11 @@ export class QueryMenuDto extends PaginationSortDto {
   @IsString()
   name?: string;
 
+  @ApiPropertyOptional({ description: '国际化键' })
+  @IsOptional()
+  @IsString()
+  code?: string;
+
   @ApiPropertyOptional({ description: '菜单路径' })
   @IsOptional()
   @IsString()

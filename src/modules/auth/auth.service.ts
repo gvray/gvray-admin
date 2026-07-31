@@ -484,6 +484,7 @@ export class AuthService {
       name: string;
       type: string;
       permissionCode: string | null;
+      code: string | null;
       path: string | null;
       icon: string | null;
       hidden: boolean;
@@ -502,6 +503,7 @@ export class AuthService {
         name: m.name,
         type: m.type,
         permissionCode: m.permissionCode,
+        code: m.code,
         path: m.path,
         icon: m.icon,
         hidden: m.hidden,

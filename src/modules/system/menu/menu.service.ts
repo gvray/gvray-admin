@@ -63,6 +63,7 @@ export class MenuService extends BaseService {
       name,
       type,
       permissionCode,
+      code,
       path,
       icon,
       hidden,
@@ -87,6 +88,7 @@ export class MenuService extends BaseService {
         name,
         type,
         permissionCode: permissionCode ?? null,
+        code: code ?? null,
         path,
         icon: icon ?? null,
         hidden: hidden ?? false,
@@ -105,6 +107,7 @@ export class MenuService extends BaseService {
   async findAll(query: QueryMenuDto): Promise<PaginationData<MenuResponseDto>> {
     const {
       name,
+      code,
       path,
       type,
       status,
@@ -113,7 +116,7 @@ export class MenuService extends BaseService {
       createdAtEnd,
     } = query;
     const where: Record<string, unknown> = this.buildWhere({
-      contains: { name, path },
+      contains: { name, code, path },
       equals: { type, status, parentMenuId },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
@@ -170,6 +173,7 @@ export class MenuService extends BaseService {
       name,
       type,
       permissionCode,
+      code,
       path,
       icon,
       hidden,
@@ -218,6 +222,7 @@ export class MenuService extends BaseService {
         name,
         permissionCode:
           permissionCode !== undefined ? (permissionCode ?? null) : undefined,
+        code: code !== undefined ? (code ?? null) : undefined,
         path: path !== undefined ? path : undefined,
         icon: icon !== undefined ? (icon ?? null) : undefined,
         hidden,
@@ -285,6 +290,7 @@ export class MenuService extends BaseService {
       name: string;
       type: string;
       permissionCode: string | null;
+      code: string | null;
       path: string | null;
       icon: string | null;
       hidden: boolean;
@@ -305,6 +311,7 @@ export class MenuService extends BaseService {
         name: m.name,
         type: m.type,
         permissionCode: m.permissionCode,
+        code: m.code,
         path: m.path,
         icon: m.icon,
         hidden: m.hidden,
@@ -371,6 +378,7 @@ export class MenuService extends BaseService {
         menuId: true,
         name: true,
         type: true,
+        code: true,
         path: true,
         parentMenuId: true,
         status: true,

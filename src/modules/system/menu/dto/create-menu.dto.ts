@@ -20,6 +20,11 @@ export class CreateMenuDto {
   @IsString()
   permissionCode?: string;
 
+  @ApiPropertyOptional({ description: '国际化键，如 system.management' })
+  @IsOptional()
+  @IsString()
+  code?: string;
+
   @ApiProperty({ description: '菜单路径（唯一）' })
   @IsString({ message: '菜单路径必须是字符串' })
   path: string;

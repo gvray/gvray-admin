@@ -24,6 +24,11 @@ export class AuthMenuResponseDto {
   @Transform(({ value }): string | null => value ?? null)
   permissionCode?: string | null;
 
+  @ApiPropertyOptional({ description: '国际化键' })
+  @Expose()
+  @Transform(({ value }): string | null => value ?? null)
+  code?: string | null;
+
   @ApiPropertyOptional({ description: '菜单路径' })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
