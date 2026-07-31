@@ -22,7 +22,7 @@ export class PermissionResponseDto {
   @Expose()
   code: string;
 
-  @ApiPropertyOptional({ description: 'HTTP 方法（扫描器写入，seed 阶段可能为空）' })
+  @ApiPropertyOptional({ description: 'HTTP 方法（扫描器写入，seed 阶段可能为空）', type: String })
   @Expose()
   httpMethod: string | null;
 
@@ -34,7 +34,7 @@ export class PermissionResponseDto {
   @Expose()
   mutable: boolean;
 
-  @ApiPropertyOptional({ description: '权限描述' })
+  @ApiPropertyOptional({ description: '权限描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;

@@ -66,7 +66,7 @@ export class UserResponseDto {
   @Expose()
   userId: string;
 
-  @ApiPropertyOptional({ description: '邮箱' })
+  @ApiPropertyOptional({ description: '邮箱', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   email?: string;
@@ -79,12 +79,12 @@ export class UserResponseDto {
   @Expose()
   nickname: string;
 
-  @ApiPropertyOptional({ description: '手机号码' })
+  @ApiPropertyOptional({ description: '手机号码', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   phone?: string;
 
-  @ApiPropertyOptional({ description: '头像URL' })
+  @ApiPropertyOptional({ description: '头像URL', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   avatar?: string;
@@ -98,7 +98,7 @@ export class UserResponseDto {
   @Transform(({ value }): Gender => value ?? Gender.UNKNOWN)
   gender?: Gender;
 
-  @ApiPropertyOptional({ description: '用户描述' })
+  @ApiPropertyOptional({ description: '用户描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;

@@ -19,22 +19,22 @@ export class MenuResponseDto {
   @Expose()
   type: string;
 
-  @ApiPropertyOptional({ description: '绑定权限码' })
+  @ApiPropertyOptional({ description: '绑定权限码', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   permissionCode?: string | null;
 
-  @ApiPropertyOptional({ description: '国际化键' })
+  @ApiPropertyOptional({ description: '国际化键', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   code?: string | null;
 
-  @ApiPropertyOptional({ description: '菜单路径' })
+  @ApiPropertyOptional({ description: '菜单路径', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   path?: string | null;
 
-  @ApiPropertyOptional({ description: '菜单图标' })
+  @ApiPropertyOptional({ description: '菜单图标', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   icon?: string | null;
@@ -51,7 +51,7 @@ export class MenuResponseDto {
   @Expose()
   status?: string;
 
-  @ApiPropertyOptional({ description: '父菜单ID' })
+  @ApiPropertyOptional({ description: '父菜单ID', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   parentMenuId?: string | null;

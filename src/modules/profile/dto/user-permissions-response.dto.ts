@@ -10,7 +10,7 @@ export class UserRoleSimpleDto {
   @ApiProperty({ description: '角色标识' })
   roleKey: string;
 
-  @ApiPropertyOptional({ description: '角色描述' })
+  @ApiPropertyOptional({ description: '角色描述', type: String })
   description: string | null;
 }
 
@@ -24,7 +24,7 @@ export class UserPermissionSimpleDto {
   @ApiProperty({ description: '权限代码' })
   code: string;
 
-  @ApiPropertyOptional({ description: '权限描述' })
+  @ApiPropertyOptional({ description: '权限描述', type: String })
   description: string | null;
 }
 

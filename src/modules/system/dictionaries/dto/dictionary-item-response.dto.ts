@@ -33,6 +33,7 @@ export class DictionaryItemResponseDto {
   @ApiPropertyOptional({
     description: '描述',
     example: '用户启用状态',
+    type: String,
   })
   @Expose()
   description?: string;
@@ -56,6 +57,7 @@ export class DictionaryItemResponseDto {
   @ApiPropertyOptional({
     description: '备注信息',
     example: '用户启用状态备注',
+    type: String,
   })
   @Expose()
   remark?: string;

@@ -18,27 +18,27 @@ export class DepartmentResponseDto {
   @Expose()
   name: string;
 
-  @ApiPropertyOptional({ description: '部门描述' })
+  @ApiPropertyOptional({ description: '部门描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
 
-  @ApiPropertyOptional({ description: '备注信息' })
+  @ApiPropertyOptional({ description: '备注信息', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   remark?: string;
 
-  @ApiPropertyOptional({ description: '负责人' })
+  @ApiPropertyOptional({ description: '负责人', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   manager?: string;
 
-  @ApiPropertyOptional({ description: '联系电话' })
+  @ApiPropertyOptional({ description: '联系电话', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   phone?: string;
 
-  @ApiPropertyOptional({ description: '邮箱' })
+  @ApiPropertyOptional({ description: '邮箱', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   email?: string;

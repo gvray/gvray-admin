@@ -14,22 +14,22 @@ export class ProfileResponseDto {
   @Expose()
   nickname: string;
 
-  @ApiPropertyOptional({ description: '头像' })
+  @ApiPropertyOptional({ description: '头像', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   avatar?: string | null;
 
-  @ApiPropertyOptional({ description: '邮箱' })
+  @ApiPropertyOptional({ description: '邮箱', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   email?: string | null;
 
-  @ApiPropertyOptional({ description: '手机号码' })
+  @ApiPropertyOptional({ description: '手机号码', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   phone?: string | null;
 
-  @ApiPropertyOptional({ description: '性别' })
+  @ApiPropertyOptional({ description: '性别', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   gender?: string | null;

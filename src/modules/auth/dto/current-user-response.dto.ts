@@ -25,7 +25,7 @@ export class PermissionResponseDto {
   @Expose()
   code: string;
 
-  @ApiPropertyOptional({ description: '权限描述' })
+  @ApiPropertyOptional({ description: '权限描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
@@ -49,12 +49,12 @@ export class CurrentUserRoleResponseDto {
   @Expose()
   name: string;
 
-  @ApiPropertyOptional({ description: '角色标识（用于判断是否超管）' })
+  @ApiPropertyOptional({ description: '角色标识（用于判断是否超管）', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   roleKey?: string;
 
-  @ApiPropertyOptional({ description: '角色描述' })
+  @ApiPropertyOptional({ description: '角色描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
@@ -108,7 +108,7 @@ export class CurrentUserDepartmentResponseDto {
   @Expose()
   name: string;
 
-  @ApiPropertyOptional({ description: '部门描述' })
+  @ApiPropertyOptional({ description: '部门描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
@@ -132,7 +132,7 @@ export class CurrentUserPositionResponseDto {
   @Expose()
   name: string;
 
-  @ApiPropertyOptional({ description: '岗位描述' })
+  @ApiPropertyOptional({ description: '岗位描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
@@ -143,22 +143,22 @@ export class CurrentUserProfileDto {
   @Expose()
   nickname: string;
 
-  @ApiPropertyOptional({ description: '头像' })
+  @ApiPropertyOptional({ description: '头像', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   avatar?: string | null;
 
-  @ApiPropertyOptional({ description: '邮箱' })
+  @ApiPropertyOptional({ description: '邮箱', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   email?: string | null;
 
-  @ApiPropertyOptional({ description: '手机号码' })
+  @ApiPropertyOptional({ description: '手机号码', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   phone?: string | null;
 
-  @ApiPropertyOptional({ description: '性别' })
+  @ApiPropertyOptional({ description: '性别', type: String })
   @Expose()
   @Transform(({ value }): string | null => value ?? null)
   gender?: string | null;

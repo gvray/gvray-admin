@@ -73,12 +73,12 @@ export class RoleResponseDto {
   @Expose()
   name: string;
 
-  @ApiPropertyOptional({ description: '角色描述' })
+  @ApiPropertyOptional({ description: '角色描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
 
-  @ApiPropertyOptional({ description: '备注信息' })
+  @ApiPropertyOptional({ description: '备注信息', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   remark?: string;

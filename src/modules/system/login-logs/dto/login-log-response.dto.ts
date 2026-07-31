@@ -14,7 +14,7 @@ export class LoginLogResponseDto {
   @Expose()
   ipAddress: string;
 
-  @ApiPropertyOptional({ description: '用户代理信息' })
+  @ApiPropertyOptional({ description: '用户代理信息', type: String })
   @Expose()
   userAgent?: string;
 
@@ -26,23 +26,23 @@ export class LoginLogResponseDto {
   @Expose()
   loginType: string;
 
-  @ApiPropertyOptional({ description: '失败原因' })
+  @ApiPropertyOptional({ description: '失败原因', type: String })
   @Expose()
   failReason?: string;
 
-  @ApiPropertyOptional({ description: '登录地点（可选，基于IP解析）' })
+  @ApiPropertyOptional({ description: '登录地点（可选，基于IP解析）', type: String })
   @Expose()
   location?: string;
 
-  @ApiPropertyOptional({ description: '设备信息' })
+  @ApiPropertyOptional({ description: '设备信息', type: String })
   @Expose()
   device?: string;
 
-  @ApiPropertyOptional({ description: '浏览器信息' })
+  @ApiPropertyOptional({ description: '浏览器信息', type: String })
   @Expose()
   browser?: string;
 
-  @ApiPropertyOptional({ description: '操作系统信息' })
+  @ApiPropertyOptional({ description: '操作系统信息', type: String })
   @Expose()
   os?: string;
 

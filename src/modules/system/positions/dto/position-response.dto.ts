@@ -22,7 +22,7 @@ export class PositionUserResponseDto {
   @Expose()
   nickname: string;
 
-  @ApiPropertyOptional({ description: '邮箱' })
+  @ApiPropertyOptional({ description: '邮箱', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   email?: string;
@@ -49,12 +49,12 @@ export class PositionResponseDto {
   @Expose()
   code: string;
 
-  @ApiPropertyOptional({ description: '岗位描述' })
+  @ApiPropertyOptional({ description: '岗位描述', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   description?: string;
 
-  @ApiPropertyOptional({ description: '备注信息' })
+  @ApiPropertyOptional({ description: '备注信息', type: String })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   remark?: string;
