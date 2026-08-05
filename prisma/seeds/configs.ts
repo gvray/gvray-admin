@@ -78,7 +78,8 @@ export async function seedConfigs() {
       key: 'system.timezone',
       value: 'Asia/Shanghai',
       name: '系统时区',
-      description: '系统默认时区，影响服务端时间计算及前端默认展示，用户可在个人设置中覆盖',
+      description:
+        '系统默认时区，影响服务端时间计算及前端默认展示，用户可在个人设置中覆盖',
       type: 'string',
       group: 'system',
       status: CommonStatus.ENABLED,
@@ -112,7 +113,8 @@ export async function seedConfigs() {
         requireSpecial: true,
       }),
       name: '密码策略',
-      description: '密码复杂度规则：最小/最大长度，是否要求大写字母、数字、特殊字符',
+      description:
+        '密码复杂度规则：最小/最大长度，是否要求大写字母、数字、特殊字符',
       type: 'json',
       group: 'security',
       status: CommonStatus.ENABLED,
@@ -192,7 +194,8 @@ export async function seedConfigs() {
       key: 'feature.registerDefaultRole',
       value: 'user',
       name: '注册用户默认角色编码',
-      description: '前端自助注册用户时分配的默认角色（管理员后台添加用户时不使用）',
+      description:
+        '前端自助注册用户时分配的默认角色（管理员后台添加用户时不使用）',
       type: 'string',
       group: 'feature',
       status: CommonStatus.ENABLED,
@@ -203,7 +206,7 @@ export async function seedConfigs() {
     // 【已实现】公开运行时配置返回，前端可消费（用户未上传头像时的默认头像）
     {
       key: 'user.defaultAvatar',
-      value: 'https://api.dicebear.com/9.x/bottts/svg?seed=GVRAY',
+      value: 'https://api.dicebear.com/9.x/bottts/svg?seed=GavinRay',
       name: '默认头像地址',
       description: '用户未上传头像时的默认头像 URL',
       type: 'string',
