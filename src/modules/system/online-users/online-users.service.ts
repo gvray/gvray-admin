@@ -13,11 +13,7 @@ export class OnlineUsersService {
     private readonly permissionCache: PermissionCacheService,
   ) {}
 
-  async getOnlineUsers(
-    page: number,
-    pageSize: number,
-    keyword?: string,
-  ) {
+  async getOnlineUsers(page: number, pageSize: number, keyword?: string) {
     const allUserIds = await this.tokenService.getAllOnlineUserIds();
 
     if (allUserIds.length === 0) {
@@ -60,17 +56,23 @@ export class OnlineUsersService {
         const sessions = await this.tokenService.getUserSessions(user.userId);
         const now = new Date().toISOString();
 
-        const lastActiveAt = sessions.length > 0
-          ? sessions.reduce((latest, s) =>
-              s.lastActiveAt > latest ? s.lastActiveAt : latest,
-            sessions[0].lastActiveAt)
-          : now;
+        const lastActiveAt =
+          sessions.length > 0
+            ? sessions.reduce(
+                (latest, s) =>
+                  s.lastActiveAt > latest ? s.lastActiveAt : latest,
+                sessions[0].lastActiveAt,
+              )
+            : now;
 
-        const loginAt = sessions.length > 0
-          ? sessions.reduce((earliest, s) =>
-              s.createdAt < earliest ? s.createdAt : earliest,
-            sessions[0].createdAt)
-          : now;
+        const loginAt =
+          sessions.length > 0
+            ? sessions.reduce(
+                (earliest, s) =>
+                  s.createdAt < earliest ? s.createdAt : earliest,
+                sessions[0].createdAt,
+              )
+            : now;
 
         return {
           userId: user.userId,

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Delete, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -199,7 +208,7 @@ export class AuthController {
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       try {
-        const payload = this.jwtService.decode(token) as { jti?: string } | null;
+        const payload = this.jwtService.decode(token);
         jti = payload?.jti;
       } catch {
         // 忽略解码失败
@@ -265,7 +274,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户可见菜单' })
-  @ApiResponse({ status: 200, description: '菜单树', type: [AuthMenuResponseDto] })
+  @ApiResponse({
+    status: 200,
+    description: '菜单树',
+    type: [AuthMenuResponseDto],
+  })
   async menus(@CurrentUser() user: { userId: string }) {
     const data = await this.authService.getMenus(user.userId);
     return ResponseUtil.found(data, '获取菜单成功');

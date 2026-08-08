@@ -70,8 +70,16 @@ export class ConfigsService extends BaseService {
   async findAll(
     query: QueryConfigDto,
   ): Promise<PaginationData<ConfigResponseDto>> {
-    const { key, name, type, group, status, isPublic, createdAtStart, createdAtEnd } =
-      query;
+    const {
+      key,
+      name,
+      type,
+      group,
+      status,
+      isPublic,
+      createdAtStart,
+      createdAtEnd,
+    } = query;
     const where = this.buildWhere({
       contains: { key, name },
       equals: { type, group, status },
@@ -230,13 +238,15 @@ export class ConfigsService extends BaseService {
     } as RuntimeConfigResponseDto;
   }
 
-  private async buildPublicRuntimeConfig(): Promise<Partial<RuntimeConfigResponseDto>> {
+  private async buildPublicRuntimeConfig(): Promise<
+    Partial<RuntimeConfigResponseDto>
+  > {
     return this.buildConfigCore({ publicOnly: true });
   }
 
-  private async buildConfigCore(
-    options?: { publicOnly?: boolean },
-  ): Promise<Record<string, any>> {
+  private async buildConfigCore(options?: {
+    publicOnly?: boolean;
+  }): Promise<Record<string, any>> {
     const where: any = { status: CommonStatus.ENABLED };
     if (options?.publicOnly) {
       where.isPublic = true;

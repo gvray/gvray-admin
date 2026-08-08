@@ -37,7 +37,8 @@ export class NoticesService extends BaseService {
     query: QueryNoticeDto,
     currentUserId?: string,
   ): Promise<PaginationData<NoticeResponseDto>> {
-    const { keyword, title, type, status, createdAtStart, createdAtEnd } = query;
+    const { keyword, title, type, status, createdAtStart, createdAtEnd } =
+      query;
     const where = this.buildWhere({
       contains: { title: keyword || title },
       equals: { type, status },

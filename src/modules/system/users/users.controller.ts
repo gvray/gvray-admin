@@ -172,7 +172,11 @@ export class UsersController {
   @OperationLog({ module: '用户管理', action: 'update' })
   @ApiOperation({ summary: '重置用户密码' })
   @ApiBody({ type: ResetPasswordDto })
-  @ApiResponse({ status: 200, description: '密码重置成功', type: UserResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '密码重置成功',
+    type: UserResponseDto,
+  })
   @ApiResponse({ status: 404, description: '用户不存在' })
   async resetPassword(
     @Param('userId') userId: string,

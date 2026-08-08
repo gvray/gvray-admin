@@ -218,7 +218,10 @@ export class ProfileService {
     return record.settings;
   }
 
-  async getLoginLogs(userId: string, query: { page?: number; pageSize?: number }) {
+  async getLoginLogs(
+    userId: string,
+    query: { page?: number; pageSize?: number },
+  ) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const skip = (page - 1) * pageSize;

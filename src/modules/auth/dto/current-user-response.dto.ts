@@ -6,7 +6,6 @@ import { UserStatus } from '@/shared/constants/user-status.constant';
 export class PermissionResponseDto {
   @ApiProperty({ description: '权限ID', type: 'integer' })
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -34,7 +33,6 @@ export class PermissionResponseDto {
 export class CurrentUserRoleResponseDto {
   @ApiProperty({ description: '角色ID', type: 'integer' })
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -49,7 +47,10 @@ export class CurrentUserRoleResponseDto {
   @Expose()
   name: string;
 
-  @ApiPropertyOptional({ description: '角色标识（用于判断是否超管）', type: String })
+  @ApiPropertyOptional({
+    description: '角色标识（用于判断是否超管）',
+    type: String,
+  })
   @Expose()
   @Transform(({ value }): string => value ?? '')
   roleKey?: string;
@@ -93,7 +94,6 @@ export class CurrentUserRoleResponseDto {
 export class CurrentUserDepartmentResponseDto {
   @ApiProperty({ description: '部门ID', type: 'integer' })
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -117,7 +117,6 @@ export class CurrentUserDepartmentResponseDto {
 export class CurrentUserPositionResponseDto {
   @ApiProperty({ description: '岗位ID', type: 'integer' })
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -175,7 +174,6 @@ export class CurrentUserProfileDto {
 export class CurrentUserResponseDto {
   @ApiProperty({ description: '用户数据库ID', type: 'integer' })
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 

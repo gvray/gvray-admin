@@ -3,7 +3,6 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 export class RolePermissionResponseDto {
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -54,7 +53,6 @@ export class RoleUserResponseDto {
 
 export class RoleResponseDto {
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 

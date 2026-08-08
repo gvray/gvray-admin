@@ -3,7 +3,6 @@ import { Exclude, Expose, Transform } from 'class-transformer';
 
 export class PermissionResponseDto {
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -22,7 +21,10 @@ export class PermissionResponseDto {
   @Expose()
   code: string;
 
-  @ApiPropertyOptional({ description: 'HTTP 方法（扫描器写入，seed 阶段可能为空）', type: String })
+  @ApiPropertyOptional({
+    description: 'HTTP 方法（扫描器写入，seed 阶段可能为空）',
+    type: String,
+  })
   @Expose()
   httpMethod: string | null;
 

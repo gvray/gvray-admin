@@ -3,7 +3,6 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 export class DepartmentResponseDto {
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 

@@ -309,7 +309,9 @@ export class DictionariesService extends BaseService {
   async getDictionaryItemsByTypeCode(
     typeCode: string,
   ): Promise<DictionaryItemResponseDto[]> {
-    this.logger.log(`getDictionaryItemsByTypeCode called with typeCode: ${typeCode}`);
+    this.logger.log(
+      `getDictionaryItemsByTypeCode called with typeCode: ${typeCode}`,
+    );
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { code: typeCode },
       include: {

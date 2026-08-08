@@ -94,7 +94,8 @@ export class CreateUserDto {
   positionIds?: string[];
 
   @ApiPropertyOptional({
-    description: '角色ID列表（UUID），仅后台创建用户时使用；自助注册使用默认角色配置',
+    description:
+      '角色ID列表（UUID），仅后台创建用户时使用；自助注册使用默认角色配置',
     type: [String],
     example: ['550e8400-e29b-41d4-a716-446655440001'],
   })

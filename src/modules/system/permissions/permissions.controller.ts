@@ -61,10 +61,7 @@ export class PermissionsController {
     description: '全部权限平铺列表',
     type: [PermissionResponseDto],
   })
-  async findAllFlat(
-    @Query('mine') mine: string,
-    @CurrentUser() user: IUser,
-  ) {
+  async findAllFlat(@Query('mine') mine: string, @CurrentUser() user: IUser) {
     const data = await this.permissionsService.findAllFlat(
       mine === 'true',
       user?.userId,

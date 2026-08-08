@@ -73,7 +73,12 @@ export class CacheMonitorService {
     pattern: string,
     page: number,
     pageSize: number,
-  ): Promise<{ items: CacheKeyInfoDto[]; total: number; page: number; pageSize: number }> {
+  ): Promise<{
+    items: CacheKeyInfoDto[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     const allKeys = new Set<string>();
     const maxScan = 5000; // 安全阀：避免 pattern=* 时扫描过多 key
 
@@ -154,7 +159,9 @@ export class CacheMonitorService {
           break;
         }
         case 'hash': {
-          const hash = await this.safeRedisCall(() => this.redisService.hGetAll(key));
+          const hash = await this.safeRedisCall(() =>
+            this.redisService.hGetAll(key),
+          );
           if (hash) {
             // 尝试把 hash 值 JSON 反序列化
             const parsed: Record<string, unknown> = {};

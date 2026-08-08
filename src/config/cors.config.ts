@@ -5,7 +5,10 @@ export class CorsConfig {
   origins!: string;
 }
 
-export default registerAs('cors', (): CorsConfig => ({
-  enabled: process.env.ENABLE_CORS === 'true',
-  origins: process.env.CORS_ORIGINS || '',
-}));
+export default registerAs(
+  'cors',
+  (): CorsConfig => ({
+    enabled: process.env.ENABLE_CORS === 'true',
+    origins: process.env.CORS_ORIGINS || '',
+  }),
+);

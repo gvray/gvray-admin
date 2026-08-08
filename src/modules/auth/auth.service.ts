@@ -393,7 +393,9 @@ export class AuthService {
     await this.tokenService.revokeAllUserTokens(userId);
   }
 
-  async getSessions(userId: string): Promise<ReturnType<TokenService['getUserSessions']>> {
+  async getSessions(
+    userId: string,
+  ): Promise<ReturnType<TokenService['getUserSessions']>> {
     return this.tokenService.getUserSessions(userId);
   }
 
@@ -433,7 +435,9 @@ export class AuthService {
       (user.userRoles || [])
         .flatMap((ur) => ur.role?.rolePermissions || [])
         .map((rp) => rp.permission?.code)
-        .filter((code): code is string => typeof code === 'string' && code.length > 0),
+        .filter(
+          (code): code is string => typeof code === 'string' && code.length > 0,
+        ),
     );
 
     // 查询所有启用的菜单
@@ -448,7 +452,7 @@ export class AuthService {
     const menuMap = new Map(allMenus.map((m) => [m.menuId, m]));
 
     // 判断菜单是否可见
-    const isVisible = (menu: typeof allMenus[0]): boolean => {
+    const isVisible = (menu: (typeof allMenus)[0]): boolean => {
       if (!menu.permissionCode) return true;
       return userPermissionCodes.has(menu.permissionCode);
     };
@@ -554,7 +558,9 @@ export class AuthService {
       return nodes
         .map((node) => ({
           ...node,
-          children: node.children ? removeEmptyCatalogs(node.children) : undefined,
+          children: node.children
+            ? removeEmptyCatalogs(node.children)
+            : undefined,
         }))
         .filter((node) => {
           if (node.type === 'CATALOG') {

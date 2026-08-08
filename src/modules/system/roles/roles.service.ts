@@ -79,7 +79,9 @@ export class RolesService extends BaseService {
   /**
    * 获取当前用户拥有的所有权限ID
    */
-  private async getCurrentUserPermissionIds(userId: string): Promise<Set<string>> {
+  private async getCurrentUserPermissionIds(
+    userId: string,
+  ): Promise<Set<string>> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
       select: {
@@ -111,7 +113,10 @@ export class RolesService extends BaseService {
   /**
    * 检查是否修改自己所属角色的权限
    */
-  private async checkOwnRole(roleId: string, currentUserId?: string): Promise<void> {
+  private async checkOwnRole(
+    roleId: string,
+    currentUserId?: string,
+  ): Promise<void> {
     if (!currentUserId) return;
     const membership = await this.prisma.userRole.findUnique({
       where: {
@@ -148,15 +153,8 @@ export class RolesService extends BaseService {
     createRoleDto: CreateRoleDto,
     currentUserId?: string,
   ): Promise<RoleResponseDto> {
-    const {
-      name,
-      roleKey,
-      description,
-      remark,
-      sort,
-      status,
-      permissionIds,
-    } = createRoleDto;
+    const { name, roleKey, description, remark, sort, status, permissionIds } =
+      createRoleDto;
 
     await this.validatePermissionIds(permissionIds ?? []);
     await this.validatePermissionAssignment(permissionIds ?? [], currentUserId);

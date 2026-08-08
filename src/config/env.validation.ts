@@ -1,5 +1,11 @@
 import { plainToInstance } from 'class-transformer';
-import { IsInt, IsString, IsOptional, IsBoolean, validateSync } from 'class-validator';
+import {
+  IsInt,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  validateSync,
+} from 'class-validator';
 
 class EnvironmentVariables {
   @IsString()
@@ -58,7 +64,8 @@ class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
-  OPLOG_MASK_FIELDS: string = 'password,oldPassword,newPassword,token,authorization,secret,captcha';
+  OPLOG_MASK_FIELDS: string =
+    'password,oldPassword,newPassword,token,authorization,secret,captcha';
 }
 
 export function validate(config: Record<string, unknown>) {

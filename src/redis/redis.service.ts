@@ -102,7 +102,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async del(...keys: string[]): Promise<number> {
-    return this.safeRun(() => this.client!.del(keys.map((k) => this.prefixKey(k))));
+    return this.safeRun(() =>
+      this.client!.del(keys.map((k) => this.prefixKey(k))),
+    );
   }
 
   async ttl(key: string): Promise<number> {
@@ -111,7 +113,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async expire(key: string, seconds: number): Promise<number> {
     return this.safeRun(() =>
-      this.client!.expire(this.prefixKey(key), seconds) as Promise<number>,
+      this.client!.expire(this.prefixKey(key), seconds),
     );
   }
 
@@ -124,7 +126,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async incrBy(key: string, increment: number): Promise<number> {
-    return this.safeRun(() => this.client!.incrBy(this.prefixKey(key), increment));
+    return this.safeRun(() =>
+      this.client!.incrBy(this.prefixKey(key), increment),
+    );
   }
 
   async decr(key: string): Promise<number> {
@@ -132,7 +136,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async decrBy(key: string, decrement: number): Promise<number> {
-    return this.safeRun(() => this.client!.decrBy(this.prefixKey(key), decrement));
+    return this.safeRun(() =>
+      this.client!.decrBy(this.prefixKey(key), decrement),
+    );
   }
 
   // ===== Hash =====
@@ -145,7 +151,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async hSet(key: string, field: string, value: string): Promise<number> {
-    return this.safeRun(() => this.client!.hSet(this.prefixKey(key), field, value));
+    return this.safeRun(() =>
+      this.client!.hSet(this.prefixKey(key), field, value),
+    );
   }
 
   async hDel(key: string, ...fields: string[]): Promise<number> {
@@ -173,12 +181,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async zRange(key: string, start: number, stop: number): Promise<string[]> {
-    return this.safeRun(() => this.client!.zRange(this.prefixKey(key), start, stop));
+    return this.safeRun(() =>
+      this.client!.zRange(this.prefixKey(key), start, stop),
+    );
   }
 
   // ===== mGet（批量获取） =====
   async mGet(keys: string[]): Promise<(string | null)[]> {
-    return this.safeRun(() => this.client!.mGet(keys.map((k) => this.prefixKey(k))));
+    return this.safeRun(() =>
+      this.client!.mGet(keys.map((k) => this.prefixKey(k))),
+    );
   }
 
   // ===== eval（Lua 脚本） =====
@@ -201,7 +213,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       MATCH: this.prefixKey(match),
       COUNT: count,
     })) {
-      yield (keys as string[]).map((k) => this.stripPrefix(k));
+      yield keys.map((k) => this.stripPrefix(k));
     }
   }
 
@@ -212,7 +224,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async info(section?: string): Promise<string> {
     return this.safeRun(() =>
-      this.client!.info(section as 'memory' | undefined) as Promise<string>,
+      this.client!.info(section as 'memory' | undefined),
     );
   }
 

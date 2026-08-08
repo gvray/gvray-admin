@@ -30,7 +30,10 @@ export class LoginLogResponseDto {
   @Expose()
   failReason?: string;
 
-  @ApiPropertyOptional({ description: '登录地点（可选，基于IP解析）', type: String })
+  @ApiPropertyOptional({
+    description: '登录地点（可选，基于IP解析）',
+    type: String,
+  })
   @Expose()
   location?: string;
 

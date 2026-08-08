@@ -75,8 +75,12 @@ export const USER_PERMISSIONS = {
   DELETE: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
   IMPORT: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.IMPORT}`),
   EXPORT: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.EXPORT}`),
-  UPDATE_ROLES: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_ROLES}`),
-  RESET_PASSWORD: definePermission(`${USER_RESOURCE}:${PERMISSION_ACTIONS.RESET_PASSWORD}`),
+  UPDATE_ROLES: definePermission(
+    `${USER_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_ROLES}`,
+  ),
+  RESET_PASSWORD: definePermission(
+    `${USER_RESOURCE}:${PERMISSION_ACTIONS.RESET_PASSWORD}`,
+  ),
 } as const;
 
 // ==================== 角色管理权限 ====================
@@ -87,9 +91,15 @@ export const ROLE_PERMISSIONS = {
   CREATE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
   UPDATE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
   DELETE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
-  UPDATE_PERMISSIONS: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_PERMISSIONS}`),
-  UPDATE_USERS: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_USERS}`),
-  UPDATE_DATA_SCOPE: definePermission(`${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_DATA_SCOPE}`),
+  UPDATE_PERMISSIONS: definePermission(
+    `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_PERMISSIONS}`,
+  ),
+  UPDATE_USERS: definePermission(
+    `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_USERS}`,
+  ),
+  UPDATE_DATA_SCOPE: definePermission(
+    `${ROLE_RESOURCE}:${PERMISSION_ACTIONS.UPDATE_DATA_SCOPE}`,
+  ),
 } as const;
 
 // ==================== 权限管理权限 ====================
@@ -97,7 +107,9 @@ const PERMISSION_RESOURCE = 'system:permission';
 export const PERMISSION_PERMISSIONS = {
   LIST: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
-  UPDATE: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
+  UPDATE: definePermission(
+    `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
+  ),
   SCAN: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.SCAN}`, {
     sensitive: true,
     notes: '扫描权限目录，影响系统权限配置',
@@ -109,9 +121,15 @@ const DEPARTMENT_RESOURCE = 'system:department';
 export const DEPARTMENT_PERMISSIONS = {
   LIST: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
-  CREATE: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
-  UPDATE: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
-  DELETE: definePermission(`${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  CREATE: definePermission(
+    `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
+  ),
+  UPDATE: definePermission(
+    `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
+  ),
+  DELETE: definePermission(
+    `${DEPARTMENT_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  ),
 } as const;
 
 // ==================== 岗位管理权限 ====================
@@ -129,9 +147,15 @@ const DICTIONARY_RESOURCE = 'system:dictionary';
 export const DICTIONARY_PERMISSIONS = {
   LIST: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
-  CREATE: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`),
-  UPDATE: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`),
-  DELETE: definePermission(`${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  CREATE: definePermission(
+    `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.CREATE}`,
+  ),
+  UPDATE: definePermission(
+    `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
+  ),
+  DELETE: definePermission(
+    `${DICTIONARY_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  ),
 } as const;
 
 // ==================== 配置管理权限 ====================
@@ -174,7 +198,9 @@ const LOGIN_LOG_RESOURCE = 'system:log-login';
 export const LOGIN_LOG_PERMISSIONS = {
   LIST: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
   VIEW: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
-  DELETE: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
+  DELETE: definePermission(
+    `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  ),
   CLEAN: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
     sensitive: true,
     notes: '按条件清理登录日志',
@@ -188,17 +214,29 @@ export const LOGIN_LOG_PERMISSIONS = {
 // ==================== 操作日志权限 ====================
 const OPERATION_LOG_RESOURCE = 'system:log-operation';
 export const OPERATION_LOG_PERMISSIONS = {
-  LIST: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`),
-  VIEW: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
-  DELETE: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`),
-  CLEAN: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
-    sensitive: true,
-    notes: '按条件清理操作日志',
-  }),
-  CLEAR: definePermission(`${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`, {
-    sensitive: true,
-    notes: '清空全部操作日志，不可恢复',
-  }),
+  LIST: definePermission(
+    `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
+  ),
+  VIEW: definePermission(
+    `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
+  ),
+  DELETE: definePermission(
+    `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+  ),
+  CLEAN: definePermission(
+    `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`,
+    {
+      sensitive: true,
+      notes: '按条件清理操作日志',
+    },
+  ),
+  CLEAR: definePermission(
+    `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAR}`,
+    {
+      sensitive: true,
+      notes: '清空全部操作日志，不可恢复',
+    },
+  ),
 } as const;
 
 // ==================== 在线用户管理权限 ====================
@@ -258,4 +296,3 @@ export const PERMISSIONS = {
   CACHE: CACHE_PERMISSIONS,
   NOTICE: NOTICE_PERMISSIONS,
 } as const;
-

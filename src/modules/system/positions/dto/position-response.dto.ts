@@ -3,7 +3,6 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 
 export class PositionUserResponseDto {
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 
@@ -30,7 +29,6 @@ export class PositionUserResponseDto {
 
 export class PositionResponseDto {
   @ApiProperty({ type: 'integer' })
-
   @Exclude()
   id: number;
 

@@ -72,11 +72,9 @@ export class TokenService {
       await this.redisService.expire(key, expiresInSeconds);
 
       // 建立 tokenHash → userId 索引（纯 Redis 验证 RT 用）
-      await this.redisService.set(
-        RedisKeys.auth.rtIndex(tokenHash),
-        userId,
-        { ttlSeconds: expiresInSeconds },
-      );
+      await this.redisService.set(RedisKeys.auth.rtIndex(tokenHash), userId, {
+        ttlSeconds: expiresInSeconds,
+      });
 
       // 建立 AT jti → RT hash 反向索引（logout 时定位 RT）
       if (accessTokenJti) {
@@ -297,12 +295,17 @@ export class TokenService {
             device: hashData.device || undefined,
             location: hashData.location || undefined,
             createdAt: hashData.createdAt || new Date().toISOString(),
-            lastActiveAt: hashData.lastActiveAt || hashData.createdAt || new Date().toISOString(),
+            lastActiveAt:
+              hashData.lastActiveAt ||
+              hashData.createdAt ||
+              new Date().toISOString(),
           });
         } else {
           // 防御性清理：hash 已不存在但 sessionsSet 里还有引用，自动移除
           await this.redisService.sRem(sessionSetKey, hash);
-          this.logger.debug(`[Session Cleanup] 移除失效引用: ${sessionSetKey} → ${hash}`);
+          this.logger.debug(
+            `[Session Cleanup] 移除失效引用: ${sessionSetKey} → ${hash}`,
+          );
         }
       }
       return sessions;
@@ -317,7 +320,9 @@ export class TokenService {
   async getAllOnlineUserIds(): Promise<string[]> {
     try {
       const userIds = new Set<string>();
-      for await (const keys of this.redisService.scanIterator('auth:sessions:*')) {
+      for await (const keys of this.redisService.scanIterator(
+        'auth:sessions:*',
+      )) {
         for (const key of keys) {
           const parts = key.split(':');
           if (parts.length >= 3) {
@@ -347,7 +352,11 @@ export class TokenService {
         return;
       }
 
-      await this.redisService.hSet(key, 'lastActiveAt', new Date().toISOString());
+      await this.redisService.hSet(
+        key,
+        'lastActiveAt',
+        new Date().toISOString(),
+      );
       // 续期 RT Hash TTL（7 天），兼容历史数据中 TTL 为 -1 的残留 key
       const currentTtl = await this.redisService.ttl(key);
       if (currentTtl === -1) {

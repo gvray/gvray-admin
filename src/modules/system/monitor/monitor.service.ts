@@ -59,7 +59,7 @@ export class MonitorService {
     const disk = this.buildDiskMetrics(fsSize);
     const network = this.buildNetworkMetrics(networkInterfaces, networkStats);
     const processMetrics = this.buildProcessMetrics(
-      Array.isArray(processLoad) ? processLoad[0] ?? null : processLoad,
+      Array.isArray(processLoad) ? (processLoad[0] ?? null) : processLoad,
     );
 
     return {
@@ -85,7 +85,9 @@ export class MonitorService {
     };
   }
 
-  private buildCpuMetrics(currentLoad: si.Systeminformation.CurrentLoadData | null): CpuMetricsDto {
+  private buildCpuMetrics(
+    currentLoad: si.Systeminformation.CurrentLoadData | null,
+  ): CpuMetricsDto {
     if (!currentLoad) {
       return {
         usagePercent: 0,
@@ -111,7 +113,9 @@ export class MonitorService {
     };
   }
 
-  private buildMemoryMetrics(mem: si.Systeminformation.MemData | null): MemoryMetricsDto {
+  private buildMemoryMetrics(
+    mem: si.Systeminformation.MemData | null,
+  ): MemoryMetricsDto {
     if (!mem) {
       const total = os.totalmem();
       const free = os.freemem();
@@ -119,7 +123,10 @@ export class MonitorService {
         total,
         used: total - free,
         free,
-        usagePercent: total > 0 ? parseFloat(((total - free) / total * 100).toFixed(2)) : 0,
+        usagePercent:
+          total > 0
+            ? parseFloat((((total - free) / total) * 100).toFixed(2))
+            : 0,
       };
     }
 
@@ -127,11 +134,16 @@ export class MonitorService {
       total: mem.total,
       used: mem.used,
       free: mem.free,
-      usagePercent: mem.total > 0 ? parseFloat((mem.used / mem.total * 100).toFixed(2)) : 0,
+      usagePercent:
+        mem.total > 0
+          ? parseFloat(((mem.used / mem.total) * 100).toFixed(2))
+          : 0,
     };
   }
 
-  private buildDiskMetrics(fsSize: si.Systeminformation.FsSizeData[]): DiskMountDto[] {
+  private buildDiskMetrics(
+    fsSize: si.Systeminformation.FsSizeData[],
+  ): DiskMountDto[] {
     return fsSize.map((fs) => ({
       mount: fs.mount,
       fsType: fs.type,
@@ -150,8 +162,18 @@ export class MonitorService {
     const statList = Array.isArray(stats) ? stats : [];
 
     return ifaceList
-      .filter((iface): iface is si.Systeminformation.NetworkInterfacesData & { ip4: string; mac: string } =>
-        !!iface && typeof iface.ip4 === 'string' && !!iface.ip4 && !!iface.iface && String(iface.operstate) === 'up',
+      .filter(
+        (
+          iface,
+        ): iface is si.Systeminformation.NetworkInterfacesData & {
+          ip4: string;
+          mac: string;
+        } =>
+          !!iface &&
+          typeof iface.ip4 === 'string' &&
+          !!iface.ip4 &&
+          !!iface.iface &&
+          String(iface.operstate) === 'up',
       )
       .map((iface) => {
         const stat = statList.find((s) => s.iface === iface.iface);
@@ -166,7 +188,9 @@ export class MonitorService {
       });
   }
 
-  private buildProcessMetrics(processLoad: si.Systeminformation.ProcessesProcessLoadData | null): ProcessMetricsDto {
+  private buildProcessMetrics(
+    processLoad: si.Systeminformation.ProcessesProcessLoadData | null,
+  ): ProcessMetricsDto {
     const memUsage = process.memoryUsage();
 
     return {

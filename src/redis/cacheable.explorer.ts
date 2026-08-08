@@ -64,7 +64,10 @@ export class CacheableExplorer implements OnApplicationBootstrap {
         const methodNames = Object.getOwnPropertyNames(prototype);
         for (const methodName of methodNames) {
           if (methodName === 'constructor') continue;
-          const descriptor = Object.getOwnPropertyDescriptor(prototype, methodName);
+          const descriptor = Object.getOwnPropertyDescriptor(
+            prototype,
+            methodName,
+          );
           if (!descriptor || typeof descriptor.value !== 'function') {
             continue;
           }
@@ -79,11 +82,19 @@ export class CacheableExplorer implements OnApplicationBootstrap {
           );
 
           if (cacheableOptions) {
-            this.wrapCacheable(instance as Record<string, unknown>, methodName, cacheableOptions);
+            this.wrapCacheable(
+              instance as Record<string, unknown>,
+              methodName,
+              cacheableOptions,
+            );
             wrappedCount++;
           }
           if (cacheEvictOptions) {
-            this.wrapCacheEvict(instance as Record<string, unknown>, methodName, cacheEvictOptions);
+            this.wrapCacheEvict(
+              instance as Record<string, unknown>,
+              methodName,
+              cacheEvictOptions,
+            );
             wrappedCount++;
           }
         }
@@ -101,11 +112,15 @@ export class CacheableExplorer implements OnApplicationBootstrap {
     methodName: string,
     options: CacheableOptions,
   ): void {
-    const original = instance[methodName] as (...args: unknown[]) => Promise<unknown>;
+    const original = instance[methodName] as (
+      ...args: unknown[]
+    ) => Promise<unknown>;
     const cacheService = this.cacheService;
     const logger = this.logger;
 
-    instance[methodName] = async function (...args: unknown[]): Promise<unknown> {
+    instance[methodName] = async function (
+      ...args: unknown[]
+    ): Promise<unknown> {
       const key = buildKey(options.key, args);
       const ttl = computeTtl(options.ttl ?? 300, options.jitter ?? true);
       const nullTtl = options.nullTtl ?? 30;
@@ -124,7 +139,9 @@ export class CacheableExplorer implements OnApplicationBootstrap {
         }
       } catch (e) {
         if (e instanceof RedisUnavailableError) {
-          logger.warn(`[Cache SKIP] Redis unavailable, executing origin method`);
+          logger.warn(
+            `[Cache SKIP] Redis unavailable, executing origin method`,
+          );
           return original.apply(this, args);
         }
         throw e;
@@ -161,11 +178,15 @@ export class CacheableExplorer implements OnApplicationBootstrap {
     methodName: string,
     options: CacheEvictOptions,
   ): void {
-    const original = instance[methodName] as (...args: unknown[]) => Promise<unknown>;
+    const original = instance[methodName] as (
+      ...args: unknown[]
+    ) => Promise<unknown>;
     const cacheService = this.cacheService;
     const logger = this.logger;
 
-    instance[methodName] = async function (...args: unknown[]): Promise<unknown> {
+    instance[methodName] = async function (
+      ...args: unknown[]
+    ): Promise<unknown> {
       // beforeInvocation = true: 方法执行前清理
       if (options.beforeInvocation) {
         await doEvict(options, args, cacheService, logger);

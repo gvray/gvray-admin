@@ -29,11 +29,19 @@ export class OnlineUserItemDto {
   @Expose()
   sessionCount: number;
 
-  @ApiProperty({ description: '首次登录时间', type: 'string', format: 'date-time' })
+  @ApiProperty({
+    description: '首次登录时间',
+    type: 'string',
+    format: 'date-time',
+  })
   @Expose()
   loginAt: string;
 
-  @ApiProperty({ description: '最后活跃时间', type: 'string', format: 'date-time' })
+  @ApiProperty({
+    description: '最后活跃时间',
+    type: 'string',
+    format: 'date-time',
+  })
   @Expose()
   lastActiveAt: string;
 }

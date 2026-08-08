@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { PermissionCacheService } from '@/redis/permission-cache.service';
@@ -49,7 +54,7 @@ export class PermissionsGuard implements CanActivate {
 
     // 3. 校验是否拥有所有需要的权限
     const hasPermission = requiredPermissions.every((permission) =>
-      userPermissions!.includes(permission),
+      userPermissions.includes(permission),
     );
 
     return hasPermission;

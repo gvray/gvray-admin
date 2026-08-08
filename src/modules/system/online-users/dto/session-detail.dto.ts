@@ -29,11 +29,19 @@ export class SessionDetailDto {
   @Expose()
   location?: string;
 
-  @ApiProperty({ description: '会话创建时间', type: 'string', format: 'date-time' })
+  @ApiProperty({
+    description: '会话创建时间',
+    type: 'string',
+    format: 'date-time',
+  })
   @Expose()
   createdAt: string;
 
-  @ApiProperty({ description: '最后活跃时间', type: 'string', format: 'date-time' })
+  @ApiProperty({
+    description: '最后活跃时间',
+    type: 'string',
+    format: 'date-time',
+  })
   @Expose()
   lastActiveAt: string;
 }

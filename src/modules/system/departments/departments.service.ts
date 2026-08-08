@@ -317,11 +317,15 @@ export class DepartmentsService extends BaseService {
         whereConditions.parentId = queryDto.parentId;
       }
       if (queryDto?.createdAtStart || queryDto?.createdAtEnd) {
-        const tzSuffix = this.configService.get<string>('app.tzSuffix', '+08:00');
+        const tzSuffix = this.configService.get<string>(
+          'app.tzSuffix',
+          '+08:00',
+        );
         const o: { gte?: Date; lte?: Date } = {};
         if (queryDto.createdAtStart)
           o.gte = startOfDay(queryDto.createdAtStart, tzSuffix);
-        if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd, tzSuffix);
+        if (queryDto.createdAtEnd)
+          o.lte = endOfDay(queryDto.createdAtEnd, tzSuffix);
         whereConditions.createdAt = o;
       }
 

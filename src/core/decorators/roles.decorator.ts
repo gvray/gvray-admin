@@ -13,8 +13,10 @@ export interface DenyRolesOptions {
   message?: string;
 }
 
-export const Roles = (options: RolesOptions): MethodDecorator & ClassDecorator =>
-  SetMetadata(ROLES_KEY, options);
+export const Roles = (
+  options: RolesOptions,
+): MethodDecorator & ClassDecorator => SetMetadata(ROLES_KEY, options);
 
-export const DenyRoles = (options: DenyRolesOptions): MethodDecorator & ClassDecorator =>
-  SetMetadata(DENY_ROLES_KEY, options);
+export const DenyRoles = (
+  options: DenyRolesOptions,
+): MethodDecorator & ClassDecorator => SetMetadata(DENY_ROLES_KEY, options);

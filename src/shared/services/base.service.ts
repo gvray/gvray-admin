@@ -15,7 +15,7 @@ export abstract class BaseService {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
-) {}
+  ) {}
 
   protected buildWhere(params: {
     contains?: Record<string, string | undefined>;
@@ -49,7 +49,10 @@ export abstract class BaseService {
     const d = params.date;
     if (d) {
       if (d.start || d.end) {
-        const tzSuffix = this.configService.get<string>('app.tzSuffix', '+08:00');
+        const tzSuffix = this.configService.get<string>(
+          'app.tzSuffix',
+          '+08:00',
+        );
         const o: Record<string, Date> = {};
         if (d.start) o.gte = startOfDay(d.start, tzSuffix);
         if (d.end) o.lte = endOfDay(d.end, tzSuffix);
@@ -59,9 +62,12 @@ export abstract class BaseService {
     return where;
   }
 
-  protected getPaginationState(
-    pagination: PaginationDto,
-  ): { skip: number; take: number; page: number; pageSize: number } {
+  protected getPaginationState(pagination: PaginationDto): {
+    skip: number;
+    take: number;
+    page: number;
+    pageSize: number;
+  } {
     const skip = pagination.getSkip();
     const take = pagination.getTake();
     return {
@@ -115,8 +121,8 @@ export abstract class BaseService {
     return {
       items,
       total,
-      page: page!,
-      pageSize: pageSize!,
+      page: page,
+      pageSize: pageSize,
     };
   }
 

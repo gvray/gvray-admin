@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap, RequestMethod } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  RequestMethod,
+} from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { METHOD_METADATA } from '@nestjs/common/constants';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -102,7 +107,9 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       this.logger.warn(`   ⚠️ 敏感权限: ${stats.sensitive.length} 个`);
       for (const code of stats.sensitive) {
         const meta = PERMISSION_METADATA_MAP.get(code);
-        this.logger.warn(`      - ${code}${meta?.notes ? ` (${meta.notes})` : ''}`);
+        this.logger.warn(
+          `      - ${code}${meta?.notes ? ` (${meta.notes})` : ''}`,
+        );
       }
     }
 
