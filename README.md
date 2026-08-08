@@ -1,148 +1,156 @@
 # GVRAY Admin
 
-> 基于 NestJS 11 的现代化后台管理脚手架，内置 RBAC 权限管理、Prisma ORM、JWT 认证、Swagger 与 Docker，开箱即用，适用于生产环境。
+🚀 基于 **NestJS 11**、**TypeScript**、**Prisma**、**MySQL**、**Redis** 构建的企业级后台管理脚手架，内置 **RBAC 权限管理**、**JWT 认证**、**Swagger/OpenAPI**、**Docker 部署** 与 **AI 开发支持**，可直接作为企业后台项目的 **Starter Template**。
+
 
 <p align="center">
-  <img src="https://img.shields.io/badge/NestJS-11.1.2-E0234E?logo=nestjs&logoColor=white" alt="NestJS" />
-  <img src="https://img.shields.io/badge/Prisma-6.8.2-2D3748?logo=prisma&logoColor=white" alt="Prisma" />
-  <img src="https://img.shields.io/badge/TypeScript-5.8.3-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/MySQL-8.0+-4479A1?logo=mysql&logoColor=white" alt="MySQL" />
-  <img src="https://img.shields.io/badge/Redis-6.0+-DC382D?logo=redis&logoColor=white" alt="Redis" />
-  <img src="https://img.shields.io/badge/Docker-supported-2496ED?logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
-  <img src="https://img.shields.io/github/stars/gvray/gvray-admin?style=social" alt="GitHub Stars" />
-</p>
-
-<p align="center">
-  <img src="/docs/screenshots/demo.webp" alt="GVRAY Admin 预览" width="100%" />
+  <img src="./docs/screenshots/20260808/light.webp" width="49%" alt="Light Theme" />
+  
+  <img src="./docs/screenshots/20260808/dark.webp" width="49%" alt="Dark Theme" />
 </p>
 
 ## ✨ 特性亮点
 
-- 🤖 **AI-Ready 开发** — 内置 `CLAUDE.md` 与模块化 AI 文档，Claude Code / Cursor / Copilot 秒懂项目架构
-- 🔐 **RBAC 权限体系** — 基于角色的访问控制，支持动态权限扫描、菜单权限、权限缓存
-- 🏗️ **NestJS 11 + TypeScript** — 严格类型检查，模块化架构，依赖注入
-- 📝 **Swagger/OpenAPI** — 自动生成接口文档，Bearer Token 认证
-- 🛡️ **安全防护** — JWT 认证、bcrypt 密码哈希、CORS、操作日志脱敏
-- 🔑 **灵活登录** — 支持用户名、邮箱、手机号、userId 登录
-- 🏢 **组织架构** — 完整的部门和岗位管理体系，树形结构
-- ⚡ **Redis 缓存** — 会话管理、在线用户、接口限流、分布式锁、声明式缓存
-- 🐳 **Docker 部署** — 开发/测试/生产三套工作流，支持滚动更新与自动回滚
-- 🎯 **代码规范** — ESLint + Prettier，统一响应格式，完整的种子数据
+- 🔐 **RBAC 权限体系** —— 动态权限扫描、菜单权限、API 权限、权限缓存，开箱即用
+- 🛡️ **JWT 双 Token 认证** —— Access Token / Refresh Token、Passport、bcrypt 密码加密
+- ⚡ **Redis 深度集成** —— 会话管理、在线用户、接口限流、分布式锁、Pub/Sub、声明式缓存
+- 🏗️ **NestJS 11 + TypeScript** —— 模块化架构、依赖注入、严格类型检查
+- 📝 **Prisma 6 ORM** —— 类型安全查询，Migration / Seed / 事务全支持
+- 📄 **Swagger / OpenAPI** —— 自动生成文档，Bearer Token 在线调试
+- 🏢 **组织架构** —— 用户 / 角色 / 部门 / 岗位完整体系
+- 🔑 **多方式登录** —— 用户名、邮箱、手机号、User ID
+- 🛡️ **安全防护** —— CORS、统一异常、参数校验、日志脱敏、密码哈希
+- 🐳 **Docker 优先** —— 开发 / 测试 / 生产三套配置，支持滚动更新
+- 🤖 **AI Ready** —— 内置 `CLAUDE.md` 与模块化知识库，Claude Code / Cursor / Copilot 直接用
+- 🎯 **规范化工程** —— ESLint、Prettier、统一响应格式、完整种子数据
 
 ## 🛠️ 技术栈
 
-| 后端 | 版本 | 说明 |
-|:---|:---|:---|
-| [NestJS](https://nestjs.com/) | 11.1.2 | 渐进式 Node.js 框架 |
-| [Prisma](https://www.prisma.io/) | 6.8.2 | 类型安全 ORM |
-| [MySQL](https://www.mysql.com/) | 8.0+ | 关系型数据库 |
-| [Redis](https://redis.io/) | 6.0+ | 缓存与会话存储 |
-| [TypeScript](https://www.typescriptlang.org/) | 5.8.3 | 类型系统 |
-| [JWT](https://jwt.io/) | — | 身份认证 |
-| [Swagger](https://swagger.io/) | 11.2.0 | API 文档 |
-| [Docker](https://www.docker.com/) | — | 容器化部署 |
+NestJS 11 · Prisma 6 · TypeScript 5 · MySQL 8 · Redis 6 · Swagger · Docker
 
 ## 🚀 快速开始
 
 ### 环境要求
 
 - Node.js >= 20
+- pnpm >= 9（Corepack 内置，`corepack enable` 即可）
 - MySQL >= 8.0
 - Redis >= 6.0
-- pnpm >= 9
-
-### 开发环境
+- Docker（可选）
 
 ```bash
-# 克隆项目
-git clone https://github.com/gvray/gvray-admin.git
-cd gvray-admin
+git clone https://github.com/gvray/gvray-admin.git && cd gvray-admin
 
-# 安装依赖
 pnpm install
-
-# 配置环境变量
 cp .env.example .env
 
-# 启动 MySQL + Redis
+# 方式一：Docker 启动 MySQL + Redis
 docker compose -f docker-compose.dev.yml up -d mysql redis
 
-# 数据库迁移 + 种子数据
+# 方式二：已有本地 MySQL + Redis，配置 .env 后跳过上一步
+
 pnpm prisma migrate dev
 pnpm prisma db seed
-
-# 启动开发服务（端口 3000）
 pnpm start:dev
 ```
 
-### Swagger 接口调试
-
-```
-http://localhost:3000/api
-```
-
-点击「Authorize」输入 `Bearer <accessToken>` 即可测试受保护接口。
+- 应用：`http://localhost:3000`
+- Swagger：`http://localhost:3000/api`（点击 Authorize，输入 `Bearer <accessToken>`）
 
 ## 👤 默认账户
 
-| 角色 | 用户名 | 邮箱 | 密码 |
-|:---|:---|:---|:---|
-| 超级管理员 | `super_admin` | `super@example.com` | `123456` |
-| 管理员 | `admin` | `admin@example.com` | `123456` |
-| 游客 | `guest` | `guest@example.com` | `123456` |
+> ⚠️ 仅用于本地开发，请勿用于生产。
+
+| 角色    | 用户名          | 邮箱                  | 密码     |
+| :------ | :-------------- | :-------------------- | :------- |
+| 超级管理员 | `super_admin` | `super@example.com`   | `123456` |
+| 管理员   | `admin`        | `admin@example.com`   | `123456` |
+| 游客    | `guest`         | `guest@example.com`   | `123456` |
 
 ## 📁 项目结构
 
 ```
 src/
-├── core/           # 基础设施（decorators / guards / interceptors / filters / pipes）
-├── modules/        # 业务模块（auth / system / dashboard / profile）
-├── prisma/         # Prisma Module / PrismaService
-├── redis/          # Redis 基础设施（缓存 / 限流 / 分布式锁）
-├── shared/         # 共享层（constants / DTOs / utils / BaseService）
-└── main.ts         # 应用入口
+├── core/       # 基础设施（decorators / guards / interceptors / filters / pipes）
+├── modules/    # 业务模块（auth / system / dashboard / profile）
+├── prisma/     # Prisma Module / PrismaService
+├── redis/      # Redis 基础设施（缓存 / 限流 / 分布式锁）
+├── shared/     # 共享层（constants / DTOs / utils / BaseService）
+└── main.ts
 
-prisma/             # Schema + 迁移 + Seed
-docs/               # 项目文档
-docker/             # Docker 部署配置
-scripts/            # 构建 & 部署脚本
-.claude/            # Claude Code AI 知识库
+prisma/         # Schema + 迁移 + Seed
+docs/           # 项目文档
+docker/         # Docker 部署配置
+.claude/        # AI 知识库
 ```
 
-> 📖 [查看完整项目结构 →](docs/project-structure.md)
+> 📖 [完整项目结构 →](docs/project-structure.md)
+
+## ❓ 为什么选 GVRAY Admin
+
+普通 NestJS Starter 只给骨架，企业项目真正需要的部分还得自己搭。
+
+| | 普通 Starter | **GVRAY Admin** |
+|:---|:---:|:---:|
+| RBAC 权限 + 动态扫描 | ✗ | ✅ |
+| JWT 双 Token + 刷新 | ✗ | ✅ |
+| Redis 限流 / 分布式锁 | ✗ | ✅ |
+| 完整组织架构（部门/岗位） | ✗ | ✅ |
+| Swagger 自动文档 | 基础 | ✅ 含在线调试 |
+| Docker 三套环境 | ✗ | ✅ |
+| AI 助手上下文 | ✗ | ✅ |
+| 规范化目录 + 种子数据 | ✗ | ✅ |
+
+## 🗺️ Roadmap
+
+- [x] JWT 双 Token 认证
+- [x] RBAC 权限体系 + 动态扫描
+- [x] Prisma ORM + 完整 Seed
+- [x] Redis 深度集成
+- [x] Swagger / OpenAPI
+- [x] Docker 三套部署
+- [x] 用户 / 角色 / 部门 / 岗位管理
+- [x] 菜单管理
+- [x] 系统配置项
+- [x] 字典管理
+- [x] 公告通知
+- [x] 操作日志 / 登录日志
+- [x] 在线用户
+- [x] 系统监控（服务器 / 缓存）
+- [ ] WebSocket 实时通知
+- [ ] 定时任务
+- [ ] 文件存储
+- [ ] 多租户
+- [ ] OpenTelemetry
+- [ ] Kubernetes 部署
 
 ## 🤖 AI 编程支持
 
-本项目提供轻量化的 AI 助手上下文：
-
 - [`CLAUDE.md`](./CLAUDE.md) — Claude Code 自动加载入口
-- [`.claude/project/`](./.claude/project/) — AI 按需知识库（架构 / DTO / 权限 / 响应格式等）
+- [`.claude/project/`](./.claude/project/) — 按需知识库（架构 / DTO / 权限 / 响应格式）
 
-> 📖 [查看 AI 开发指南 →](docs/ai-development.md)
+> 📖 [AI 开发指南 →](docs/ai-development.md)
 
-## 📚 相关文档
+## 📚 文档
 
 | 文档 | 说明 |
 |:---|:---|
 | [📖 功能特性清单](docs/features.md) | 完整功能模块与开发进度 |
-| [🐳 Docker 部署指南](docs/deployment.md) | 开发/测试/生产部署、滚动更新 |
-| [📋 统一响应格式](docs/response-format.md) | API 响应规范与最佳实践 |
-| [⚙️ 系统配置项分析](docs/configs.md) | 前后端配置关联与实装状态 |
-| [🏗️ 项目结构详解](docs/project-structure.md) | 完整目录结构与模块说明 |
+| [🐳 Docker 部署指南](docs/deployment.md) | 开发 / 测试 / 生产部署、滚动更新 |
+| [📋 统一响应格式](docs/response-format.md) | API 响应规范 |
+| [⚙️ 系统配置项](docs/configs.md) | 前后端配置关联 |
+| [🏗️ 项目结构详解](docs/project-structure.md) | 目录结构与模块说明 |
 | [🧪 API 测试指南](docs/api-testing.md) | Swagger 调试与认证流程 |
-| [🤖 AI 开发指南](docs/ai-development.md) | AI 助手使用规范 |
 
-### 配套前端
+## 🌐 配套前端
 
-- [gvray-react](https://github.com/gvray/gvray-react) — React + TypeScript 管理后台
+- [gvray-react](https://github.com/gvray/gvray-react) — React + Umi
+- **gvray-vue**（开发中）— Vue 3 + Vite + Pinia + Element Plus
+- **gvray-vite**（开发中）- React + Vite
+- **gvray-next**（筹备中）- Nextjs
 
-## 📄 开源协议
+## 🤝 参与贡献
+
+欢迎提 Issue、PR 或功能建议。如果这个项目对你有帮助，**点个 ⭐ Star 是最大的支持！**
 
 本项目采用 [MIT 许可证](LICENSE) 开源。
-
----
-
-<p align="center">
-  <img src="https://api.star-history.com/svg?repos=gvray/gvray-admin&type=Date" alt="Star History" />
-</p>
