@@ -94,4 +94,12 @@ describe('GuestWriteGuard', () => {
 
     expect(guard.canActivate(context)).toBe(true);
   });
+
+  it('should handle user with empty roles array as non-guest (fallback)', () => {
+    const guard = new GuestWriteGuard(createReflector());
+    const emptyRolesUser = { ...createUser('anyone'), roles: [] };
+    const context = createContext('POST', emptyRolesUser);
+
+    expect(guard.canActivate(context)).toBe(true);
+  });
 });

@@ -39,12 +39,13 @@ export class GuestWriteGuard implements CanActivate {
     }
 
     const user: IUser | undefined = request.user;
-    // 未认证用户直接放行，让 JwtAuthGuard 处理 401
-    if (!user?.roles) {
+    if (!user?.userId) {
       return true;
     }
 
-    const isGuest = user.roles.some((role) => role.roleKey === GUEST_ROLE_KEY);
+    const isGuest = (user.roles || []).some(
+      (role) => role.roleKey === GUEST_ROLE_KEY,
+    );
     if (!isGuest) {
       return true;
     }

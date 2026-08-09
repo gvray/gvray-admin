@@ -32,11 +32,10 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user }: { user: IUser } = context.switchToHttp().getRequest();
+    const userRoleKeys = (user.roles || []).map((role) => role.roleKey);
 
     if (
-      deniedRoles?.roles.some((roleKey) =>
-        user.roles.some((role) => role.roleKey === roleKey),
-      )
+      deniedRoles?.roles.some((roleKey) => userRoleKeys.includes(roleKey))
     ) {
       throw new ForbiddenException(deniedRoles.message ?? '禁止访问');
     }
@@ -45,8 +44,8 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const hasRole = user.roles.some((role) =>
-      requiredRoles.roles.includes(role.name),
+    const hasRole = requiredRoles.roles.some((roleKey) =>
+      userRoleKeys.includes(roleKey),
     );
     if (!hasRole) {
       throw new ForbiddenException(requiredRoles.message ?? '暂无权限访问');

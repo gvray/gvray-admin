@@ -197,6 +197,17 @@ export class AuthService {
         },
       });
 
+      const roleKeys = Array.from(
+        new Set(
+          (userWithRoles?.userRoles || [])
+            .map((ur) => ur.role?.roleKey)
+            .filter(
+              (key): key is string =>
+                typeof key === 'string' && key.length > 0,
+            ),
+        ),
+      );
+
       const permissionCodes = Array.from(
         new Set(
           (userWithRoles?.userRoles || [])
@@ -212,9 +223,17 @@ export class AuthService {
       // 预热 Permission Cache
       await this.permissionCache.set(user.userId, permissionCodes);
 
-      // 生成极简 access token 和 refresh token
+      // 生成自包含 access token（带 user 基本信息 + roleKeys）和 refresh token
       const { token: accessToken, jti: accessTokenJti } =
-        this.generateAccessToken(user.userId);
+        this.generateAccessToken({
+          userId: user.userId,
+          username: userWithRoles?.username ?? user.username,
+          nickname: userWithRoles?.nickname ?? user.nickname,
+          email: userWithRoles?.email ?? user.email,
+          avatar: userWithRoles?.avatar ?? user.avatar,
+          status: userWithRoles?.status ?? user.status,
+          roleKeys,
+        });
       const refreshToken = await this.generateRefreshToken(
         user.userId,
         ipAddress,
@@ -223,7 +242,7 @@ export class AuthService {
 
       // 计算过期时间戳
       const accessTokenExpiresIn = this.parseExpiresIn(
-        this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m',
+        this.configService.get<string>('jwt.accessTokenExpiresIn') || '5m',
       );
       const refreshTokenExpiresIn = this.parseExpiresIn(
         this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
@@ -698,14 +717,31 @@ export class AuthService {
   }
 
   /**
-   * 生成极简 Access Token（只含 sub + sid + iat + exp）
+   * 生成 Access Token（包含用户基本信息 + roleKeys，自包含）
    */
-  private generateAccessToken(userId: string): { token: string; jti: string } {
+  private generateAccessToken(user: {
+    userId: string;
+    username: string;
+    nickname: string;
+    email?: string | null;
+    avatar?: string | null;
+    status: string;
+    roleKeys: string[];
+  }): { token: string; jti: string } {
     const expiresIn =
-      this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m';
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '5m';
     const jti = crypto.randomUUID();
     const token = this.jwtService.sign(
-      { sub: userId, sid: jti },
+      {
+        sub: user.userId,
+        sid: jti,
+        username: user.username,
+        nickname: user.nickname,
+        email: user.email ?? null,
+        avatar: user.avatar ?? null,
+        status: user.status,
+        roleKeys: user.roleKeys,
+      },
       { expiresIn: expiresIn as any },
     );
     return { token, jti };
@@ -801,9 +837,28 @@ export class AuthService {
     // 刷新 Permission Cache
     await this.permissionCache.set(user.userId, permissionCodes);
 
-    // 生成新的极简 access token
+    const roleKeys = Array.from(
+      new Set(
+        (user.userRoles || [])
+          .map((ur) => ur.role?.roleKey)
+          .filter(
+            (key): key is string =>
+              typeof key === 'string' && key.length > 0,
+          ),
+      ),
+    );
+
+    // 生成新的自包含 access token（带 user 基本信息 + roleKeys）
     const { token: accessToken, jti: accessTokenJti } =
-      this.generateAccessToken(user.userId);
+      this.generateAccessToken({
+        userId: user.userId,
+        username: user.username,
+        nickname: user.nickname,
+        email: user.email,
+        avatar: user.avatar,
+        status: user.status,
+        roleKeys,
+      });
 
     // 生成新的 refresh token
     const newRefreshToken = await this.generateRefreshToken(
@@ -820,7 +875,7 @@ export class AuthService {
       this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
     );
     const accessTokenExpiresIn = this.parseExpiresIn(
-      this.configService.get<string>('jwt.accessTokenExpiresIn') || '15m',
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '5m',
     );
     await this.tokenService.storeRefreshToken(
       user.userId,

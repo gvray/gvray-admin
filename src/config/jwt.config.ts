@@ -10,7 +10,7 @@ export default registerAs(
   'jwt',
   (): JwtConfig => ({
     secret: process.env.JWT_SECRET!,
-    accessTokenExpiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '15m',
+    accessTokenExpiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '5m',
     refreshTokenExpiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES_IN || '7d',
   }),
 );
