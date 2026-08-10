@@ -13,6 +13,7 @@ export interface DenyRolesOptions {
   message?: string;
 }
 
+/** `roles` 填 roleKey（如 'admin'），不是 role.name */
 export const Roles = (
   options: RolesOptions,
 ): MethodDecorator & ClassDecorator => SetMetadata(ROLES_KEY, options);

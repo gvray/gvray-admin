@@ -29,19 +29,6 @@ export class ConfigsService extends BaseService {
     super(prisma, configService);
   }
 
-  private async isSuperAdmin(userId: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { userId },
-      select: {
-        userRoles: {
-          select: { role: { select: { roleKey: true } } },
-        },
-      },
-    });
-    if (!user) return false;
-    return user.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
-  }
-
   private async checkSuperAdmin(userId: string): Promise<void> {
     if (!(await this.isSuperAdmin(userId))) {
       throw new ForbiddenException('系统配置仅限超级管理员操作');

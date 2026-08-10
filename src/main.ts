@@ -6,7 +6,12 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { EmptyStringTransformPipe } from './core/pipes/empty-string-transform.pipe';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const isProd = process.env.NODE_ENV === 'production';
+  const app = await NestFactory.create(AppModule, {
+    logger: isProd
+      ? ['warn', 'error']
+      : ['log', 'warn', 'error', 'debug', 'verbose'],
+  });
   const configService = app.get(ConfigService);
 
   // CORS 配置

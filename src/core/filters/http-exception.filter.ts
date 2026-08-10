@@ -57,12 +57,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = '未知错误';
     }
 
-    // 记录错误日志
-    this.logger.error(
-      `HTTP Exception: ${status} - ${message}`,
-      exception instanceof Error ? exception.stack : exception,
-      `${request.method} ${request.url}`,
-    );
+    // 记录错误日志：5xx 用 error，4xx 用 warn
+    const logContext = `${request.method} ${request.url}`;
+    if (status >= 500) {
+      this.logger.error(
+        `HTTP Exception: ${status} - ${message}`,
+        exception instanceof Error ? exception.stack : exception,
+        logContext,
+      );
+    } else {
+      this.logger.warn(`HTTP Exception: ${status} - ${message}`, logContext);
+    }
 
     // 获取错误展示类型
     const showType = this.getShowType(status);

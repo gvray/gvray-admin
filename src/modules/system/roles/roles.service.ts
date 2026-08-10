@@ -44,21 +44,6 @@ export class RolesService extends BaseService {
     });
   }
 
-  private async isSuperAdmin(userId: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { userId },
-      select: {
-        userRoles: {
-          select: {
-            role: { select: { roleKey: true } },
-          },
-        },
-      },
-    });
-    if (!user) return false;
-    return user.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
-  }
-
   private async validatePermissionIds(permissionIds: string[]): Promise<void> {
     if (!permissionIds || permissionIds.length === 0) {
       return;
@@ -580,14 +565,11 @@ export class RolesService extends BaseService {
 
     if (currentUserId) {
       const currentMembership = await this.prisma.userRole.findUnique({
-        where: {
-          userId_roleId: {
-            userId: currentUserId,
-            roleId,
-          },
-        },
+        where: { userId_roleId: { userId: currentUserId, roleId } },
       });
-      if (Boolean(currentMembership) !== userIds.includes(currentUserId)) {
+      const currentlyInRole = !!currentMembership;
+      const willBeInRole = userIds.includes(currentUserId);
+      if (currentlyInRole !== willBeInRole) {
         throw new ForbiddenException('不能修改自己的角色');
       }
     }

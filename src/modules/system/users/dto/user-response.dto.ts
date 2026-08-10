@@ -2,57 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 import { Gender } from '@/shared/constants/gender.constant';
+import { RoleResponseDto } from '@/modules/system/roles/dto/role-response.dto';
+import { DepartmentResponseDto } from '@/modules/system/departments/dto/department-response.dto';
+import { PositionResponseDto } from '@/modules/system/positions/dto/position-response.dto';
 
-export class RoleResponseDto {
-  @ApiProperty({ description: '角色ID', type: 'integer' })
-  @Exclude()
-  id: number;
-
-  @ApiProperty({
-    description: '角色唯一标识符（UUID）',
-    example: 'a3d7d76e-5a4e-4f0a-93c3-d0b2b27d471e',
-  })
-  @Expose()
-  roleId: string;
-
-  @ApiProperty({ description: '角色名称' })
-  @Expose()
-  name: string;
-}
-
-export class DepartmentResponseDto {
-  @ApiProperty({ description: '部门ID', type: 'integer' })
-  @Exclude()
-  id: number;
-
-  @ApiProperty({
-    description: '部门唯一标识符（UUID）',
-    example: 'a3d7d76e-5a4e-4f0a-93c3-d0b2b27d471e',
-  })
-  @Expose()
-  departmentId: string;
-
-  @ApiProperty({ description: '部门名称' })
-  @Expose()
-  name: string;
-}
-
-export class PositionResponseDto {
-  @ApiProperty({ description: '岗位ID', type: 'integer' })
-  @Exclude()
-  id: number;
-
-  @ApiProperty({
-    description: '岗位唯一标识符（UUID）',
-    example: 'a3d7d76e-5a4e-4f0a-93c3-d0b2b27d471e',
-  })
-  @Expose()
-  positionId: string;
-
-  @ApiProperty({ description: '岗位名称' })
-  @Expose()
-  name: string;
-}
+export { RoleResponseDto, DepartmentResponseDto, PositionResponseDto };
 
 export class UserResponseDto {
   @ApiProperty({ description: '用户数据库ID', type: 'integer' })

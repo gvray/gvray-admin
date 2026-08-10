@@ -104,8 +104,42 @@ export class TokenService {
   }
 
   /**
-   * 心跳更新：每次请求时更新 session 的最后活跃时间
+   * 心跳更新：通过 AT jti 查反向索引，找到对应 RT hash，更新最后活跃时间
    * 只更新已存在的 session，不重建已删除的 key
+   */
+  async touchSessionByJti(jti: string): Promise<void> {
+    try {
+      const mapping = await this.redisService.get(
+        RedisKeys.auth.atJtiMap(jti),
+      );
+      if (!mapping) return;
+
+      const [userId, tokenHash] = mapping.split(':');
+      if (!userId || !tokenHash) return;
+
+      const key = RedisKeys.auth.refreshToken(userId, tokenHash);
+      const sessionSetKey = RedisKeys.auth.sessionsSet(userId);
+
+      const exists = await this.redisService.exists(key);
+      if (exists === 0) return;
+
+      await this.redisService.hSet(key, 'lastActiveAt', new Date().toISOString());
+      const currentTtl = await this.redisService.ttl(key);
+      if (currentTtl === -1) {
+        await this.redisService.expire(key, 7 * 24 * 60 * 60);
+      }
+      const setTtl = await this.redisService.ttl(sessionSetKey);
+      if (setTtl === -1) {
+        await this.redisService.expire(sessionSetKey, 7 * 24 * 60 * 60);
+      }
+    } catch (e) {
+      if (e instanceof RedisUnavailableError) return;
+      throw e;
+    }
+  }
+
+  /**
+   * @deprecated 使用 touchSessionByJti 代替
    */
   async touchSession(userId: string, token: string): Promise<void> {
     const tokenHash = this.hashToken(token);
@@ -379,7 +413,7 @@ export class TokenService {
   // ===== 工具方法 =====
 
   private hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex').slice(0, 16);
+    return crypto.createHash('sha256').update(token).digest('hex').slice(0, 32);
   }
 
   private parseUserAgent(userAgent?: string): {

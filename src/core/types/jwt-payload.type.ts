@@ -1,6 +1,6 @@
 export type JwtPayload = {
   sub: string; // userId
-  sid: string; // sessionId
+  jti: string; // token unique id，用于登出时定位 RT
   username: string;
   nickname: string;
   email?: string | null;

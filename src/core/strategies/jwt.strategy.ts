@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('无效的 Access Token');
     }
 
-    if (payload.status && payload.status !== UserStatus.ENABLED) {
+    if (!payload.status || payload.status !== UserStatus.ENABLED) {
       throw new UnauthorizedException('用户已被禁用');
     }
 

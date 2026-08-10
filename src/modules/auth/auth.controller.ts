@@ -208,7 +208,7 @@ export class AuthController {
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       try {
-        const payload = this.jwtService.decode(token);
+        const payload = this.jwtService.decode(token) as { jti?: string } | null;
         jti = payload?.jti;
       } catch {
         // 忽略解码失败

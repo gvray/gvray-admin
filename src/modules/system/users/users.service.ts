@@ -32,34 +32,6 @@ export class UsersService extends BaseService {
   }
 
   /**
-   * 检查用户是否为超级管理员
-   * @param userId 用户ID
-   * @returns 是否为超级管理员
-   */
-  private async isSuperAdmin(userId: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { userId },
-      select: {
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleKey: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!user) {
-      return false;
-    }
-
-    return user.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
-  }
-
-  /**
    * 层级保护：非超级管理员不能操作超级管理员
    * @param targetUserId 目标用户ID
    * @param currentUserId 当前操作用户ID
@@ -599,6 +571,10 @@ export class UsersService extends BaseService {
       },
     });
 
+    if (rest.status !== undefined) {
+      await this.permissionCache.del(userId);
+    }
+
     return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
     });
@@ -736,8 +712,14 @@ export class UsersService extends BaseService {
 
     await this.validateRoleIds(roleIds);
 
-    const targetIsSuperAdmin = await this.isSuperAdmin(userId);
     const containsSuperRole = await this.containsSuperAdminRole(roleIds);
+
+    // 非超管不能把任何人提升为超管
+    if (containsSuperRole && !(await this.isSuperAdmin(currentUserId))) {
+      throw new ForbiddenException('无权分配超级管理员角色');
+    }
+
+    const targetIsSuperAdmin = await this.isSuperAdmin(userId);
     if (
       targetIsSuperAdmin &&
       !containsSuperRole &&

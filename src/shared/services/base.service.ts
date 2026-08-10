@@ -5,6 +5,7 @@ import { startOfDay, endOfDay } from '../utils/time.util';
 import { PaginationDto, PaginationSortDto } from '../dtos/pagination.dto';
 import { ResponseUtil } from '../utils/response.util';
 import { PaginationResponse } from '../interfaces/response.interface';
+import { SUPER_ROLE_KEY } from '../constants/role.constant';
 
 /**
  * 基础服务类
@@ -16,6 +17,18 @@ export abstract class BaseService {
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
   ) {}
+
+  protected async isSuperAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userRoles: {
+          select: { role: { select: { roleKey: true } } },
+        },
+      },
+    });
+    return !!user?.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
+  }
 
   protected buildWhere(params: {
     contains?: Record<string, string | undefined>;

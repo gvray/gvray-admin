@@ -3,8 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 
-export class PermissionResponseDto {
-  @ApiProperty({ description: '权限ID', type: 'integer' })
+export class CurrentUserPermissionResponseDto {
   @ApiProperty({ type: 'integer' })
   @Exclude()
   id: number;
@@ -62,11 +61,11 @@ export class CurrentUserRoleResponseDto {
 
   @ApiPropertyOptional({
     description: '角色权限列表',
-    type: [PermissionResponseDto],
+    type: [CurrentUserPermissionResponseDto],
   })
   @Expose()
-  @Type(() => PermissionResponseDto)
-  @Transform(({ obj }: { obj: any }): PermissionResponseDto[] => {
+  @Type(() => CurrentUserPermissionResponseDto)
+  @Transform(({ obj }: { obj: any }): CurrentUserPermissionResponseDto[] => {
     try {
       if (
         !obj ||
@@ -88,7 +87,7 @@ export class CurrentUserRoleResponseDto {
       return [];
     }
   })
-  permissions?: PermissionResponseDto[];
+  permissions?: CurrentUserPermissionResponseDto[];
 }
 
 export class CurrentUserDepartmentResponseDto {

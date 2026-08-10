@@ -129,6 +129,10 @@ export class AuthService {
       return null;
     }
 
+    if (user.status !== UserStatus.ENABLED) {
+      return null;
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
@@ -734,7 +738,7 @@ export class AuthService {
     const token = this.jwtService.sign(
       {
         sub: user.userId,
-        sid: jti,
+        jti,
         username: user.username,
         nickname: user.nickname,
         email: user.email ?? null,
@@ -820,6 +824,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('用户不存在');
+    }
+
+    if (user.status !== UserStatus.ENABLED) {
+      throw new UnauthorizedException('用户已被禁用');
     }
 
     const permissionCodes = Array.from(
