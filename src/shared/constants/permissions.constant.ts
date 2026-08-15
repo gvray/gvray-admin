@@ -109,6 +109,10 @@ export const PERMISSION_PERMISSIONS = {
   VIEW: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
   UPDATE: definePermission(
     `${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.UPDATE}`,
+    {
+      sensitive: true,
+      notes: '修改权限配置，影响系统权限控制',
+    },
   ),
   SCAN: definePermission(`${PERMISSION_RESOURCE}:${PERMISSION_ACTIONS.SCAN}`, {
     sensitive: true,
@@ -200,6 +204,10 @@ export const LOGIN_LOG_PERMISSIONS = {
   VIEW: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`),
   DELETE: definePermission(
     `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+    {
+      sensitive: true,
+      notes: '删除登录日志',
+    },
   ),
   CLEAN: definePermission(`${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`, {
     sensitive: true,
@@ -222,6 +230,10 @@ export const OPERATION_LOG_PERMISSIONS = {
   ),
   DELETE: definePermission(
     `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
+    {
+      sensitive: true,
+      notes: '删除操作日志',
+    },
   ),
   CLEAN: definePermission(
     `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.CLEAN}`,
