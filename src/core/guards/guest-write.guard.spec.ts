@@ -26,10 +26,7 @@ const createUser = (roleKey: string): IUser => ({
   ],
 });
 
-const createContext = (
-  method: string,
-  user?: IUser,
-): ExecutionContext => {
+const createContext = (method: string, user?: IUser): ExecutionContext => {
   const request = {
     method,
     headers: {},

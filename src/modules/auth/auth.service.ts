@@ -206,8 +206,7 @@ export class AuthService {
           (userWithRoles?.userRoles || [])
             .map((ur) => ur.role?.roleKey)
             .filter(
-              (key): key is string =>
-                typeof key === 'string' && key.length > 0,
+              (key): key is string => typeof key === 'string' && key.length > 0,
             ),
         ),
       );
@@ -850,8 +849,7 @@ export class AuthService {
         (user.userRoles || [])
           .map((ur) => ur.role?.roleKey)
           .filter(
-            (key): key is string =>
-              typeof key === 'string' && key.length > 0,
+            (key): key is string => typeof key === 'string' && key.length > 0,
           ),
       ),
     );

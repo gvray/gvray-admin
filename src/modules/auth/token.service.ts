@@ -109,9 +109,7 @@ export class TokenService {
    */
   async touchSessionByJti(jti: string): Promise<void> {
     try {
-      const mapping = await this.redisService.get(
-        RedisKeys.auth.atJtiMap(jti),
-      );
+      const mapping = await this.redisService.get(RedisKeys.auth.atJtiMap(jti));
       if (!mapping) return;
 
       const [userId, tokenHash] = mapping.split(':');
@@ -123,7 +121,11 @@ export class TokenService {
       const exists = await this.redisService.exists(key);
       if (exists === 0) return;
 
-      await this.redisService.hSet(key, 'lastActiveAt', new Date().toISOString());
+      await this.redisService.hSet(
+        key,
+        'lastActiveAt',
+        new Date().toISOString(),
+      );
       const currentTtl = await this.redisService.ttl(key);
       if (currentTtl === -1) {
         await this.redisService.expire(key, 7 * 24 * 60 * 60);

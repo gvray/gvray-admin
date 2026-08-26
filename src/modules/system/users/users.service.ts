@@ -100,9 +100,7 @@ export class UsersService extends BaseService {
     createUserDto: CreateUserDto,
     currentUserId?: string,
   ): Promise<UserResponseDto> {
-    const { password, departmentId, positionIds, roleIds, ...rest } =
-      createUserDto;
-    const uniqueRoleIds = [...new Set(roleIds ?? [])];
+    const { password, departmentId, positionIds, ...rest } = createUserDto;
 
     // 检查邮箱是否已存在（如果提供了邮箱）
     if (rest.email) {
@@ -146,35 +144,18 @@ export class UsersService extends BaseService {
       }
     }
 
-    await this.validateRoleIds(uniqueRoleIds);
-
-    // 非超级管理员不能创建超级管理员
-    if (
-      currentUserId &&
-      !(await this.isSuperAdmin(currentUserId)) &&
-      (await this.containsSuperAdminRole(uniqueRoleIds))
-    ) {
-      throw new ForbiddenException('无权创建超级管理员');
-    }
-
     const user = await this.prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword,
         department: departmentId ? { connect: { departmentId } } : undefined,
         // 岗位关联将在创建用户后单独处理
-        // 角色关联将在创建用户后单独处理
         status: rest.status ?? UserStatus.ENABLED,
         createdBy: currentUserId
           ? { connect: { userId: currentUserId } }
           : undefined,
       },
       include: {
-        userRoles: {
-          include: {
-            role: true,
-          },
-        },
         department: true,
         userPositions: {
           include: {
@@ -190,17 +171,6 @@ export class UsersService extends BaseService {
         data: positionIds.map((positionId) => ({
           userId: user.userId,
           positionId: positionId,
-          createdById: currentUserId,
-        })),
-      });
-    }
-
-    // 创建用户角色关联
-    if (uniqueRoleIds.length > 0) {
-      await this.prisma.userRole.createMany({
-        data: uniqueRoleIds.map((roleId) => ({
-          userId: user.userId,
-          roleId,
           createdById: currentUserId,
         })),
       });

@@ -1,11 +1,11 @@
 import {
+  IsArray,
   IsEmail,
   IsEnum,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
-  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserStatus } from '@/shared/constants/user-status.constant';
@@ -92,15 +92,4 @@ export class CreateUserDto {
   @IsArray({ message: '岗位ID必须是数组' })
   @IsString({ each: true, message: '岗位ID必须是字符串' })
   positionIds?: string[];
-
-  @ApiPropertyOptional({
-    description:
-      '角色ID列表（UUID），仅后台创建用户时使用；自助注册使用默认角色配置',
-    type: [String],
-    example: ['550e8400-e29b-41d4-a716-446655440001'],
-  })
-  @IsOptional()
-  @IsArray({ message: '角色ID必须是数组' })
-  @IsString({ each: true, message: '角色ID必须是字符串' })
-  roleIds?: string[];
 }

@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
 import { PaginationSortDto } from '@/shared/dtos/pagination.dto';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 
@@ -46,7 +45,6 @@ export class QueryUserDto extends PaginationSortDto {
     example: UserStatus.ENABLED,
   })
   @IsOptional()
-  @Type(() => Number)
   @IsEnum(UserStatus)
   status?: UserStatus;
 
