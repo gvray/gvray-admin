@@ -146,9 +146,9 @@ Typical NestJS starters only give you a skeleton — the parts an enterprise pro
 
 ## 🌐 Companion Frontend
 
-- [gvray-react](https://github.com/gvray/gvray-react) — React + Umi
-- **gvray-vue** (in development) — Vue 3 + Vite + Pinia + Element Plus
-- **gvray-vite** (in development) — React + Vite
+- [gvray-react](https://github.com/gvray/gvray-react) — React + Umi · [Live Demo](https://gvray.github.io/gvray-react)
+- [gvray-vue](https://github.com/gvray/gvray-vue) — Vue 3 + Vite + Pinia + Element Plus · [Live Demo](https://gvray.github.io/gvray-vue)
+- [gvray-vite](https://github.com/gvray/gvray-vite) — React + Vite + Ant Design · [Live Demo](https://gvray.github.io/gvray-vite)
 - **gvray-next** (planning) — Next.js
 
 ## 🤝 Contributing
