@@ -146,9 +146,9 @@ docker/         # Docker 部署配置
 
 ## 🌐 配套前端
 
-- [gvray-react](https://github.com/gvray/gvray-react) — React + Umi · [Live Demo](https://gvray.github.io/gvray-react)
-- [gvray-vue](https://github.com/gvray/gvray-vue) — Vue 3 + Vite + Pinia + Element Plus · [Live Demo](https://gvray.github.io/gvray-vue)
-- [gvray-vite](https://github.com/gvray/gvray-vite) — React + Vite + Ant Design · [Live Demo](https://gvray.github.io/gvray-vite)
+- [gvray-react](https://github.com/gvray/gvray-react) — React + Umi · [Live Demo](https://gvray.github.io/gvray-react) · [GitHub Pages](https://gvray.github.io/gvray-react)
+- [gvray-vue](https://github.com/gvray/gvray-vue) — Vue 3 + Vite + Pinia + Element Plus · [Live Demo](https://gvray.github.io/gvray-vue) · [GitHub Pages](https://gvray.github.io/gvray-vue)
+- [gvray-vite](https://github.com/gvray/gvray-vite) — React + Vite + Ant Design · [Live Demo](https://gvray.github.io/gvray-vite) · [GitHub Pages](https://gvray.github.io/gvray-vite)
 - **gvray-next**（筹备中）- Nextjs
 
 ## 🤝 参与贡献
