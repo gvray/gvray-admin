@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -7,9 +7,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import {
@@ -30,7 +27,6 @@ import {
 
 @ApiTags('系统监控')
 @Controller('system/monitors')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class MonitorController {
   constructor(

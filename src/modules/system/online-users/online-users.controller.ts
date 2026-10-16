@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -9,15 +9,12 @@ import { OnlineUsersService } from './online-users.service';
 import { QueryOnlineUsersDto } from './dto/query-online-users.dto';
 import { OnlineUserItemDto } from './dto/online-user-item.dto';
 import { SessionDetailDto } from './dto/session-detail.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { ONLINE_USER_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { ResponseUtil } from '@/shared/utils/response.util';
 
 @ApiTags('在线用户管理')
 @Controller('system/online-users')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class OnlineUsersController {
   constructor(private readonly onlineUsersService: OnlineUsersService) {}
 

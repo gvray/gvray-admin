@@ -5,7 +5,6 @@ import {
   Post,
   Delete,
   Param,
-  UseGuards,
   Req,
 } from '@nestjs/common';
 import {
@@ -21,8 +20,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthMenuResponseDto } from './dto/menu-response.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
+import { Public } from '../../core/decorators/public.decorator';
 import { AllowGuestWrite } from '../../core/decorators/allow-guest-write.decorator';
 import { FeatureFlag } from '../../core/decorators/feature-flag.decorator';
 import { JwtService } from '@nestjs/jwt';
@@ -36,6 +35,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Public()
   @FeatureFlag('register', '注册功能已关闭')
   @ApiOperation({
     summary: '注册新用户',
@@ -71,6 +71,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @ApiOperation({
     summary: '用户登录',
     description: '支持用户名或邮箱登录，返回JWT访问令牌和刷新令牌',
@@ -116,6 +117,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @ApiOperation({
     summary: '刷新访问令牌',
     description: '使用刷新令牌获取新的访问令牌和刷新令牌',
@@ -163,7 +165,6 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @AllowGuestWrite()
   @ApiBearerAuth()
   @ApiOperation({
@@ -220,7 +221,6 @@ export class AuthController {
   }
 
   @Post('logout-all')
-  @UseGuards(JwtAuthGuard)
   @AllowGuestWrite()
   @ApiBearerAuth()
   @ApiOperation({ summary: '退出所有设备' })
@@ -231,7 +231,6 @@ export class AuthController {
   }
 
   @Get('sessions')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户所有会话' })
   @ApiResponse({ status: 200, description: '会话列表' })
@@ -241,7 +240,6 @@ export class AuthController {
   }
 
   @Delete('sessions/:tokenHash')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '撤销指定会话（踢掉其他设备）' })
   @ApiResponse({ status: 200, description: '会话已撤销' })
@@ -254,7 +252,6 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: '获取当前登录用户身份',
@@ -271,7 +268,6 @@ export class AuthController {
   }
 
   @Get('menus')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '获取当前用户可见菜单' })
   @ApiResponse({

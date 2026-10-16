@@ -18,7 +18,7 @@
 
 ## 功能开关（Feature Flag）
 
-`FeatureFlagGuard` 是全局守卫，只对标记了 `@FeatureFlag(...)` 的路由生效：
+`FeatureFlagGuard` 与其他守卫一同在 `app.module.ts` 全局挂载，但只对标记了 `@FeatureFlag(...)` 的路由生效（无装饰器即放行）：
 
 - 示例：`@FeatureFlag('register', '注册功能已关闭')`。
 - 后端通过 `ConfigsService.isFeatureEnabled(key)` 读取 `feature.${key}` 配置。

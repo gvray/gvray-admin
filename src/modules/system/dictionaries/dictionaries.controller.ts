@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   Query,
 } from '@nestjs/common';
 import {
@@ -25,10 +24,6 @@ import { CreateDictionaryItemDto } from './dto/create-dictionary-item.dto';
 import { UpdateDictionaryItemDto } from './dto/update-dictionary-item.dto';
 import { QueryDictionaryItemDto } from './dto/query-dictionary-item.dto';
 import { DictionaryItemResponseDto } from './dto/dictionary-item-response.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
@@ -41,7 +36,6 @@ import { DICTIONARY_PERMISSIONS } from '@/shared/constants/permissions.constant'
 
 @ApiTags('字典管理')
 @Controller('system/dictionaries')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class DictionariesController {
   constructor(private readonly dictionariesService: DictionariesService) {}

@@ -6,7 +6,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -21,15 +20,12 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { UserPermissionsResponseDto } from './dto/user-permissions-response.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
 
 @ApiTags('个人中心')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard, GuestWriteGuard)
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}

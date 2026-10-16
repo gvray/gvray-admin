@@ -19,7 +19,7 @@
 
 1. 在 `src/modules/` 下创建模块目录，参考 `users`、`roles`、`configs` 等现有模块结构。
 2. 在对应聚合 Module 中导入新模块（系统管理模块通常在 `SystemModule`）。
-3. Controller 使用合适路径、Swagger tag、DTO 和鉴权守卫。
+3. Controller 使用合适路径、Swagger tag、DTO。**不要写 `@UseGuards(...)`**——守卫已在 `app.module.ts` 全局挂载（deny-by-default），所有路由默认鉴权 + 授权；匿名路由用 `@Public()` 显式豁免。
 4. 如需 API 权限，在权限常量中定义权限码，并在 Controller 方法上使用 `@RequirePermissions()` 引用常量。
 5. 写操作默认受 `GuestWriteGuard` 约束；确需允许游客写入时才显式添加 `@AllowGuestWrite()`。
 6. 按需添加 `@OperationLog(...)` / `@NoOperationLog()`。

@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  UseGuards,
   Query,
 } from '@nestjs/common';
 import {
@@ -18,10 +17,6 @@ import { PermissionsService } from './permissions.service';
 import { PermissionsScannerService } from './permissions-scanner.service';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
@@ -32,7 +27,6 @@ import { PermissionResponseDto } from './dto/permission-response.dto';
 
 @ApiTags('权限管理')
 @Controller('system/permissions')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class PermissionsController {
   constructor(

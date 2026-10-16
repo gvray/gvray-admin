@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,10 +20,6 @@ import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { QueryConfigDto } from './dto/query-config.dto';
 import { ConfigResponseDto } from './dto/config-response.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
@@ -36,7 +31,6 @@ import { CONFIG_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @ApiTags('配置管理')
 @Controller('system/configs')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}

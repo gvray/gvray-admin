@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   Query,
 } from '@nestjs/common';
 import {
@@ -19,10 +18,6 @@ import { MenuService } from './menu.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { QueryMenuDto } from './dto/query-menu.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
@@ -33,7 +28,6 @@ import { MenuResponseDto, MenuTreeNodeDto } from './dto/menu-response.dto';
 
 @ApiTags('菜单管理')
 @Controller('system/menus')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}

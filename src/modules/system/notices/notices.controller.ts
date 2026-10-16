@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,10 +21,6 @@ import { UpdateNoticeDto } from './dto/update-notice.dto';
 import { QueryNoticeDto } from './dto/query-notice.dto';
 import { NoticeResponseDto } from './dto/notice-response.dto';
 import { BatchDeleteNoticesDto } from './dto/batch-delete-notices.dto';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
@@ -35,7 +30,6 @@ import { NOTICE_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @ApiTags('通知通告')
 @Controller('system/notices')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class NoticesController {
   constructor(private readonly noticesService: NoticesService) {}

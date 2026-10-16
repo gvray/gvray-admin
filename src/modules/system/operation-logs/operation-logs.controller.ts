@@ -4,7 +4,6 @@ import {
   Query,
   Param,
   Delete,
-  UseGuards,
   Post,
   Body,
   ParseIntPipe,
@@ -16,10 +15,6 @@ import {
   ApiBody,
   ApiResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { OperationLogsService } from './operation-logs.service';
@@ -31,7 +26,6 @@ import { CleanOperationLogsDto } from './dto/clean-operation-logs.dto';
 
 @ApiTags('操作日志管理')
 @Controller('system/operation-logs')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class OperationLogsController {
   constructor(private readonly service: OperationLogsService) {}

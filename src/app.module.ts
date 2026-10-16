@@ -27,6 +27,10 @@ import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
 // import { SessionHeartbeatInterceptor } from '@/core/interceptors/session-heartbeat.interceptor';
 import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
+import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
+import { RolesGuard } from '@/core/guards/roles.guard';
+import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 @Module({
   controllers: [AppController],
@@ -70,6 +74,25 @@ import { FeatureFlagGuard } from '@/core/guards/feature-flag.guard';
     {
       provide: APP_GUARD,
       useClass: FeatureFlagGuard,
+    },
+    // 默认拒绝（deny-by-default）：守卫全局挂载，所有路由默认鉴权 + 授权。
+    // 匿名路由用 @Public() 显式豁免登录校验。
+    // 顺序：认证（Jwt）→ 授权（GuestWrite/Roles/Permissions）
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: GuestWriteGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
     Reflector,
   ],

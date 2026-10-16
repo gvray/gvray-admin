@@ -15,7 +15,12 @@
 async create() {}
 ```
 
-系统管理模块通常配合 `@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)`。`JwtAuthGuard`、`GuestWriteGuard`、`RolesGuard`、`PermissionsGuard` 均是 Controller/路由级使用；全局守卫只有 `FeatureFlagGuard`（见 [architecture.md](architecture.md) 和 [configs.md](configs.md)）。
+守卫采用 **deny-by-default** 模型：`JwtAuthGuard`、`GuestWriteGuard`、`RolesGuard`、`PermissionsGuard`、`FeatureFlagGuard` 均在 `app.module.ts` 作为 `APP_GUARD` 全局挂载，所有路由默认鉴权 + 授权。无需在 Controller 上写 `@UseGuards(...)`。
+
+- 匿名路由（login/register/refresh/health）用 `@Public()` 显式豁免登录校验。
+- "登录即可用"的路由（如个人中心 profile）什么都不写。
+- 需要权限码时写 `@RequirePermissions(...)`，需要角色时写 `@Roles(...)`，两者无装饰器时自动放行。
+- 这样"忘记声明守卫"的后果是 403（安全失败），而非裸奔。详见 [architecture.md](architecture.md)。
 
 ## 权限扫描
 

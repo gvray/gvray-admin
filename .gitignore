@@ -139,3 +139,4 @@ dist
 .pnp.*
 
 /generated/prisma
+promotion

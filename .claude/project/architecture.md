@@ -20,9 +20,10 @@
 
 - 系统管理模块路径使用 `system/...` 前缀。
 - 不在 Controller 中写业务逻辑。
-- 受保护接口显式使用 `JwtAuthGuard`；需要角色/权限时使用 `RolesGuard`、`PermissionsGuard`。
-- 系统管理 Controller 统一使用 `@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)`，读取类监控接口可省略 `RolesGuard`。
-- `FeatureFlagGuard` 是全局守卫，只对标记了 `@FeatureFlag(...)` 的路由生效。
+- 鉴权采用 **deny-by-default**：所有守卫（`JwtAuthGuard`、`GuestWriteGuard`、`RolesGuard`、`PermissionsGuard`、`FeatureFlagGuard`）在 `app.module.ts` 全局挂载，路由默认鉴权 + 授权。**不要在 Controller 上写 `@UseGuards(...)`**。
+- 匿名路由（login/register/refresh/health）用 `@Public()` 显式豁免；"登录即可用"的路由什么都不写。
+- 需要权限码用 `@RequirePermissions(...)`，需要角色用 `@Roles(...)`；两者无装饰器时自动放行。
+- `FeatureFlagGuard` 只对标记了 `@FeatureFlag(...)` 的路由生效。
 - 获取当前用户统一使用 `@CurrentUser()`，不要直接从 `req.user` 读取。
 - 如需跳过操作日志，使用 `@NoOperationLog()`。
 

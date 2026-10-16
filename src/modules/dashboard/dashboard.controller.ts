@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import {
   ApiOperation,
   ApiTags,
@@ -6,14 +6,10 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { ResponseUtil } from '@/shared/utils/response.util';
 
 @ApiTags('仪表盘')
 @Controller('dashboard')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}

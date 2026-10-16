@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   Put,
-  UseGuards,
   Query,
   Request,
 } from '@nestjs/common';
@@ -31,11 +30,6 @@ import {
 } from './dto/role-response.dto';
 import { AssignDataScopeDto } from './dto/assign-data-scope.dto';
 
-import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
-import { GuestWriteGuard } from '@/core/guards/guest-write.guard';
-import { RolesGuard } from '@/core/guards/roles.guard';
-import { PermissionsGuard } from '@/core/guards/permissions.guard';
-
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
@@ -45,7 +39,6 @@ import { BatchDeleteRolesDto } from './dto/batch-delete-roles.dto';
 
 @ApiTags('角色管理')
 @Controller('system/roles')
-@UseGuards(JwtAuthGuard, GuestWriteGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
