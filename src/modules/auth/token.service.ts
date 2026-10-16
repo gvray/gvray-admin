@@ -56,6 +56,19 @@ export class TokenService {
     const parsed = this.parseUserAgent(metadata.userAgent);
     const location = await this.getLocationFromIP(metadata.ipAddress);
     const now = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+
+    // MySQL 是真相源：先落库（存 tokenHash，不存明文 token）
+    // 落库失败必须抛错 —— 否则会发出一个无法验证的 token（第4点根因）
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+      },
+    });
 
     try {
       await this.redisService.hSet(key, 'userAgent', metadata.userAgent || '');
@@ -140,95 +153,114 @@ export class TokenService {
     }
   }
 
-  /**
-   * @deprecated 使用 touchSessionByJti 代替
-   */
-  async touchSession(userId: string, token: string): Promise<void> {
-    const tokenHash = this.hashToken(token);
-    const key = RedisKeys.auth.refreshToken(userId, tokenHash);
-    const sessionSetKey = RedisKeys.auth.sessionsSet(userId);
-
-    try {
-      // 先检查 key 是否还存在（被踢/登出/手动清理后不应重建）
-      const exists = await this.redisService.exists(key);
-      if (exists === 0) {
-        return;
-      }
-
-      await this.redisService.hSet(
-        key,
-        'lastActiveAt',
-        new Date().toISOString(),
-      );
-      // 续期 RT Hash TTL（7 天），兼容历史数据中 TTL 为 -1 的残留 key
-      const currentTtl = await this.redisService.ttl(key);
-      if (currentTtl === -1) {
-        await this.redisService.expire(key, 7 * 24 * 60 * 60);
-      }
-      // 同步续期 sessionsSet TTL
-      const setTtl = await this.redisService.ttl(sessionSetKey);
-      if (setTtl === -1) {
-        await this.redisService.expire(sessionSetKey, 7 * 24 * 60 * 60);
-      }
-    } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        // 静默忽略，不影响请求
-        return;
-      }
-      throw e;
-    }
-  }
-
   async verifyRefreshToken(
     token: string,
   ): Promise<{ userId: string; metadata: SessionMetadata } | null> {
     const tokenHash = this.hashToken(token);
 
-    // 纯 Redis 验证：先查 tokenHash → userId 索引
+    // 1. 优先查 Redis（快路径）
     try {
       const userId = await this.redisService.get(
         RedisKeys.auth.rtIndex(tokenHash),
       );
 
-      if (!userId) {
-        return null;
+      if (userId) {
+        const key = RedisKeys.auth.refreshToken(userId, tokenHash);
+        const hash = await this.redisService.hGetAll(key);
+
+        if (Object.keys(hash).length > 0) {
+          return {
+            userId,
+            metadata: {
+              userAgent: hash.userAgent || undefined,
+              ipAddress: hash.ipAddress || undefined,
+            },
+          };
+        }
       }
-
-      const key = RedisKeys.auth.refreshToken(userId, tokenHash);
-      const hash = await this.redisService.hGetAll(key);
-
-      if (Object.keys(hash).length > 0) {
-        return {
-          userId,
-          metadata: {
-            userAgent: hash.userAgent || undefined,
-            ipAddress: hash.ipAddress || undefined,
-          },
-        };
-      }
-
-      // Redis key 不存在 → session 已过期/被清理
-      return null;
     } catch (e) {
-      if (e instanceof RedisUnavailableError) {
-        this.logger.warn('[RT Verify] Redis unavailable');
-        return null;
+      if (!(e instanceof RedisUnavailableError)) {
+        throw e;
       }
-      throw e;
+      this.logger.warn('[RT Verify] Redis unavailable，回源 MySQL');
     }
+
+    // 2. Redis 未命中（或不可用）→ 回源 MySQL（真相源）
+    const record = await this.prisma.refreshToken.findFirst({
+      where: {
+        tokenHash,
+        isRevoked: false,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        userId: true,
+        ipAddress: true,
+        userAgent: true,
+        expiresAt: true,
+      },
+    });
+
+    if (!record) {
+      // Redis 没有 + MySQL 也没有/已撤销/已过期 → token 确实无效
+      return null;
+    }
+
+    // 3. MySQL 命中 → 回填 Redis 索引（让后续请求走快路径）
+    const metadata: SessionMetadata = {
+      userAgent: record.userAgent || undefined,
+      ipAddress: record.ipAddress || undefined,
+    };
+
+    const remainingSeconds = Math.max(
+      1,
+      Math.floor((record.expiresAt.getTime() - Date.now()) / 1000),
+    );
+
+    try {
+      const key = RedisKeys.auth.refreshToken(record.userId, tokenHash);
+      await this.redisService.hSet(key, 'userAgent', metadata.userAgent || '');
+      await this.redisService.hSet(key, 'ipAddress', metadata.ipAddress || '');
+      await this.redisService.hSet(key, 'createdAt', new Date().toISOString());
+      await this.redisService.hSet(
+        key,
+        'lastActiveAt',
+        new Date().toISOString(),
+      );
+      await this.redisService.expire(key, remainingSeconds);
+      await this.redisService.set(
+        RedisKeys.auth.rtIndex(tokenHash),
+        record.userId,
+        {
+          ttlSeconds: remainingSeconds,
+        },
+      );
+      await this.redisService.sAdd(
+        RedisKeys.auth.sessionsSet(record.userId),
+        tokenHash,
+      );
+      await this.redisService.expire(
+        RedisKeys.auth.sessionsSet(record.userId),
+        remainingSeconds,
+      );
+    } catch (e) {
+      if (!(e instanceof RedisUnavailableError)) {
+        throw e;
+      }
+      // Redis 不可用时回填失败可忽略 —— MySQL 已验证通过，不依赖回填
+    }
+
+    return { userId: record.userId, metadata };
   }
 
   async revokeRefreshToken(userId: string, token: string): Promise<void> {
     const tokenHash = this.hashToken(token);
     await this.revokeRefreshTokenByHash(userId, tokenHash);
 
-    // 异步归档到数据库
-    this.prisma.refreshToken
-      .updateMany({
-        where: { token },
-        data: { isRevoked: true },
-      })
-      .catch(() => {});
+    // MySQL 真相源：撤销必须可靠完成（不再 fire-and-forget）
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash },
+      data: { isRevoked: true },
+    });
   }
 
   async revokeRefreshTokenByHash(
@@ -303,9 +335,13 @@ export class TokenService {
       }
     }
 
-    // 同时更新数据库
+    // 同时更新数据库（保留 exceptTokenHash 对应的会话）
     await this.prisma.refreshToken.updateMany({
-      where: { userId, isRevoked: false },
+      where: {
+        userId,
+        isRevoked: false,
+        ...(exceptTokenHash ? { tokenHash: { not: exceptTokenHash } } : {}),
+      },
       data: { isRevoked: true },
     });
   }

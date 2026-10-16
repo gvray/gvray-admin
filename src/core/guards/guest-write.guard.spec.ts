@@ -55,12 +55,15 @@ describe('GuestWriteGuard', () => {
   const guestUser = createUser(GUEST_ROLE_KEY);
   const adminUser = createUser('admin');
 
-  it('should block guest write requests', () => {
-    const guard = new GuestWriteGuard(createReflector());
-    const context = createContext('POST', guestUser);
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+    'should block guest %s requests',
+    (method) => {
+      const guard = new GuestWriteGuard(createReflector());
+      const context = createContext(method, guestUser);
 
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-  });
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    },
+  );
 
   it('should allow guest read requests', () => {
     const guard = new GuestWriteGuard(createReflector());

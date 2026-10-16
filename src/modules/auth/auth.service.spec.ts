@@ -5,6 +5,9 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../system/users/users.service';
 import { LoginLogsService } from '../system/login-logs/login-logs.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TokenService } from './token.service';
+import { RateLimiterService } from '@/redis/rate-limiter.service';
+import { PermissionCacheService } from '@/redis/permission-cache.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -13,26 +16,14 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: UsersService,
-          useValue: {},
-        },
-        {
-          provide: JwtService,
-          useValue: {},
-        },
-        {
-          provide: ConfigService,
-          useValue: { get: jest.fn() },
-        },
-        {
-          provide: PrismaService,
-          useValue: {},
-        },
-        {
-          provide: LoginLogsService,
-          useValue: {},
-        },
+        { provide: UsersService, useValue: {} },
+        { provide: JwtService, useValue: {} },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: PrismaService, useValue: {} },
+        { provide: LoginLogsService, useValue: {} },
+        { provide: TokenService, useValue: {} },
+        { provide: RateLimiterService, useValue: {} },
+        { provide: PermissionCacheService, useValue: {} },
       ],
     }).compile();
 

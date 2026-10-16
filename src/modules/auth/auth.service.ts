@@ -12,7 +12,6 @@ import { AuthMenuResponseDto } from './dto/menu-response.dto';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
 import { UAParser } from 'ua-parser-js';
@@ -237,11 +236,7 @@ export class AuthService {
           status: userWithRoles?.status ?? user.status,
           roleKeys,
         });
-      const refreshToken = await this.generateRefreshToken(
-        user.userId,
-        ipAddress,
-        userAgent,
-      );
+      const refreshToken = await this.generateRefreshToken();
 
       // 计算过期时间戳
       const accessTokenExpiresIn = this.parseExpiresIn(
@@ -751,37 +746,11 @@ export class AuthService {
   }
 
   /**
-   * 生成 Refresh Token 并存储到数据库
+   * 生成 Refresh Token（随机串）
+   * 落库由 TokenService.storeRefreshToken 负责（存 tokenHash，不存明文）
    */
-  private async generateRefreshToken(
-    userId: string,
-    ipAddress?: string,
-    userAgent?: string,
-  ): Promise<string> {
-    // 生成随机的 refresh token
-    const token = crypto.randomBytes(64).toString('hex');
-
-    // 计算过期时间
-    const refreshTokenExpiresIn =
-      this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d';
-    const expiresAt = this.calculateExpirationDate(refreshTokenExpiresIn);
-
-    // 异步归档到数据库（不阻塞登录流程）
-    this.prisma.refreshToken
-      .create({
-        data: {
-          userId,
-          token,
-          expiresAt,
-          ipAddress,
-          userAgent,
-        },
-      })
-      .catch(() => {
-        // 归档失败不影响业务
-      });
-
-    return token;
+  private async generateRefreshToken(): Promise<string> {
+    return crypto.randomBytes(64).toString('hex');
   }
 
   /**
@@ -867,11 +836,7 @@ export class AuthService {
       });
 
     // 生成新的 refresh token
-    const newRefreshToken = await this.generateRefreshToken(
-      user.userId,
-      verified.metadata.ipAddress,
-      verified.metadata.userAgent,
-    );
+    const newRefreshToken = await this.generateRefreshToken();
 
     // 撤销旧的 refresh token
     await this.tokenService.revokeRefreshToken(user.userId, refreshToken);
@@ -904,16 +869,6 @@ export class AuthService {
   }
 
   /**
-   * 撤销 Refresh Token
-   */
-  async revokeRefreshToken(refreshToken: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({
-      where: { token: refreshToken },
-      data: { isRevoked: true },
-    });
-  }
-
-  /**
    * 解析过期时间字符串为秒数
    */
   private parseExpiresIn(expiresIn: string): number {
@@ -939,14 +894,5 @@ export class AuthService {
       default:
         return 2 * 60 * 60;
     }
-  }
-
-  /**
-   * 计算过期时间
-   */
-  private calculateExpirationDate(expiresIn: string): Date {
-    const now = new Date();
-    const seconds = this.parseExpiresIn(expiresIn);
-    return new Date(now.getTime() + seconds * 1000);
   }
 }

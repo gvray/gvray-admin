@@ -394,7 +394,7 @@ model RefreshToken {
   id           Int      @id @default(autoincrement())
   tokenId      String   @unique @default(uuid())
   userId       String
-  token        String   @unique @db.VarChar(500)
+  tokenHash    String   @unique @db.VarChar(64)
   expiresAt    DateTime
   isRevoked    Boolean  @default(false)
   ipAddress    String?
@@ -404,6 +404,7 @@ model RefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([isRevoked])
   @@map("refresh_tokens")
 }
 
