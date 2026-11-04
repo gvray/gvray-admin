@@ -1,4 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { toDto, toDtoList } from '@/shared/utils/transform.util';
 import { LogResult } from '@/shared/constants/log-result.constant';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -9,8 +10,6 @@ import { RegisterDto } from './dto/register.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
 import { AuthMenuResponseDto } from './dto/menu-response.dto';
 // no unified response types needed in service
-import { plainToInstance } from 'class-transformer';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
@@ -20,6 +19,9 @@ import { TokenService } from './token.service';
 import { RateLimiterService } from '@/redis/rate-limiter.service';
 import { PermissionCacheService } from '@/redis/permission-cache.service';
 import { RedisKeys } from '@/redis/constants/redis-key.constant';
+import { PasswordService } from '@/shared/services/password.service';
+import { GeoIpService } from '@/shared/services/geo-ip.service';
+import { AuthCacheService } from '@/shared/services/auth-cache.service';
 
 interface RequestWithHeaders {
   headers?: Record<string, string | string[]>;
@@ -41,6 +43,9 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly rateLimiter: RateLimiterService,
     private readonly permissionCache: PermissionCacheService,
+    private readonly passwordService: PasswordService,
+    private readonly geoIpService: GeoIpService,
+    private readonly authCache: AuthCacheService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{
@@ -64,7 +69,7 @@ export class AuthService {
     }
 
     // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await this.passwordService.hash(password);
 
     // 读取自助注册默认角色编码配置
     const defaultRoleConfig = await this.prisma.config.findUnique({
@@ -132,7 +137,10 @@ export class AuthService {
       return null;
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
+    const passwordMatch = await this.passwordService.compare(
+      password,
+      user.password,
+    );
 
     if (!passwordMatch) {
       return null;
@@ -291,7 +299,12 @@ export class AuthService {
   }
 
   async getCurrentUser(userId: string): Promise<CurrentUserResponseDto> {
-    const user = await this.usersService['prisma'].user.findUnique({
+    const cached = await this.authCache.getProfile<unknown>(userId);
+    if (cached) {
+      return toDto(CurrentUserResponseDto, cached);
+    }
+
+    const user = await this.prisma.user.findUnique({
       where: { userId: userId },
       select: {
         userId: true,
@@ -356,21 +369,18 @@ export class AuthService {
     }
 
     // 重组为嵌套结构
-    const rolesArr: any[] = Array.isArray((user as any).userRoles)
-      ? (user as any).userRoles
-      : [];
+    const rolesArr = user.userRoles ?? [];
     const isSuperAdmin = rolesArr.some(
-      (ur: any) => ur.role?.roleKey === SUPER_ROLE_KEY,
+      (ur) => ur.role?.roleKey === SUPER_ROLE_KEY,
     );
 
     const permissionCodes: string[] = Array.from(
       new Set(
         rolesArr
-          .flatMap((ur: any) => ur.role?.rolePermissions || [])
-          .filter((rp: any) => rp?.permission?.type !== 'API')
-          .map((rp: any) => rp?.permission?.code)
+          .flatMap((ur) => ur.role?.rolePermissions ?? [])
+          .map((rp) => rp.permission?.code)
           .filter(
-            (c: any): c is string => typeof c === 'string' && c.length > 0,
+            (c): c is string => typeof c === 'string' && c.length > 0,
           ),
       ),
     );
@@ -393,9 +403,9 @@ export class AuthService {
       },
     };
 
-    return plainToInstance(CurrentUserResponseDto, payload, {
-      excludeExtraneousValues: true,
-    });
+    const dto = toDto(CurrentUserResponseDto, payload);
+    await this.authCache.setProfile(userId, payload);
+    return dto;
   }
 
   async logout(userId: string, accessTokenJti?: string): Promise<void> {
@@ -421,10 +431,12 @@ export class AuthService {
     await this.tokenService.revokeRefreshTokenByHash(userId, tokenHash);
   }
 
-  // TODO: [Redis] 缓存用户菜单树
-  // 当前 getMenus() 每次请求都全量查询 menu+permission 并在内存中重建树。
-  // 后续接入 Redis 后以 `menu:tree:{userId}` 缓存序列化后的菜单树，TTL 10-30 分钟。
   async getMenus(userId: string): Promise<AuthMenuResponseDto[]> {
+    const cached = await this.authCache.getMenus<unknown>(userId);
+    if (cached) {
+      return toDtoList(AuthMenuResponseDto, cached as unknown[]);
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { userId },
       include: {
@@ -589,9 +601,9 @@ export class AuthService {
 
     const filteredRoots = removeEmptyCatalogs(roots);
 
-    return plainToInstance(AuthMenuResponseDto, filteredRoots, {
-      excludeExtraneousValues: true,
-    });
+    const dtos = toDtoList(AuthMenuResponseDto, filteredRoots);
+    await this.authCache.setMenus(userId, filteredRoots);
+    return dtos;
   }
 
   private getClientIp(req?: RequestWithHeaders): string {
@@ -632,7 +644,7 @@ export class AuthService {
         : 'Unknown';
 
       // 获取IP地理位置信息
-      const location = await this.getLocationFromIP(logData.ipAddress);
+      const location = await this.geoIpService.getLocation(logData.ipAddress);
 
       await this.loginLogsService.create({
         account: logData.account,
@@ -651,66 +663,6 @@ export class AuthService {
       });
     } catch (error) {
       this.logger.error('记录登录日志失败', error);
-    }
-  }
-
-  /**
-   * 根据IP地址获取地理位置信息
-   * @param ipAddress IP地址
-   * @returns 地理位置字符串
-   */
-  private async getLocationFromIP(
-    ipAddress: string,
-  ): Promise<string | undefined> {
-    try {
-      // 跳过本地IP地址
-      if (
-        ipAddress === '127.0.0.1' ||
-        ipAddress === '::1' ||
-        ipAddress.startsWith('192.168.') ||
-        ipAddress.startsWith('10.') ||
-        ipAddress.startsWith('172.')
-      ) {
-        return '本地网络';
-      }
-
-      // 使用 ip-api.com 免费服务获取地理位置
-      const response = await fetch(
-        `http://ip-api.com/json/${ipAddress}?lang=zh-CN`,
-      );
-
-      if (!response.ok) {
-        this.logger.warn(`IP地理位置查询失败: ${response.status}`);
-        return undefined;
-      }
-
-      const data = (await response.json()) as {
-        status: string;
-        country?: string;
-        regionName?: string;
-        city?: string;
-        message?: string;
-      };
-
-      if (data.status === 'success') {
-        // 构建地理位置字符串：国家-省份-城市
-        const locationParts: string[] = [];
-        if (data.country) locationParts.push(data.country);
-        if (data.regionName && data.regionName !== data.country) {
-          locationParts.push(data.regionName);
-        }
-        if (data.city && data.city !== data.regionName) {
-          locationParts.push(data.city);
-        }
-
-        return locationParts.length > 0 ? locationParts.join('-') : undefined;
-      } else {
-        this.logger.warn(`IP地理位置查询失败: ${data.message}`);
-        return undefined;
-      }
-    } catch (error) {
-      this.logger.warn('获取IP地理位置时发生错误', error);
-      return undefined;
     }
   }
 

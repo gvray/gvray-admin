@@ -5,12 +5,15 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto } from '@/shared/utils/transform.util';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
-import * as bcrypt from 'bcrypt';
 import { BaseService } from '@/shared/services/base.service';
+import { PasswordService } from '@/shared/services/password.service';
+import { AuthCacheService } from '@/shared/services/auth-cache.service';
+import { DataScopeService } from '@/modules/system/roles/services/data-scope.service';
 import { QueryUserDto } from './dto/query-user.dto';
 import { Prisma } from '@prisma/client';
 import { PaginationData } from '@/shared/interfaces/response.interface';
@@ -18,8 +21,29 @@ import { UserStatus } from '@/shared/constants/user-status.constant';
 
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 import { PermissionCacheService } from '@/redis/permission-cache.service';
-import { plainToInstance } from 'class-transformer';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
+
+/** 用户详情统一 select，消除 7 处重复；改字段只改这里。 */
+const USER_DETAIL_SELECT = {
+  userId: true,
+  email: true,
+  username: true,
+  nickname: true,
+  phone: true,
+  avatar: true,
+  gender: true,
+  description: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  userRoles: {
+    select: { role: { select: { roleId: true, name: true } } },
+  },
+  department: { select: { departmentId: true, name: true } },
+  userPositions: {
+    select: { position: { select: { positionId: true, name: true } } },
+  },
+} satisfies Prisma.UserSelect;
 
 @Injectable()
 export class UsersService extends BaseService {
@@ -27,6 +51,9 @@ export class UsersService extends BaseService {
     protected readonly prisma: PrismaService,
     protected readonly configService: ConfigService,
     private readonly permissionCache: PermissionCacheService,
+    private readonly passwordService: PasswordService,
+    private readonly authCache: AuthCacheService,
+    private readonly dataScopeService: DataScopeService,
   ) {
     super(prisma, configService);
   }
@@ -69,18 +96,45 @@ export class UsersService extends BaseService {
     return roles.some((role) => role.roleKey === SUPER_ROLE_KEY);
   }
 
-  private async countSuperAdminUsers(): Promise<number> {
-    return this.prisma.user.count({
-      where: {
-        userRoles: {
-          some: {
-            role: {
-              roleKey: SUPER_ROLE_KEY,
-            },
-          },
-        },
-      },
+  /**
+   * 将数据权限范围合并进查询条件（读取列表/详情用）。
+   * 超级管理员不限制；其余按角色 dataScope 收窄到 本人 / 本部门 / 本部门及以下 / 自定义。
+   */
+  private async applyDataScope(
+    where: Prisma.UserWhereInput,
+    currentUserId?: string,
+  ): Promise<Prisma.UserWhereInput> {
+    if (!currentUserId || (await this.isSuperAdmin(currentUserId))) {
+      return where;
+    }
+    const scopeWhere = (await this.dataScopeService.buildDataScopeQuery(
+      currentUserId,
+    )) as Prisma.UserWhereInput;
+    if (Object.keys(scopeWhere).length === 0) return where;
+    // 用 AND 包裹，避免 where 与 scopeWhere 同字段（如 userId）时展开覆盖导致条件丢失
+    return { AND: [where, scopeWhere] };
+  }
+
+  /**
+   * 写操作前断言目标用户在当前用户的数据权限范围内（越权防护）。
+   */
+  private async assertWithinDataScope(
+    targetUserId: string,
+    currentUserId?: string,
+  ): Promise<void> {
+    if (!currentUserId || (await this.isSuperAdmin(currentUserId))) return;
+    const scopeWhere = (await this.dataScopeService.buildDataScopeQuery(
+      currentUserId,
+    )) as Prisma.UserWhereInput;
+    if (Object.keys(scopeWhere).length === 0) return;
+    // 用 AND 包裹：scopeWhere 可能含 userId（SELF），与 targetUserId 的 userId 同键，
+    // 直接展开会让后者覆盖前者，使越权检查恒为真（count 命中当前用户自己）。
+    const inScope = await this.prisma.user.count({
+      where: { AND: [{ userId: targetUserId }, scopeWhere] },
     });
+    if (inScope === 0) {
+      throw new ForbiddenException('无权操作超出数据权限范围的用户');
+    }
   }
 
   private async validateRoleIds(roleIds: string[]): Promise<void> {
@@ -122,7 +176,7 @@ export class UsersService extends BaseService {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await this.passwordService.hash(password);
 
     // 验证部门是否存在
     if (departmentId) {
@@ -144,106 +198,62 @@ export class UsersService extends BaseService {
       }
     }
 
-    const user = await this.prisma.user.create({
-      data: {
-        ...rest,
-        password: hashedPassword,
-        department: departmentId ? { connect: { departmentId } } : undefined,
-        // 岗位关联将在创建用户后单独处理
-        status: rest.status ?? UserStatus.ENABLED,
-        createdBy: currentUserId
-          ? { connect: { userId: currentUserId } }
-          : undefined,
-      },
-      include: {
-        department: true,
-        userPositions: {
-          include: {
-            position: true,
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          ...rest,
+          password: hashedPassword,
+          department: departmentId
+            ? { connect: { departmentId } }
+            : undefined,
+          status: rest.status ?? UserStatus.ENABLED,
+          createdBy: currentUserId
+            ? { connect: { userId: currentUserId } }
+            : undefined,
+        },
+        select: { userId: true },
+      });
+
+      if (positionIds && positionIds.length > 0) {
+        await tx.userPosition.createMany({
+          data: positionIds.map((positionId) => ({
+            userId: created.userId,
+            positionId,
+            createdById: currentUserId,
+          })),
+        });
+      }
+
+      await tx.userSettings.create({
+        data: {
+          userId: created.userId,
+          settings: {
+            theme: 'light',
+            language: 'zh-CN',
+            sidebarCollapsed: false,
+            pageSize: 10,
+            timezone: 'Asia/Shanghai',
+            showWatermark: true,
+            enableNotification: true,
+            colorScheme: 'default',
           },
         },
-      },
-    });
-
-    // 创建用户岗位关联
-    if (positionIds && positionIds.length > 0) {
-      await this.prisma.userPosition.createMany({
-        data: positionIds.map((positionId) => ({
-          userId: user.userId,
-          positionId: positionId,
-          createdById: currentUserId,
-        })),
       });
-    }
 
-    // 初始化用户默认偏好设置
-    await this.prisma.userSettings.create({
-      data: {
-        userId: user.userId,
-        settings: {
-          theme: 'light',
-          language: 'zh-CN',
-          sidebarCollapsed: false,
-          pageSize: 10,
-          timezone: 'Asia/Shanghai',
-          showWatermark: true,
-          enableNotification: true,
-          colorScheme: 'default',
-        },
-      },
+      return created;
     });
 
-    // 重新查询用户以获取完整的关联数据
     const userWithRelations = await this.prisma.user.findUnique({
       where: { userId: user.userId },
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        description: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
 
-    return plainToInstance(UserResponseDto, userWithRelations, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(UserResponseDto, userWithRelations);
   }
 
   async findAll(
     query: QueryUserDto = new QueryUserDto(),
+    currentUserId?: string,
   ): Promise<PaginationData<UserResponseDto>> {
     // 构建查询条件
     const where: Prisma.UserWhereInput = {};
@@ -290,117 +300,36 @@ export class UsersService extends BaseService {
       }
     }
 
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        select: {
-          userId: true,
-          email: true,
-          username: true,
-          nickname: true,
-          phone: true,
-          avatar: true,
-          gender: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          userRoles: {
-            select: {
-              role: {
-                select: {
-                  roleId: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          department: {
-            select: {
-              departmentId: true,
-              name: true,
-            },
-          },
-          userPositions: {
-            select: {
-              position: {
-                select: {
-                  positionId: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
+    const scopedWhere = await this.applyDataScope(where, currentUserId);
+
+    return this.paginateWith(
+      this.prisma.user,
+      query,
+      {
+        where: scopedWhere,
         orderBy: [{ createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.user.count({ where }),
-    ]);
-    const transformed = plainToInstance(UserResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+        select: USER_DETAIL_SELECT,
+      },
+      UserResponseDto,
+    );
   }
 
-  async findOne(userId: string): Promise<UserResponseDto> {
+  async findOne(
+    userId: string,
+    currentUserId?: string,
+  ): Promise<UserResponseDto> {
+    await this.assertWithinDataScope(userId, currentUserId);
+
     const user = await this.prisma.user.findUnique({
-      where: { userId: userId },
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        description: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      where: { userId },
+      select: USER_DETAIL_SELECT,
     });
 
     if (!user) {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    const userResponse = plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
-    return userResponse;
+    return toDto(UserResponseDto, user);
   }
 
   async update(
@@ -448,6 +377,7 @@ export class UsersService extends BaseService {
     }
 
     await this.checkSuperAdminHierarchy(userId, currentUserId, '修改');
+    await this.assertWithinDataScope(userId, currentUserId);
 
     // 验证部门是否存在
     if (departmentId) {
@@ -469,85 +399,49 @@ export class UsersService extends BaseService {
       }
     }
 
-    // 先删除现有的关联关系
-    if (positionIds !== undefined) {
-      await this.prisma.userPosition.deleteMany({
-        where: { userId: user.userId },
-      });
-    }
+    // 先删后建必须原子，避免残留半成品关联
+    await this.prisma.$transaction(async (tx) => {
+      if (positionIds !== undefined) {
+        await tx.userPosition.deleteMany({
+          where: { userId: user.userId },
+        });
+      }
 
-    await this.prisma.user.update({
-      where: { userId: user.userId },
-      data: {
-        ...rest,
-        department: departmentId ? { connect: { departmentId } } : undefined,
-        updatedBy: currentUserId
-          ? { connect: { userId: currentUserId } }
-          : undefined,
-      },
+      await tx.user.update({
+        where: { userId: user.userId },
+        data: {
+          ...rest,
+          department: departmentId
+            ? { connect: { departmentId } }
+            : undefined,
+          updatedBy: currentUserId
+            ? { connect: { userId: currentUserId } }
+            : undefined,
+        },
+      });
+
+      if (positionIds && positionIds.length > 0) {
+        await tx.userPosition.createMany({
+          data: positionIds.map((positionId) => ({
+            userId: user.userId,
+            positionId,
+            createdById: currentUserId,
+          })),
+        });
+      }
     });
 
-    // 创建新的岗位关联
-    if (positionIds && positionIds.length > 0) {
-      await this.prisma.userPosition.createMany({
-        data: positionIds.map((positionId) => ({
-          userId: user.userId,
-          positionId,
-          createdById: currentUserId,
-        })),
-      });
-    }
-
-    // 重新查询用户以获取完整的关联数据
     const userWithRelations = await this.prisma.user.findUnique({
       where: { userId: user.userId },
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
 
+    await this.authCache.invalidateUser(userId);
     if (rest.status !== undefined) {
       await this.permissionCache.del(userId);
     }
 
-    return plainToInstance(UserResponseDto, userWithRelations, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(UserResponseDto, userWithRelations);
   }
 
   async resetPassword(
@@ -572,7 +466,9 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('超级管理员密码只能由本人重置');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.assertWithinDataScope(userId, currentUserId);
+
+    const hashedPassword = await this.passwordService.hash(newPassword);
 
     await this.prisma.user.update({
       where: { userId: user.userId },
@@ -584,52 +480,12 @@ export class UsersService extends BaseService {
       },
     });
 
-    // 重新查询用户以获取完整的关联数据
     const userWithRelations = await this.prisma.user.findUnique({
       where: { userId: user.userId },
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
 
-    return plainToInstance(UserResponseDto, userWithRelations, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(UserResponseDto, userWithRelations);
   }
 
   async remove(userId: string, currentUserId?: string): Promise<void> {
@@ -646,6 +502,7 @@ export class UsersService extends BaseService {
     }
 
     await this.checkSuperAdminHierarchy(userId, currentUserId, '删除');
+    await this.assertWithinDataScope(userId, currentUserId);
 
     if (
       (await this.isSuperAdmin(userId)) &&
@@ -654,6 +511,7 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不能删除导致超级管理员少于 2 个');
     }
 
+    await this.authCache.invalidateUserAll(userId);
     await this.prisma.user.delete({
       where: { userId: user.userId },
     });
@@ -679,6 +537,7 @@ export class UsersService extends BaseService {
     }
 
     await this.checkSuperAdminHierarchy(userId, currentUserId, '修改角色');
+    await this.assertWithinDataScope(userId, currentUserId);
 
     await this.validateRoleIds(roleIds);
 
@@ -698,75 +557,36 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('至少保留 2 个超级管理员');
     }
 
-    // 先删除现有的角色关联
-    await this.prisma.userRole.deleteMany({
-      where: { userId: user.userId },
-    });
-
-    // 创建新的角色关联
-    if (roleIds && roleIds.length > 0) {
-      await this.prisma.userRole.createMany({
-        data: roleIds.map((roleId) => ({
-          userId: user.userId,
-          roleId,
-          createdById: currentUserId,
-        })),
+    // 先删后建必须原子
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({
+        where: { userId: user.userId },
       });
-    }
 
-    await this.prisma.user.update({
-      where: { userId: user.userId },
-      data: { updatedById: currentUserId },
+      if (roleIds && roleIds.length > 0) {
+        await tx.userRole.createMany({
+          data: roleIds.map((roleId) => ({
+            userId: user.userId,
+            roleId,
+            createdById: currentUserId,
+          })),
+        });
+      }
+
+      await tx.user.update({
+        where: { userId: user.userId },
+        data: { updatedById: currentUserId },
+      });
     });
 
-    // 重新查询用户以获取完整的关联数据
     const userWithRelations = await this.prisma.user.findUnique({
       where: { userId: user.userId },
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
 
-    await this.permissionCache.del(userId);
+    await this.authCache.invalidateUserAll(userId);
 
-    return plainToInstance(UserResponseDto, userWithRelations, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(UserResponseDto, userWithRelations);
   }
 
   // 移除用户的角色
@@ -788,6 +608,7 @@ export class UsersService extends BaseService {
     }
 
     await this.checkSuperAdminHierarchy(userId, currentUserId, '修改角色');
+    await this.assertWithinDataScope(userId, currentUserId);
 
     await this.validateRoleIds(roleIds);
 
@@ -800,69 +621,30 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('至少保留 2 个超级管理员');
     }
 
-    // 删除指定的角色关联
-    if (roleIds && roleIds.length > 0) {
-      await this.prisma.userRole.deleteMany({
-        where: {
-          userId: user.userId,
-          roleId: { in: roleIds },
-        },
-      });
-    }
+    await this.prisma.$transaction(async (tx) => {
+      if (roleIds && roleIds.length > 0) {
+        await tx.userRole.deleteMany({
+          where: {
+            userId: user.userId,
+            roleId: { in: roleIds },
+          },
+        });
+      }
 
-    await this.prisma.user.update({
-      where: { userId: user.userId },
-      data: { updatedById: currentUserId },
+      await tx.user.update({
+        where: { userId: user.userId },
+        data: { updatedById: currentUserId },
+      });
     });
 
-    // 重新查询用户以获取完整的关联数据
     const userWithRelations = await this.prisma.user.findUnique({
       where: { userId: user.userId },
-      select: {
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        gender: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            role: {
-              select: {
-                roleId: true,
-                name: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            departmentId: true,
-            name: true,
-          },
-        },
-        userPositions: {
-          select: {
-            position: {
-              select: {
-                positionId: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
 
-    await this.permissionCache.del(userId);
+    await this.authCache.invalidateUserAll(userId);
 
-    return plainToInstance(UserResponseDto, userWithRelations, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(UserResponseDto, userWithRelations);
   }
 
   async removeMany(ids: string[], currentUserId?: string): Promise<void> {
@@ -870,13 +652,20 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不能删除自己账号');
     }
 
+    // 一次性带出角色，避免逐个 isSuperAdmin 的 N+1 查询
     const users = await this.prisma.user.findMany({
       where: { userId: { in: ids } },
-      select: { userId: true },
+      select: {
+        userId: true,
+        userRoles: { select: { role: { select: { roleKey: true } } } },
+      },
     });
+    const isSuper = (u: (typeof users)[number]) =>
+      u.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
+
     let deletingSuperAdminCount = 0;
     for (const u of users) {
-      if (await this.isSuperAdmin(u.userId)) {
+      if (isSuper(u)) {
         deletingSuperAdminCount++;
         await this.checkSuperAdminHierarchy(u.userId, currentUserId, '删除');
       }
@@ -886,6 +675,10 @@ export class UsersService extends BaseService {
       (await this.countSuperAdminUsers()) - deletingSuperAdminCount < 2
     ) {
       throw new ForbiddenException('至少保留 2 个超级管理员');
+    }
+
+    for (const u of users) {
+      await this.authCache.invalidateUserAll(u.userId);
     }
     await this.prisma.user.deleteMany({
       where: { userId: { in: ids } },

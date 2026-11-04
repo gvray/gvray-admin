@@ -4,10 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto } from '@/shared/utils/transform.util';
 import { Prisma } from '@prisma/client';
 import { QueryOperationLogDto } from './dto/query-operation-log.dto';
 import { PrismaService } from '@/prisma/prisma.service';
-import { plainToInstance } from 'class-transformer';
 import { OperationLogResponseDto } from './dto/operation-log-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
@@ -50,33 +50,18 @@ export class OperationLogsService extends BaseService {
       ];
     }
 
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.operationLog.findMany({
-        where,
-        orderBy: [{ createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.operationLog.count({ where }),
-    ]);
-    const transformed = plainToInstance(OperationLogResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.operationLog,
+      query,
+      { where, orderBy: [{ createdAt: 'desc' }] },
+      OperationLogResponseDto,
+    );
   }
 
   async findOne(id: number): Promise<OperationLogResponseDto> {
     const log = await this.prisma.operationLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException('操作日志不存在');
-    return plainToInstance(OperationLogResponseDto, log, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(OperationLogResponseDto, log);
   }
 
   async remove(id: number): Promise<void> {

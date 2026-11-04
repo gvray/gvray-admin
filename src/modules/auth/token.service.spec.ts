@@ -4,6 +4,7 @@ import { RedisUnavailableError } from '@/redis/redis.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RedisService } from '@/redis/redis.service';
 import { CacheService } from '@/redis/cache.service';
+import { GeoIpService } from '@/shared/services/geo-ip.service';
 
 // 复刻 TokenService.hashToken 的算法，用于在测试里算出期望的 tokenHash
 const hashToken = (token: string) =>
@@ -39,6 +40,7 @@ describe('TokenService - verifyRefreshToken', () => {
       {} as CacheService,
       redisService as unknown as RedisService,
       prismaService as unknown as PrismaService,
+      {} as GeoIpService,
     );
   });
 

@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { plainToInstance } from 'class-transformer';
+import { toDto, toDtoList } from '@/shared/utils/transform.util';
 import { PrismaService } from '@/prisma/prisma.service';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
@@ -32,25 +32,12 @@ export class PermissionsService extends BaseService {
     });
     // 排除已软删除的记录
     where['deletedAt'] = null;
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.permission.findMany({
-        where,
-        orderBy: [{ createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.permission.count({ where }),
-    ]);
-    const transformed = plainToInstance(PermissionResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.permission,
+      query,
+      { where, orderBy: [{ createdAt: 'desc' }] },
+      PermissionResponseDto,
+    );
   }
 
   async findAllFlat(
@@ -83,18 +70,14 @@ export class PermissionsService extends BaseService {
         }
       }
       const items = Array.from(permMap.values());
-      return plainToInstance(PermissionResponseDto, items, {
-        excludeExtraneousValues: true,
-      });
+      return toDtoList(PermissionResponseDto, items);
     }
 
     const items = await this.prisma.permission.findMany({
       where: { deletedAt: null },
       orderBy: [{ code: 'asc' }],
     });
-    return plainToInstance(PermissionResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
+    return toDtoList(PermissionResponseDto, items);
   }
 
   async findOne(id: string): Promise<PermissionResponseDto> {
@@ -128,9 +111,7 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
-    return plainToInstance(PermissionResponseDto, permission, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(PermissionResponseDto, permission);
   }
 
   async update(
@@ -169,8 +150,6 @@ export class PermissionsService extends BaseService {
       },
     });
 
-    return plainToInstance(PermissionResponseDto, updatedPermission, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(PermissionResponseDto, updatedPermission);
   }
 }

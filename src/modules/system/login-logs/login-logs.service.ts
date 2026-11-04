@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto } from '@/shared/utils/transform.util';
 import { LogResult } from '@/shared/constants/log-result.constant';
-import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateLoginLogDto } from './dto/create-login-log.dto';
 import { QueryLoginLogDto } from './dto/query-login-log.dto';
@@ -30,9 +30,7 @@ export class LoginLogsService extends BaseService {
       data: createLoginLogDto,
     });
 
-    return plainToInstance(LoginLogResponseDto, loginLog, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(LoginLogResponseDto, loginLog);
   }
 
   async findAll(
@@ -71,25 +69,12 @@ export class LoginLogsService extends BaseService {
       },
     });
 
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.loginLog.findMany({
-        where,
-        orderBy: [{ createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.loginLog.count({ where }),
-    ]);
-    const transformedItems = plainToInstance(LoginLogResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformedItems,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.loginLog,
+      query,
+      { where, orderBy: [{ createdAt: 'desc' }] },
+      LoginLogResponseDto,
+    );
   }
 
   async findOne(id: number): Promise<LoginLogResponseDto> {
@@ -101,9 +86,7 @@ export class LoginLogsService extends BaseService {
       throw new NotFoundException(`登录日志ID ${id} 不存在`);
     }
 
-    return plainToInstance(LoginLogResponseDto, loginLog, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(LoginLogResponseDto, loginLog);
   }
 
   async remove(id: number): Promise<void> {
@@ -120,19 +103,10 @@ export class LoginLogsService extends BaseService {
 
   // 批量删除登录日志
   async removeMany(ids: number[]): Promise<void> {
-    const numericIds = ids
-      .filter((id) => !isNaN(Number(id)))
-      .map((id) => Number(id));
-
-    if (numericIds.length > 0) {
-      await this.prisma.loginLog.deleteMany({
-        where: {
-          id: {
-            in: numericIds,
-          },
-        },
-      });
-    }
+    if (ids.length === 0) return;
+    await this.prisma.loginLog.deleteMany({
+      where: { id: { in: ids } },
+    });
   }
 
   // 清空所有登录日志
@@ -192,8 +166,8 @@ export class LoginLogsService extends BaseService {
       },
     });
 
-    // 独立账户数（基于 account 字段）
-    const uniqueAccounts = await this.prisma.loginLog.groupBy({
+    // 独立账户数（按 account 分组，组数即独立账户数）
+    const uniqueAccountsAgg = await this.prisma.loginLog.groupBy({
       by: ['account'],
       where: {
         createdAt: {
@@ -206,7 +180,7 @@ export class LoginLogsService extends BaseService {
       totalLogins,
       successLogins,
       failedLogins,
-      uniqueAccounts: uniqueAccounts.length,
+      uniqueAccounts: uniqueAccountsAgg.length,
       successRate: totalLogins > 0 ? (successLogins / totalLogins) * 100 : 0,
     };
   }

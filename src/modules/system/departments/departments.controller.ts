@@ -25,6 +25,8 @@ import { OperationLog } from '@/core/decorators/operation-log.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { DEPARTMENT_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { BatchDeleteDepartmentsDto } from './dto/batch-delete-departments.dto';
+import { CurrentUser } from '@/core/decorators/current-user.decorator';
+import { IUser } from '@/core/interfaces/user.interface';
 
 @ApiTags('部门管理')
 @ApiBearerAuth('JWT-auth')
@@ -41,8 +43,14 @@ export class DepartmentsController {
     description: '部门创建成功',
     type: DepartmentResponseDto,
   })
-  async create(@Body() createDepartmentDto: CreateDepartmentDto) {
-    const data = await this.departmentsService.create(createDepartmentDto);
+  async create(
+    @Body() createDepartmentDto: CreateDepartmentDto,
+    @CurrentUser() user: IUser,
+  ) {
+    const data = await this.departmentsService.create(
+      createDepartmentDto,
+      user.userId,
+    );
     return ResponseUtil.created(data, '部门创建成功');
   }
 
@@ -108,8 +116,13 @@ export class DepartmentsController {
   async update(
     @Param('id') id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
+    @CurrentUser() user: IUser,
   ) {
-    const data = await this.departmentsService.update(id, updateDepartmentDto);
+    const data = await this.departmentsService.update(
+      id,
+      updateDepartmentDto,
+      user.userId,
+    );
     return ResponseUtil.updated(data, '部门更新成功');
   }
 

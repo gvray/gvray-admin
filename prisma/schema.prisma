@@ -68,6 +68,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([departmentId])
   @@map("users")
 }
 
@@ -125,6 +126,7 @@ model RolePermission {
   updatedAt DateTime @updatedAt
 
   @@unique([roleId, permissionId])
+  @@index([permissionId])
   @@map("role_permissions")
 }
 
@@ -146,6 +148,7 @@ model RoleDepartment {
   updatedAt DateTime @updatedAt
 
   @@unique([roleId, departmentId])
+  @@index([departmentId])
   @@map("role_departments")
 }
 
@@ -203,6 +206,7 @@ model Menu {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([parentMenuId])
   @@map("menus")
 }
 
@@ -237,6 +241,7 @@ model Department {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([parentId])
   @@map("departments")
 }
 
@@ -278,6 +283,7 @@ model UserPosition {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, positionId])
+  @@index([positionId])
   @@map("user_positions")
 }
 
@@ -296,6 +302,7 @@ model UserRole {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, roleId])
+  @@index([roleId])
   @@map("user_roles")
 }
 
@@ -343,6 +350,7 @@ model DictionaryItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([typeCode])
   @@map("dictionary_items")
 }
 
@@ -387,6 +395,9 @@ model LoginLog {
 
   createdAt DateTime @default(now())
 
+  @@index([account])
+  @@index([createdAt])
+  @@index([result])
   @@map("login_logs")
 }
 
@@ -476,5 +487,6 @@ model UserNoticeRead {
   readAt   DateTime @default(now())
 
   @@unique([userId, noticeId])
+  @@index([noticeId])
   @@map("user_notice_reads")
 }

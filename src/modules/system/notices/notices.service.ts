@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { toDto } from '@/shared/utils/transform.util';
 import { ConfigService } from '@nestjs/config';
-import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
@@ -28,9 +28,7 @@ export class NoticesService extends BaseService {
         createdById: currentUserId,
       },
     });
-    return plainToInstance(NoticeResponseDto, notice, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(NoticeResponseDto, notice);
   }
 
   async findAll(
@@ -45,16 +43,12 @@ export class NoticesService extends BaseService {
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
 
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.notice.findMany({
-        where,
-        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.notice.count({ where }),
-    ]);
+    const base = await this.paginateWith(
+      this.prisma.notice,
+      query,
+      { where, orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }] },
+      NoticeResponseDto,
+    );
 
     // 查询当前用户的已读记录
     let readNoticeIds = new Set<string>();
@@ -62,29 +56,20 @@ export class NoticesService extends BaseService {
       const reads = await this.prisma.userNoticeRead.findMany({
         where: {
           userId: currentUserId,
-          noticeId: { in: items.map((i) => i.noticeId) },
+          noticeId: { in: base.items.map((i) => i.noticeId) },
         },
         select: { noticeId: true },
       });
       readNoticeIds = new Set(reads.map((r) => r.noticeId));
     }
 
-    const transformedItems = items.map((item) => {
-      const dto = plainToInstance(NoticeResponseDto, item, {
-        excludeExtraneousValues: true,
-      });
-      if (currentUserId) {
-        (dto as any).isRead = readNoticeIds.has(item.noticeId);
+    if (currentUserId) {
+      for (const dto of base.items) {
+        dto.isRead = readNoticeIds.has(dto.noticeId);
       }
-      return dto;
-    });
+    }
 
-    return {
-      items: transformedItems,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return base;
   }
 
   async findOne(
@@ -98,16 +83,14 @@ export class NoticesService extends BaseService {
       throw new NotFoundException('通知不存在');
     }
 
-    const dto = plainToInstance(NoticeResponseDto, notice, {
-      excludeExtraneousValues: true,
-    });
+    const dto = toDto(NoticeResponseDto, notice);
     if (currentUserId) {
       const read = await this.prisma.userNoticeRead.findUnique({
         where: {
           userId_noticeId: { userId: currentUserId, noticeId },
         },
       });
-      (dto as any).isRead = !!read;
+      dto.isRead = !!read;
     }
     return dto;
   }
@@ -132,9 +115,7 @@ export class NoticesService extends BaseService {
       },
     });
 
-    return plainToInstance(NoticeResponseDto, updated, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(NoticeResponseDto, updated);
   }
 
   async remove(noticeId: string): Promise<void> {

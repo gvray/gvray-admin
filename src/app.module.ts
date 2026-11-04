@@ -22,6 +22,7 @@ import corsConfig from '@/config/cors.config';
 import redisConfig from '@/config/redis.config';
 import { validate } from '@/config/env.validation';
 import { RedisModule } from '@/redis/redis.module';
+import { SharedModule } from '@/shared/shared.module';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
 import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
@@ -46,6 +47,7 @@ import { PermissionsGuard } from '@/core/guards/permissions.guard';
     }),
     PrismaModule,
     RedisModule,
+    SharedModule,
     AuthModule,
     SystemModule,
     DashboardModule,

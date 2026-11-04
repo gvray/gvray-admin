@@ -62,10 +62,6 @@ async function bootstrap() {
     }),
   );
 
-  // TODO: [Redis] 接入基于 Redis 的分布式限流（如 @nestjs/throttler + Redis store）
-  // 当前没有任何接口限流保护，单机内存限流无法在多实例间共享计数。
-  // 后续引入 ThrottlerModule 并使用 Redis Store，针对登录、注册、公开接口等做限流。
-
   // Swagger 配置
   const config = new DocumentBuilder()
     .setTitle('GVRAY Admin 企业级后台管理系统')

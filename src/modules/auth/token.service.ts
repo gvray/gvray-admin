@@ -5,6 +5,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { CacheService } from '@/redis/cache.service';
 import { RedisService, RedisUnavailableError } from '@/redis/redis.service';
 import { RedisKeys } from '@/redis/constants/redis-key.constant';
+import { GeoIpService } from '@/shared/services/geo-ip.service';
 
 export interface SessionMetadata {
   ipAddress?: string;
@@ -38,6 +39,7 @@ export class TokenService {
     private readonly cacheService: CacheService,
     private readonly redisService: RedisService,
     private readonly prisma: PrismaService,
+    private readonly geoIpService: GeoIpService,
   ) {}
 
   // ===== Refresh Token =====
@@ -54,7 +56,7 @@ export class TokenService {
 
     // 解析 UA 和 IP
     const parsed = this.parseUserAgent(metadata.userAgent);
-    const location = await this.getLocationFromIP(metadata.ipAddress);
+    const location = await this.geoIpService.getLocation(metadata.ipAddress);
     const now = new Date().toISOString();
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
@@ -474,47 +476,5 @@ export class TokenService {
     } catch {
       return {};
     }
-  }
-
-  private async getLocationFromIP(
-    ipAddress?: string,
-  ): Promise<string | undefined> {
-    if (!ipAddress) return undefined;
-    // 跳过本地 IP
-    if (
-      ipAddress === '127.0.0.1' ||
-      ipAddress === '::1' ||
-      ipAddress.startsWith('192.168.') ||
-      ipAddress.startsWith('10.') ||
-      ipAddress.startsWith('172.')
-    ) {
-      return '本地网络';
-    }
-    try {
-      const response = await fetch(
-        `http://ip-api.com/json/${ipAddress}?lang=zh-CN`,
-      );
-      if (!response.ok) return undefined;
-      const data = (await response.json()) as {
-        status: string;
-        country?: string;
-        regionName?: string;
-        city?: string;
-      };
-      if (data.status === 'success') {
-        const parts: string[] = [];
-        if (data.country) parts.push(data.country);
-        if (data.regionName && data.regionName !== data.country) {
-          parts.push(data.regionName);
-        }
-        if (data.city && data.city !== data.regionName) {
-          parts.push(data.city);
-        }
-        return parts.length > 0 ? parts.join('-') : undefined;
-      }
-    } catch {
-      // 忽略查询失败
-    }
-    return undefined;
   }
 }

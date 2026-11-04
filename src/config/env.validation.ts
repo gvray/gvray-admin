@@ -65,7 +65,23 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   OPLOG_MASK_FIELDS: string =
-    'password,oldPassword,newPassword,token,authorization,secret,captcha';
+    'password,oldPassword,newPassword,token,authorization,secret,captcha,email,phone,mobile,idCard,idCardNo,idNumber';
+
+  @IsInt()
+  @IsOptional()
+  BCRYPT_ROUNDS: number = 12;
+
+  @IsInt()
+  @IsOptional()
+  GEOIP_TIMEOUT_MS: number = 8000;
+
+  @IsInt()
+  @IsOptional()
+  GEOIP_CACHE_TTL_SECONDS: number = 604800;
+
+  @IsInt()
+  @IsOptional()
+  AUTH_CTX_CACHE_TTL: number = 600;
 }
 
 export function validate(config: Record<string, unknown>) {

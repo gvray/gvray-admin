@@ -22,6 +22,8 @@ pnpm docker:deploy
 - `docker-compose.yml` 中 `DATABASE_URL` 由 `MYSQL_ROOT_PASSWORD` + `MYSQL_DATABASE` 自动组装，直接修改 `.env` 中的 `DATABASE_URL` 对 compose 模式不生效。
 - `CORS_ORIGINS` 在生产环境（`NODE_ENV !== development`）下必须配置，否则 CORS origin 为 `undefined`。
 - `JWT_ACCESS_TOKEN_EXPIRES_IN` / `JWT_REFRESH_TOKEN_EXPIRES_IN` 控制 token 过期，默认 `2h` / `7d`。
+- `BCRYPT_ROUNDS`（默认 `12`）密码哈希强度；`GEOIP_TIMEOUT_MS` / `GEOIP_CACHE_TTL_SECONDS`（默认 `8000` / `604800`）控制登录地点解析的超时与本地缓存；`AUTH_CTX_CACHE_TTL`（默认 `600`）控制 `/me`、菜单树的 Redis 缓存 TTL。
+- `OPLOG_MASK_FIELDS` 默认掩码字段已扩展至包含 `email,phone,mobile,idCard,idCardNo,idNumber` 等 PII，可通过环境变量覆盖。
 - `docker-compose.yml` 的 app healthcheck 使用 `node -e "fetch(...)"`，不依赖 wget/curl。
 
 ## 数据库迁移策略

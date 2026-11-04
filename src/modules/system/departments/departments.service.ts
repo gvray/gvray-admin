@@ -4,8 +4,9 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto } from '@/shared/utils/transform.util';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
-import { plainToInstance } from 'class-transformer';
+import { OPTIONS_MAX_LIMIT } from '@/shared/constants/options.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import type { Department } from '@prisma/client';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
@@ -16,6 +17,12 @@ import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
+
+/** 部门详情统一 include（create/update 返回用）；改字段只改这里。 */
+const DEPARTMENT_DETAIL_INCLUDE = {
+  parent: true,
+  children: true,
+} satisfies Prisma.DepartmentInclude;
 
 @Injectable()
 export class DepartmentsService extends BaseService {
@@ -28,6 +35,7 @@ export class DepartmentsService extends BaseService {
 
   async create(
     createDepartmentDto: CreateDepartmentDto,
+    currentUserId?: string,
   ): Promise<DepartmentResponseDto> {
     // 检查名称是否已存在
     const existingDepartment = await this.prisma.department.findFirst({
@@ -67,16 +75,12 @@ export class DepartmentsService extends BaseService {
       data: {
         ...departmentData,
         parentId: parentIdFinal,
+        createdById: currentUserId,
       },
-      include: {
-        parent: true,
-        children: true,
-      },
+      include: DEPARTMENT_DETAIL_INCLUDE,
     });
 
-    return plainToInstance(DepartmentResponseDto, department, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DepartmentResponseDto, department);
   }
 
   async findAll(
@@ -88,29 +92,16 @@ export class DepartmentsService extends BaseService {
       equals: { status, parentId },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
-    const include = {
-      _count: { select: { users: true } },
-    };
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.department.findMany({
+    return this.paginateWith(
+      this.prisma.department,
+      query,
+      {
         where,
-        include,
-        skip: state.skip,
-        take: state.take,
         orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-      }),
-      this.prisma.department.count({ where }),
-    ]);
-    const transformed = plainToInstance(DepartmentResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+        include: { _count: { select: { users: true } } },
+      },
+      DepartmentResponseDto,
+    );
   }
 
   async findOne(departmentId: string): Promise<DepartmentResponseDto> {
@@ -140,14 +131,13 @@ export class DepartmentsService extends BaseService {
       throw new NotFoundException('部门不存在');
     }
 
-    return plainToInstance(DepartmentResponseDto, department, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DepartmentResponseDto, department);
   }
 
   async update(
     departmentId: string,
     updateDepartmentDto: UpdateDepartmentDto,
+    currentUserId?: string,
   ): Promise<DepartmentResponseDto> {
     // 检查部门是否存在
     const existingDepartment = await this.prisma.department.findUnique({
@@ -210,16 +200,12 @@ export class DepartmentsService extends BaseService {
       data: {
         ...updateData,
         parentId: finalParentId,
+        updatedById: currentUserId,
       },
-      include: {
-        parent: true,
-        children: true,
-      },
+      include: DEPARTMENT_DETAIL_INCLUDE,
     });
 
-    return plainToInstance(DepartmentResponseDto, department, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DepartmentResponseDto, department);
   }
 
   async remove(departmentId: string): Promise<void> {
@@ -298,14 +284,6 @@ export class DepartmentsService extends BaseService {
         } catch {
           processedName = queryDto.name;
         }
-        if (processedName.includes('å') || processedName.includes('ä')) {
-          try {
-            const buffer = Buffer.from(queryDto.name, 'latin1');
-            processedName = buffer.toString('utf8');
-          } catch {
-            processedName = queryDto.name;
-          }
-        }
 
         whereConditions.name = { contains: processedName };
       }
@@ -333,24 +311,25 @@ export class DepartmentsService extends BaseService {
         orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
         select: { departmentId: true, parentId: true },
       });
-      const matchedDepartments: DeptMinimal[] = matchedDepartmentsRaw.map(
-        (d) => ({
-          departmentId: d.departmentId,
-          parentId: d.parentId!,
-        }),
-      );
 
-      if (matchedDepartments.length > 0) {
-        // 收集所有需要包含的部门ID（匹配的部门 + 它们的父级路径）
+      if (matchedDepartmentsRaw.length > 0) {
+        // 一次性拉全量部门到内存，避免逐级 findUnique 的 N+1
+        const allMinimal = await this.prisma.department.findMany({
+          select: { departmentId: true, parentId: true },
+        });
+        const parentMap = new Map(
+          allMinimal.map((d) => [d.departmentId, d.parentId]),
+        );
+
+        // 收集匹配部门 + 所有祖先
         const departmentIdsToInclude = new Set<string>();
-
-        for (const department of matchedDepartments) {
-          departmentIdsToInclude.add(department.departmentId);
-          // 添加父级部门
-          await this.addDepartmentAncestorIds(
-            department.parentId,
-            departmentIdsToInclude,
-          );
+        for (const dept of matchedDepartmentsRaw) {
+          departmentIdsToInclude.add(dept.departmentId);
+          let pid = dept.parentId;
+          while (pid && !departmentIdsToInclude.has(pid)) {
+            departmentIdsToInclude.add(pid);
+            pid = parentMap.get(pid) ?? null;
+          }
         }
 
         // 获取所有需要包含的部门
@@ -404,9 +383,7 @@ export class DepartmentsService extends BaseService {
     // 递归转换嵌套对象为 DTO 格式
     const convertToDto = (nodes: DepartmentNode[]): DepartmentResponseDto[] => {
       return nodes.map((node) => {
-        const dto = plainToInstance(DepartmentResponseDto, node, {
-          excludeExtraneousValues: true,
-        });
+        const dto = toDto(DepartmentResponseDto, node);
 
         if (node.children && node.children.length > 0) {
           dto.children = convertToDto(node.children);
@@ -420,56 +397,28 @@ export class DepartmentsService extends BaseService {
   }
 
   /**
-   * 递归添加部门祖先ID
+   * 检查将 parentId 挂到 departmentId 下是否会形成循环引用。
+   * 一次性拉全量 parentId 映射到内存遍历，避免逐级 findUnique 的 N+1。
    */
-  private async addDepartmentAncestorIds(
-    parentId: string,
-    departmentIds: Set<string>,
-  ): Promise<void> {
-    if (!parentId) return;
-
-    departmentIds.add(parentId);
-
-    const parentDepartment = await this.prisma.department.findUnique({
-      where: { departmentId: parentId },
-      select: { parentId: true },
-    });
-
-    if (parentDepartment?.parentId) {
-      await this.addDepartmentAncestorIds(
-        parentDepartment.parentId,
-        departmentIds,
-      );
-    }
-  }
-
   private async checkCircularReference(
     departmentId: string,
     parentId: string,
   ): Promise<boolean> {
-    let currentParentDepartmentId: string | null = parentId;
+    const all = await this.prisma.department.findMany({
+      select: { departmentId: true, parentId: true },
+    });
+    const parentMap = new Map(
+      all.map((d) => [d.departmentId, d.parentId]),
+    );
+
+    let currentParentId: string | null = parentId;
     const visited = new Set<string>();
 
-    while (currentParentDepartmentId) {
-      if (visited.has(currentParentDepartmentId)) {
-        return true; // 发现循环
-      }
-
-      const currentDepartmentRaw = await this.prisma.department.findUnique({
-        where: { departmentId: currentParentDepartmentId },
-        select: { departmentId: true, parentId: true },
-      });
-
-      if (!currentDepartmentRaw) {
-        break;
-      }
-
-      if (currentDepartmentRaw.departmentId === departmentId) {
-        return true; // 发现循环
-      }
-
-      visited.add(currentParentDepartmentId);
-      currentParentDepartmentId = currentDepartmentRaw.parentId;
+    while (currentParentId) {
+      if (visited.has(currentParentId)) return true;
+      if (currentParentId === departmentId) return true;
+      visited.add(currentParentId);
+      currentParentId = parentMap.get(currentParentId) ?? null;
     }
 
     return false;
@@ -492,7 +441,7 @@ export class DepartmentsService extends BaseService {
         sort: true,
       },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      take: 500,
+      take: OPTIONS_MAX_LIMIT,
     });
   }
 }

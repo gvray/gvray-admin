@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ClassConstructor } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { startOfDay, endOfDay } from '../utils/time.util';
-import { PaginationDto, PaginationSortDto } from '../dtos/pagination.dto';
-import { ResponseUtil } from '../utils/response.util';
-import { PaginationResponse } from '../interfaces/response.interface';
+import { toDtoList } from '../utils/transform.util';
+import { PaginationDto } from '../dtos/pagination.dto';
+import { PaginationData } from '../interfaces/response.interface';
 import { SUPER_ROLE_KEY } from '../constants/role.constant';
 
 /**
@@ -28,6 +29,24 @@ export abstract class BaseService {
       },
     });
     return !!user?.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
+  }
+
+  /**
+   * 统计超级管理员数量（用于“至少保留 N 个超管”保护规则）。
+   * 集中在此处，避免 UsersService / RolesService 各写一份导致规则漂移。
+   */
+  protected async countSuperAdminUsers(): Promise<number> {
+    return this.prisma.user.count({
+      where: {
+        userRoles: {
+          some: {
+            role: {
+              roleKey: SUPER_ROLE_KEY,
+            },
+          },
+        },
+      },
+    });
   }
 
   protected buildWhere(params: {
@@ -92,218 +111,36 @@ export abstract class BaseService {
   }
 
   /**
-   * 执行分页查询
-   * @param model Prisma模型
-   * @param pagination 分页参数
-   * @param where 查询条件
-   * @param include 关联查询
-   * @param orderBy 排序条件
-   * @returns 分页结果
+   * 分页查询样板：getPaginationState + Promise.all(findMany, count) + plainToInstance + 组装返回。
+   * model 的 where/orderBy/select/include 由调用方按各自 Prisma 类型构造，
+   * 这里只统一分页与 DTO 转换，避免 11 处重复同样的 ~12 行。
    */
-  protected async paginate<T>(
-    model: {
-      findMany: (args: {
-        where?: Record<string, unknown>;
-        include?: Record<string, unknown>;
-        orderBy?: Record<string, unknown> | Record<string, unknown>[];
-        skip?: number;
-        take?: number;
-      }) => Promise<T[]>;
-      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
-    },
-    pagination: PaginationDto,
-    where?: Record<string, unknown>,
-    include?: Record<string, unknown>,
-    orderBy?: Record<string, unknown> | Record<string, unknown>[],
-  ): Promise<{ items: T[]; total: number; page: number; pageSize: number }> {
-    const { page, pageSize } = pagination;
-    const skip = pagination.getSkip();
-    const take = pagination.getTake();
-
+  protected async paginateWith<D>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: { findMany: (args: any) => Promise<any[]>; count: (args: any) => Promise<number> },
+    query: PaginationDto,
+    args: { where: unknown; orderBy: unknown; select?: unknown; include?: unknown },
+    Dto: ClassConstructor<D>,
+  ): Promise<PaginationData<D>> {
+    const state = this.getPaginationState(query);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const findManyArgs: Record<string, any> = {
+      where: args.where,
+      orderBy: args.orderBy,
+      skip: state.skip,
+      take: state.take,
+    };
+    if (args.select !== undefined) findManyArgs.select = args.select;
+    if (args.include !== undefined) findManyArgs.include = args.include;
     const [items, total] = await Promise.all([
-      model.findMany({
-        where,
-        include,
-        orderBy,
-        skip,
-        take,
-      }),
-      model.count({ where }),
+      model.findMany(findManyArgs),
+      model.count({ where: args.where }),
     ]);
-
     return {
-      items,
+      items: toDtoList(Dto, items),
       total,
-      page: page,
-      pageSize: pageSize,
+      page: state.page,
+      pageSize: state.pageSize,
     };
-  }
-
-  /**
-   * 执行分页查询并返回统一格式
-   * @param model Prisma模型
-   * @param pagination 分页参数
-   * @param where 查询条件
-   * @param include 关联查询
-   * @param orderBy 排序条件
-   * @param message 响应消息
-   * @param path 请求路径
-   * @returns 分页响应
-   */
-  protected async paginateWithResponse<T>(
-    model: {
-      findMany: (args?: {
-        where?: Record<string, unknown>;
-        include?: Record<string, unknown>;
-        orderBy?: any;
-        skip?: number;
-        take?: number;
-      }) => Promise<T[]>;
-      count: (args?: { where?: Record<string, unknown> }) => Promise<number>;
-    },
-    pagination: PaginationDto,
-    where?: Record<string, unknown>,
-    include?: Record<string, unknown>,
-    orderBy?: any,
-    message?: string,
-  ): Promise<PaginationResponse<T>> {
-    const result = await this.paginate<T>(
-      model,
-      pagination,
-      where,
-      include,
-      orderBy,
-    );
-    const paginationData = {
-      items: result.items,
-      total: result.total,
-      page: result.page,
-      pageSize: result.pageSize,
-    };
-
-    return ResponseUtil.paginated(paginationData, message);
-  }
-
-  /**
-   * 执行分页排序查询
-   * @param model Prisma模型
-   * @param pagination 分页排序参数
-   * @param where 查询条件
-   * @param include 关联查询
-   * @param defaultSortBy 默认排序字段
-   * @returns 分页结果
-   */
-  protected async paginateWithSort<T>(
-    model: {
-      findMany: (args: {
-        where?: Record<string, unknown>;
-        include?: Record<string, unknown>;
-        orderBy?: Record<string, unknown>;
-        skip?: number;
-        take?: number;
-      }) => Promise<T[]>;
-      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
-    },
-    pagination: PaginationSortDto,
-    where?: Record<string, unknown>,
-    include?: Record<string, unknown>,
-    defaultSortBy: string = 'createdAt',
-  ): Promise<{ items: T[]; total: number; page: number; pageSize: number }> {
-    const orderBy = pagination.getOrderBy(defaultSortBy);
-    return this.paginate<T>(model, pagination, where, include, orderBy);
-  }
-
-  /**
-   * 执行分页排序查询并返回统一格式
-   * @param model Prisma模型
-   * @param pagination 分页排序参数
-   * @param where 查询条件
-   * @param include 关联查询
-   * @param defaultSortBy 默认排序字段
-   * @param message 响应消息
-   * @param path 请求路径
-   * @returns 分页响应
-   */
-  protected async paginateWithSortAndResponse<T>(
-    model: {
-      findMany: (args: {
-        where?: Record<string, unknown>;
-        include?: Record<string, unknown>;
-        orderBy?: Record<string, unknown>;
-        skip?: number;
-        take?: number;
-      }) => Promise<T[]>;
-      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
-    },
-    pagination: PaginationSortDto,
-    where?: Record<string, unknown>,
-    include?: Record<string, unknown>,
-    defaultSortBy: string = 'createdAt',
-    message?: string,
-  ): Promise<PaginationResponse<T>> {
-    const result = await this.paginateWithSort<T>(
-      model,
-      pagination,
-      where,
-      include,
-      defaultSortBy,
-    );
-    const paginationData = {
-      items: result.items,
-      total: result.total,
-      page: result.page,
-      pageSize: result.pageSize,
-    };
-
-    return ResponseUtil.paginated(paginationData, message);
-  }
-
-  /**
-   * 检查记录是否存在
-   * @param model Prisma模型
-   * @param where 查询条件
-   * @param errorMessage 错误消息
-   * @returns 记录
-   */
-  protected async findOneOrFail<T>(
-    model: {
-      findUnique: (args: {
-        where: Record<string, unknown>;
-      }) => Promise<T | null>;
-    },
-    where: Record<string, unknown>,
-    errorMessage: string = '记录不存在',
-  ): Promise<T> {
-    const record = await model.findUnique({ where });
-    if (!record) {
-      throw new NotFoundException(errorMessage);
-    }
-    return record;
-  }
-
-  /**
-   * 检查记录是否存在（包含关联数据）
-   * @param model Prisma模型
-   * @param where 查询条件
-   * @param include 关联查询
-   * @param errorMessage 错误消息
-   * @returns 记录
-   */
-  protected async findOneWithIncludeOrFail<T>(
-    model: {
-      findUnique: (args: {
-        where: Record<string, unknown>;
-        include?: Record<string, unknown>;
-      }) => Promise<T | null>;
-    },
-    where: Record<string, unknown>,
-    include: Record<string, unknown>,
-    errorMessage: string = '记录不存在',
-  ): Promise<T> {
-    const record = await model.findUnique({ where, include });
-    if (!record) {
-      throw new NotFoundException(errorMessage);
-    }
-    return record;
   }
 }

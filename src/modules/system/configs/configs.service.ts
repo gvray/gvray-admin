@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto } from '@/shared/utils/transform.util';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -15,7 +16,6 @@ import { UpdateConfigDto } from './dto/update-config.dto';
 import { QueryConfigDto } from './dto/query-config.dto';
 import { ConfigResponseDto } from './dto/config-response.dto';
 import { RuntimeConfigResponseDto } from './dto/runtime-config-response.dto';
-import { plainToInstance } from 'class-transformer';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 
@@ -49,9 +49,7 @@ export class ConfigsService extends BaseService {
         createdById: userId,
       },
     });
-    return plainToInstance(ConfigResponseDto, config, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(ConfigResponseDto, config);
   }
 
   async findAll(
@@ -74,27 +72,12 @@ export class ConfigsService extends BaseService {
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
 
-    const state = this.getPaginationState(query);
-    const [configs, total] = await Promise.all([
-      this.prisma.config.findMany({
-        where,
-        orderBy: { sort: 'asc' },
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.config.count({ where }),
-    ]);
-    const transformed = configs.map((config) =>
-      plainToInstance(ConfigResponseDto, config, {
-        excludeExtraneousValues: true,
-      }),
+    return this.paginateWith(
+      this.prisma.config,
+      query,
+      { where, orderBy: { sort: 'asc' } },
+      ConfigResponseDto,
     );
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
   }
 
   async findOne(configId: string): Promise<ConfigResponseDto> {
@@ -104,9 +87,7 @@ export class ConfigsService extends BaseService {
     if (!config) {
       throw new NotFoundException('配置不存在');
     }
-    return plainToInstance(ConfigResponseDto, config, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(ConfigResponseDto, config);
   }
 
   @Cacheable({ key: 'sys:config:key:{0}', ttl: 600 })
@@ -117,9 +98,7 @@ export class ConfigsService extends BaseService {
     if (!config) {
       throw new NotFoundException('配置不存在');
     }
-    return plainToInstance(ConfigResponseDto, config, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(ConfigResponseDto, config);
   }
 
   @Cacheable({ key: 'sys:config:group:{0}', ttl: 600 })
@@ -129,9 +108,7 @@ export class ConfigsService extends BaseService {
       orderBy: { sort: 'asc' },
     });
     return configs.map((config) =>
-      plainToInstance(ConfigResponseDto, config, {
-        excludeExtraneousValues: true,
-      }),
+      toDto(ConfigResponseDto, config),
     );
   }
 
@@ -156,9 +133,7 @@ export class ConfigsService extends BaseService {
         updatedById: userId,
       },
     });
-    return plainToInstance(ConfigResponseDto, updatedConfig, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(ConfigResponseDto, updatedConfig);
   }
 
   @CacheEvict({ pattern: 'sys:config:*' })

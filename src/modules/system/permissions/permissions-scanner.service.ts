@@ -118,6 +118,7 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
 
   /**
    * 同步权限到数据库
+   * 批量操作，避免逐条 upsert/update 的 N 次 DB 往返。
    */
   private async syncPermissions(
     scannedPermissions: ScannedPermission[],
@@ -127,8 +128,6 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     deleted: number;
     sensitive: string[];
   }> {
-    let created = 0;
-    let updated = 0;
     const sensitive: string[] = [];
 
     const existingPermissions = await this.prisma.permission.findMany({
@@ -144,60 +143,80 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       },
     });
 
+    const existingByCode = new Map(
+      existingPermissions.map((p) => [p.code, p]),
+    );
     const scannedCodes = new Set(scannedPermissions.map((p) => p.code));
 
+    // 按是否已存在分桶
+    const toCreate: ScannedPermission[] = [];
+    const toUpdate: ScannedPermission[] = [];
     for (const perm of scannedPermissions) {
-      const existing = existingPermissions.find((p) => p.code === perm.code);
       const meta = PERMISSION_METADATA_MAP.get(perm.code);
+      if (meta?.sensitive) sensitive.push(perm.code);
 
-      if (meta?.sensitive) {
-        sensitive.push(perm.code);
-      }
-
-      await this.prisma.permission.upsert({
-        where: { code: perm.code },
-        update: {
-          name: perm.name,
-          httpMethod: perm.httpMethod,
-          mutable: false,
-          origin: 'SYSTEM',
-          deletedAt: null,
-        },
-        create: {
-          code: perm.code,
-          name: perm.name,
-          httpMethod: perm.httpMethod,
-          mutable: false,
-          origin: 'SYSTEM',
-        },
-      });
-
+      const existing = existingByCode.get(perm.code);
       if (existing) {
         if (
           existing.name !== perm.name ||
           existing.httpMethod !== perm.httpMethod
         ) {
-          updated++;
+          toUpdate.push(perm);
         }
       } else {
-        created++;
+        toCreate.push(perm);
       }
     }
 
+    const created = toCreate.length;
+    const updated = toUpdate.length;
+
+    // 批量新建
+    if (toCreate.length > 0) {
+      await this.prisma.permission.createMany({
+        data: toCreate.map((perm) => ({
+          code: perm.code,
+          name: perm.name,
+          httpMethod: perm.httpMethod,
+          mutable: false,
+          origin: 'SYSTEM',
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // 批量更新（逐条按 code 精确更新，但只更新有变化的，量通常很小）
+    if (toUpdate.length > 0) {
+      await this.prisma.$transaction(
+        toUpdate.map((perm) =>
+          this.prisma.permission.update({
+            where: { code: perm.code },
+            data: {
+              name: perm.name,
+              httpMethod: perm.httpMethod,
+              mutable: false,
+              origin: 'SYSTEM',
+              deletedAt: null,
+            },
+          }),
+        ),
+      );
+    }
+
+    // 批量软删除：扫描结果中不再存在的 SYSTEM 权限
     const toDelete = existingPermissions.filter(
       (p) => !scannedCodes.has(p.code),
     );
-    let deleted = 0;
-
-    for (const perm of toDelete) {
-      await this.prisma.permission.update({
-        where: { permissionId: perm.permissionId },
+    if (toDelete.length > 0) {
+      await this.prisma.permission.updateMany({
+        where: {
+          permissionId: { in: toDelete.map((p) => p.permissionId) },
+        },
         data: { deletedAt: new Date() },
       });
-      deleted++;
     }
 
-    return { created, updated, deleted, sensitive };
+    return { created, updated, deleted: toDelete.length, sensitive };
   }
 
   /**

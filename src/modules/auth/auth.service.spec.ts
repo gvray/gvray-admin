@@ -8,6 +8,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TokenService } from './token.service';
 import { RateLimiterService } from '@/redis/rate-limiter.service';
 import { PermissionCacheService } from '@/redis/permission-cache.service';
+import { PasswordService } from '@/shared/services/password.service';
+import { GeoIpService } from '@/shared/services/geo-ip.service';
+import { AuthCacheService } from '@/shared/services/auth-cache.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -24,6 +27,9 @@ describe('AuthService', () => {
         { provide: TokenService, useValue: {} },
         { provide: RateLimiterService, useValue: {} },
         { provide: PermissionCacheService, useValue: {} },
+        { provide: PasswordService, useValue: {} },
+        { provide: GeoIpService, useValue: {} },
+        { provide: AuthCacheService, useValue: {} },
       ],
     }).compile();
 

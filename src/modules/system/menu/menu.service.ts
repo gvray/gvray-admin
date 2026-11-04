@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { plainToInstance } from 'class-transformer';
+import { toDto, toDtoList } from '@/shared/utils/transform.util';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
@@ -12,6 +12,7 @@ import { QueryMenuDto } from './dto/query-menu.dto';
 import { MenuTreeNodeDto, MenuResponseDto } from './dto/menu-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
+import { OPTIONS_MAX_LIMIT } from '@/shared/constants/options.constant';
 import type { Menu as MenuModel } from '@prisma/client';
 
 @Injectable()
@@ -99,9 +100,7 @@ export class MenuService extends BaseService {
       },
     });
 
-    return plainToInstance(MenuResponseDto, menu, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(MenuResponseDto, menu);
   }
 
   async findAll(query: QueryMenuDto): Promise<PaginationData<MenuResponseDto>> {
@@ -121,47 +120,24 @@ export class MenuService extends BaseService {
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
 
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.menu.findMany({
-        where,
-        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.menu.count({ where }),
-    ]);
-    const transformed = plainToInstance(MenuResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.menu,
+      query,
+      { where, orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }] },
+      MenuResponseDto,
+    );
   }
 
   async findOne(id: string): Promise<MenuResponseDto> {
-    let menu: MenuModel | null = null;
-
-    menu = await this.prisma.menu.findUnique({
+    const menu = await this.prisma.menu.findUnique({
       where: { menuId: id },
     });
-
-    if (!menu && !isNaN(Number(id))) {
-      menu = await this.prisma.menu.findUnique({
-        where: { id: Number(id) },
-      });
-    }
 
     if (!menu) {
       throw new NotFoundException(`菜单ID ${id} 不存在`);
     }
 
-    return plainToInstance(MenuResponseDto, menu, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(MenuResponseDto, menu);
   }
 
   async update(
@@ -182,17 +158,9 @@ export class MenuService extends BaseService {
       parentMenuId,
     } = updateMenuDto;
 
-    let menu: MenuModel | null = null;
-
-    menu = await this.prisma.menu.findUnique({
+    const menu = await this.prisma.menu.findUnique({
       where: { menuId: id },
     });
-
-    if (!menu && !isNaN(Number(id))) {
-      menu = await this.prisma.menu.findUnique({
-        where: { id: Number(id) },
-      });
-    }
 
     if (!menu) {
       throw new NotFoundException(`菜单ID ${id} 不存在`);
@@ -217,7 +185,7 @@ export class MenuService extends BaseService {
     }
 
     const updatedMenu = await this.prisma.menu.update({
-      where: { id: menu.id },
+      where: { menuId: id },
       data: {
         name,
         permissionCode:
@@ -234,23 +202,13 @@ export class MenuService extends BaseService {
       },
     });
 
-    return plainToInstance(MenuResponseDto, updatedMenu, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(MenuResponseDto, updatedMenu);
   }
 
   async remove(id: string): Promise<void> {
-    let menu: MenuModel | null = null;
-
-    menu = await this.prisma.menu.findUnique({
+    const menu = await this.prisma.menu.findUnique({
       where: { menuId: id },
     });
-
-    if (!menu && !isNaN(Number(id))) {
-      menu = await this.prisma.menu.findUnique({
-        where: { id: Number(id) },
-      });
-    }
 
     if (!menu) {
       throw new NotFoundException(`菜单ID ${id} 不存在`);
@@ -357,9 +315,7 @@ export class MenuService extends BaseService {
 
     sortChildren(roots);
 
-    return plainToInstance(MenuTreeNodeDto, roots, {
-      excludeExtraneousValues: true,
-    });
+    return toDtoList(MenuTreeNodeDto, roots);
   }
 
   async getOptions(): Promise<
@@ -384,7 +340,7 @@ export class MenuService extends BaseService {
         status: true,
       },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      take: 500,
+      take: OPTIONS_MAX_LIMIT,
     });
 
     const menuMap = new Map(menus.map((menu) => [menu.menuId, menu]));

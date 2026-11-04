@@ -62,8 +62,14 @@ export class UsersController {
     description: '用户列表',
     type: [UserResponseDto],
   })
-  async findAll(@Query() query?: QueryUserDto) {
-    const pageData = await this.usersService.findAll(query);
+  async findAll(
+    @CurrentUser() currentUser: IUser,
+    @Query() query?: QueryUserDto,
+  ) {
+    const pageData = await this.usersService.findAll(
+      query,
+      currentUser.userId,
+    );
     return ResponseUtil.paginated(pageData, '用户列表');
   }
 
@@ -76,8 +82,11 @@ export class UsersController {
     type: UserResponseDto,
   })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  async findOne(@Param('userId') userId: string) {
-    const data = await this.usersService.findOne(userId);
+  async findOne(
+    @Param('userId') userId: string,
+    @CurrentUser() currentUser: IUser,
+  ) {
+    const data = await this.usersService.findOne(userId, currentUser.userId);
     return ResponseUtil.found(data, '获取成功');
   }
 

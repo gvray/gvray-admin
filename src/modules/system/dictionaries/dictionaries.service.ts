@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto, toDtoList } from '@/shared/utils/transform.util';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CacheService } from '@/redis/cache.service';
@@ -17,7 +18,6 @@ import { CreateDictionaryItemDto } from './dto/create-dictionary-item.dto';
 import { UpdateDictionaryItemDto } from './dto/update-dictionary-item.dto';
 import { QueryDictionaryItemDto } from './dto/query-dictionary-item.dto';
 import { DictionaryItemResponseDto } from './dto/dictionary-item-response.dto';
-import { plainToInstance } from 'class-transformer';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 
@@ -55,9 +55,7 @@ export class DictionariesService extends BaseService {
       },
     });
 
-    return plainToInstance(DictionaryTypeResponseDto, dictionaryType, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DictionaryTypeResponseDto, dictionaryType);
   }
 
   async findAllDictionaryTypes(
@@ -69,25 +67,12 @@ export class DictionariesService extends BaseService {
       equals: { status },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.dictionaryType.findMany({
-        where,
-        orderBy: { sort: 'asc' },
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.dictionaryType.count({ where }),
-    ]);
-    const transformed = plainToInstance(DictionaryTypeResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.dictionaryType,
+      query,
+      { where, orderBy: { sort: 'asc' } },
+      DictionaryTypeResponseDto,
+    );
   }
 
   async findOneDictionaryType(
@@ -108,9 +93,7 @@ export class DictionariesService extends BaseService {
       throw new NotFoundException('字典类型不存在');
     }
 
-    return plainToInstance(DictionaryTypeResponseDto, dictionaryType, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DictionaryTypeResponseDto, dictionaryType);
   }
 
   @CacheEvict({ pattern: 'sys:dict:*' })
@@ -149,9 +132,7 @@ export class DictionariesService extends BaseService {
       },
     });
 
-    return plainToInstance(DictionaryTypeResponseDto, dictionaryType, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DictionaryTypeResponseDto, dictionaryType);
   }
 
   @CacheEvict({ pattern: 'sys:dict:*' })
@@ -182,25 +163,24 @@ export class DictionariesService extends BaseService {
     createDictionaryItemDto: CreateDictionaryItemDto,
     currentUserId?: string,
   ): Promise<DictionaryItemResponseDto> {
-    // 检查字典类型是否存在
-    const dictionaryType = await this.prisma.dictionaryType.findUnique({
-      where: { code: createDictionaryItemDto.typeCode },
+    const dictionaryItem = await this.prisma.$transaction(async (tx) => {
+      const dictionaryType = await tx.dictionaryType.findUnique({
+        where: { code: createDictionaryItemDto.typeCode },
+      });
+
+      if (!dictionaryType) {
+        throw new NotFoundException('字典类型不存在');
+      }
+
+      return tx.dictionaryItem.create({
+        data: {
+          ...createDictionaryItemDto,
+          createdById: currentUserId,
+        },
+      });
     });
 
-    if (!dictionaryType) {
-      throw new NotFoundException('字典类型不存在');
-    }
-
-    const dictionaryItem = await this.prisma.dictionaryItem.create({
-      data: {
-        ...createDictionaryItemDto,
-        createdById: currentUserId,
-      },
-    });
-
-    return plainToInstance(DictionaryItemResponseDto, dictionaryItem, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DictionaryItemResponseDto, dictionaryItem);
   }
 
   async findAllDictionaryItems(
@@ -211,30 +191,20 @@ export class DictionariesService extends BaseService {
       contains: { label, value },
       equals: { typeCode, status },
     });
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.dictionaryItem.findMany({
+    return this.paginateWith(
+      this.prisma.dictionaryItem,
+      query,
+      {
         where,
         orderBy: { sort: 'asc' },
-        skip: state.skip,
-        take: state.take,
         include: {
           type: {
             select: { typeId: true, code: true, name: true },
           },
         },
-      }),
-      this.prisma.dictionaryItem.count({ where }),
-    ]);
-    const transformed = plainToInstance(DictionaryItemResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+      },
+      DictionaryItemResponseDto,
+    );
   }
 
   async findOneDictionaryItem(
@@ -257,9 +227,7 @@ export class DictionariesService extends BaseService {
       throw new NotFoundException('字典项不存在');
     }
 
-    return plainToInstance(DictionaryItemResponseDto, dictionaryItem, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DictionaryItemResponseDto, dictionaryItem);
   }
 
   @CacheEvict({ pattern: 'sys:dict:*' })
@@ -284,9 +252,7 @@ export class DictionariesService extends BaseService {
       },
     });
 
-    return plainToInstance(DictionaryItemResponseDto, dictionaryItem, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(DictionaryItemResponseDto, dictionaryItem);
   }
 
   @CacheEvict({ pattern: 'sys:dict:*' })
@@ -326,9 +292,7 @@ export class DictionariesService extends BaseService {
       throw new NotFoundException('字典类型不存在');
     }
 
-    return plainToInstance(DictionaryItemResponseDto, dictionaryType.items, {
-      excludeExtraneousValues: true,
-    });
+    return toDtoList(DictionaryItemResponseDto, dictionaryType.items);
   }
 
   // 根据多个字典类型编码获取字典项列表

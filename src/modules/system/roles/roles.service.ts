@@ -4,8 +4,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toDto } from '@/shared/utils/transform.util';
 import { CommonStatus } from '@/shared/constants/common-status.constant';
-import { plainToInstance } from 'class-transformer';
+import { OPTIONS_MAX_LIMIT } from '@/shared/constants/options.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -18,6 +19,16 @@ import { PaginationData } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 import { PermissionCacheService } from '@/redis/permission-cache.service';
+import { AuthCacheService } from '@/shared/services/auth-cache.service';
+
+/** 角色详情统一 include，消除 7 处重复；改字段只改这里。 */
+const ROLE_DETAIL_INCLUDE = {
+  rolePermissions: {
+    include: {
+      permission: true,
+    },
+  },
+} satisfies Prisma.RoleInclude;
 
 @Injectable()
 export class RolesService extends BaseService {
@@ -26,22 +37,9 @@ export class RolesService extends BaseService {
     protected readonly configService: ConfigService,
     private readonly permissionCache: PermissionCacheService,
     private readonly dataScopeService: DataScopeService,
+    private readonly authCache: AuthCacheService,
   ) {
     super(prisma, configService);
-  }
-
-  private async countSuperAdminUsers(): Promise<number> {
-    return this.prisma.user.count({
-      where: {
-        userRoles: {
-          some: {
-            role: {
-              roleKey: SUPER_ROLE_KEY,
-            },
-          },
-        },
-      },
-    });
   }
 
   private async validatePermissionIds(permissionIds: string[]): Promise<void> {
@@ -149,42 +147,40 @@ export class RolesService extends BaseService {
       throw new ForbiddenException('不允许创建超级管理员角色');
     }
 
-    const role = await this.prisma.role.create({
-      data: {
-        name,
-        roleKey,
-        description,
-        remark,
-        sort: sort ?? 0,
-        status: (status as string) ?? CommonStatus.ENABLED,
-        createdById: currentUserId,
-      },
-    });
-
-    // 如果有权限ID，创建角色权限关联
-    if (permissionIds && permissionIds.length > 0) {
-      await this.prisma.rolePermission.createMany({
-        data: permissionIds.map((permissionId) => ({
-          roleId: role.roleId,
-          permissionId: permissionId.toString(),
+    const role = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.role.create({
+        data: {
+          name,
+          roleKey,
+          description,
+          remark,
+          sort: sort ?? 0,
+          status: (status as string) ?? CommonStatus.ENABLED,
           createdById: currentUserId,
-        })),
+        },
+        select: { roleId: true },
       });
-    }
+
+      if (permissionIds && permissionIds.length > 0) {
+        await tx.rolePermission.createMany({
+          data: permissionIds.map((permissionId) => ({
+            roleId: created.roleId,
+            permissionId: permissionId.toString(),
+            createdById: currentUserId,
+          })),
+        });
+      }
+
+      return created;
+    });
 
     const result = await this.prisma.role.findUnique({
-      where: { id: role.id },
+      where: { roleId: role.roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
       },
     });
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, result);
   }
 
   async findAll(
@@ -240,37 +236,19 @@ export class RolesService extends BaseService {
       updatedAt: true,
     };
 
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.role.findMany({
-        where,
-        select,
-        skip: state.skip,
-        take: state.take,
-        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-      }),
-      this.prisma.role.count({ where }),
-    ]);
-    const transformed = plainToInstance(RoleResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformed,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.role,
+      query,
+      { where, orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }], select },
+      RoleResponseDto,
+    );
   }
 
   async findOne(roleId: string): Promise<RoleResponseDto> {
     const role = await this.prisma.role.findUnique({
       where: { roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
         userRoles: {
           include: {
             user: {
@@ -291,9 +269,7 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);
     }
 
-    return plainToInstance(RoleResponseDto, role, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, role);
   }
 
   async update(
@@ -326,55 +302,49 @@ export class RolesService extends BaseService {
     await this.validatePermissionIds(permissionIds ?? []);
     await this.validatePermissionAssignment(permissionIds ?? [], currentUserId);
 
-    // 更新角色基本信息
-    await this.prisma.role.update({
-      where: { roleId },
-      data: {
-        name,
-        description,
-        remark,
-        sort,
-        status: status,
-        updatedById: currentUserId,
-      },
-    });
-
-    // 如果提供了权限ID，更新角色权限关联
-    if (permissionIds !== undefined) {
-      // 删除现有的角色权限关联
-      await this.prisma.rolePermission.deleteMany({
-        where: { roleId: role.roleId },
+    // 角色信息与权限关联的先删后建必须原子
+    await this.prisma.$transaction(async (tx) => {
+      await tx.role.update({
+        where: { roleId },
+        data: {
+          name,
+          description,
+          remark,
+          sort,
+          status: status,
+          updatedById: currentUserId,
+        },
       });
 
-      // 创建新的角色权限关联
-      if (permissionIds.length > 0) {
-        await this.prisma.rolePermission.createMany({
-          data: permissionIds.map((permissionId) => ({
-            roleId: role.roleId,
-            permissionId: permissionId.toString(),
-            createdById: currentUserId,
-          })),
+      if (permissionIds !== undefined) {
+        await tx.rolePermission.deleteMany({
+          where: { roleId: role.roleId },
         });
-      }
 
-      // 清除该角色下所有用户的权限缓存
+        if (permissionIds.length > 0) {
+          await tx.rolePermission.createMany({
+            data: permissionIds.map((permissionId) => ({
+              roleId: role.roleId,
+              permissionId: permissionId.toString(),
+              createdById: currentUserId,
+            })),
+          });
+        }
+      }
+    });
+
+    if (permissionIds !== undefined) {
       await this.invalidateRoleUserCache(roleId);
     }
 
     const result = await this.prisma.role.findUnique({
       where: { roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
       },
     });
 
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, result);
   }
 
   async remove(roleId: string): Promise<void> {
@@ -440,44 +410,39 @@ export class RolesService extends BaseService {
     await this.validatePermissionIds(permissionIds);
     await this.validatePermissionAssignment(permissionIds, currentUserId);
 
-    // 删除现有的角色权限关联
-    await this.prisma.rolePermission.deleteMany({
-      where: { roleId: role.roleId },
-    });
-
-    // 创建新的角色权限关联
-    if (permissionIds.length > 0) {
-      await this.prisma.rolePermission.createMany({
-        data: permissionIds.map((permissionId) => ({
-          roleId: role.roleId,
-          permissionId: permissionId,
-          createdById: currentUserId,
-        })),
+    // 先删后建必须原子
+    await this.prisma.$transaction(async (tx) => {
+      await tx.rolePermission.deleteMany({
+        where: { roleId: role.roleId },
       });
-    }
 
-    await this.prisma.role.update({
-      where: { roleId: role.roleId },
-      data: { updatedById: currentUserId },
+      if (permissionIds.length > 0) {
+        await tx.rolePermission.createMany({
+          data: permissionIds.map((permissionId) => ({
+            roleId: role.roleId,
+            permissionId,
+            createdById: currentUserId,
+          })),
+        });
+      }
+
+      await tx.role.update({
+        where: { roleId: role.roleId },
+        data: { updatedById: currentUserId },
+      });
     });
 
     const result = await this.prisma.role.findUnique({
       where: { roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
       },
     });
 
     // 清除该角色下所有用户的权限缓存
     await this.invalidateRoleUserCache(roleId);
 
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, result);
   }
 
   // 移除角色的权限
@@ -501,38 +466,31 @@ export class RolesService extends BaseService {
 
     await this.validatePermissionIds(permissionIds);
 
-    // 删除指定的角色权限关联
-    await this.prisma.rolePermission.deleteMany({
-      where: {
-        roleId: role.roleId,
-        permissionId: {
-          in: permissionIds,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.rolePermission.deleteMany({
+        where: {
+          roleId: role.roleId,
+          permissionId: { in: permissionIds },
         },
-      },
-    });
+      });
 
-    await this.prisma.role.update({
-      where: { roleId: role.roleId },
-      data: { updatedById: currentUserId },
+      await tx.role.update({
+        where: { roleId: role.roleId },
+        data: { updatedById: currentUserId },
+      });
     });
 
     const result = await this.prisma.role.findUnique({
       where: { roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
       },
     });
 
     // 清除该角色下所有用户的权限缓存
     await this.invalidateRoleUserCache(roleId);
 
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, result);
   }
 
   private async invalidateRoleUserCache(roleId: string): Promise<void> {
@@ -541,7 +499,7 @@ export class RolesService extends BaseService {
       select: { userId: true },
     });
     for (const ur of userRoles) {
-      await this.permissionCache.del(ur.userId);
+      await this.authCache.invalidateUserAll(ur.userId);
     }
   }
 
@@ -596,35 +554,44 @@ export class RolesService extends BaseService {
       throw new NotFoundException('部分用户不存在');
     }
 
-    // 先删除该角色的所有用户关联
-    await this.prisma.userRole.deleteMany({
-      where: {
-        roleId,
-      },
-    });
-
-    // 创建新的用户角色关联
-    await this.prisma.userRole.createMany({
-      data: userIds.map((userId) => ({
-        roleId,
-        userId,
-        createdById: currentUserId,
-      })),
-    });
-
-    await this.prisma.role.update({
+    // 记录旧成员，替换后需一并失效其权限/菜单缓存
+    const previousMembers = await this.prisma.userRole.findMany({
       where: { roleId },
-      data: { updatedById: currentUserId },
+      select: { userId: true },
     });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({ where: { roleId } });
+
+      if (userIds.length > 0) {
+        await tx.userRole.createMany({
+          data: userIds.map((userId) => ({
+            roleId,
+            userId,
+            createdById: currentUserId,
+          })),
+        });
+      }
+
+      await tx.role.update({
+        where: { roleId },
+        data: { updatedById: currentUserId },
+      });
+    });
+
+    // 失效旧成员 + 新成员的权限/菜单缓存
+    const affectedUserIds = new Set<string>([
+      ...previousMembers.map((ur) => ur.userId),
+      ...userIds,
+    ]);
+    for (const uid of affectedUserIds) {
+      await this.authCache.invalidateUserAll(uid);
+    }
 
     const updatedRole = await this.prisma.role.findUnique({
       where: { roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
         userRoles: {
           include: {
             user: {
@@ -640,9 +607,7 @@ export class RolesService extends BaseService {
       },
     });
 
-    return plainToInstance(RoleResponseDto, updatedRole, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, updatedRole);
   }
 
   // 移除角色的用户
@@ -684,28 +649,29 @@ export class RolesService extends BaseService {
       throw new ForbiddenException('无权对超级管理员角色移除用户');
     }
 
-    await this.prisma.userRole.deleteMany({
-      where: {
-        roleId,
-        userId: {
-          in: userIds,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({
+        where: {
+          roleId,
+          userId: { in: userIds },
         },
-      },
+      });
+
+      await tx.role.update({
+        where: { roleId },
+        data: { updatedById: currentUserId },
+      });
     });
 
-    await this.prisma.role.update({
-      where: { roleId },
-      data: { updatedById: currentUserId },
-    });
+    // 被移除用户的权限/菜单缓存需要失效
+    for (const uid of userIds) {
+      await this.authCache.invalidateUserAll(uid);
+    }
 
     const updatedRole = await this.prisma.role.findUnique({
       where: { roleId },
       include: {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
+        ...ROLE_DETAIL_INCLUDE,
         userRoles: {
           include: {
             user: {
@@ -721,9 +687,7 @@ export class RolesService extends BaseService {
       },
     });
 
-    return plainToInstance(RoleResponseDto, updatedRole, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(RoleResponseDto, updatedRole);
   }
 
   // 为角色分配数据权限
@@ -784,7 +748,7 @@ export class RolesService extends BaseService {
         sort: true,
       },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      take: 500,
+      take: OPTIONS_MAX_LIMIT,
     });
   }
 }

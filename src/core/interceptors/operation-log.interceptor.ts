@@ -16,7 +16,7 @@ import {
 } from '@/core/decorators/operation-log.decorator';
 import { OPLOG_SKIP } from '@/core/decorators/no-operation-log.decorator';
 
-function maskSensitive(input: unknown, maskFields: string[]): unknown {
+export function maskSensitive(input: unknown, maskFields: string[]): unknown {
   const fields = new Set(maskFields.map((f) => f.toLowerCase()));
   const maxLen = 2000; // 控制体积
 

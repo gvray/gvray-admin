@@ -3,19 +3,24 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
+import { toDto } from '@/shared/utils/transform.util';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
 import { Prisma } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { PasswordService } from '@/shared/services/password.service';
+import { AuthCacheService } from '@/shared/services/auth-cache.service';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly passwordService: PasswordService,
+    private readonly authCache: AuthCacheService,
+  ) {}
 
   async getProfile(userId: string): Promise<ProfileResponseDto> {
     const user = await this.prisma.user.findUnique({
@@ -36,14 +41,9 @@ export class ProfileService {
       throw new NotFoundException('用户不存在');
     }
 
-    return plainToInstance(ProfileResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(ProfileResponseDto, user);
   }
 
-  // TODO: [Redis] 缓存用户权限列表
-  // 当前 getPermissions() 每次请求都走数据库大查询并用内存 Map 去重。
-  // 后续接入 Redis 后以 `user:permissions:{userId}` 缓存去重后的权限数组，TTL 与 token 过期对齐。
   async getPermissions(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { userId },
@@ -159,7 +159,10 @@ export class ProfileService {
       throw new NotFoundException('用户不存在');
     }
 
-    const isMatch = await bcrypt.compare(dto.oldPassword, user.password);
+    const isMatch = await this.passwordService.compare(
+      dto.oldPassword,
+      user.password,
+    );
     if (!isMatch) {
       throw new BadRequestException('当前密码不正确');
     }
@@ -168,11 +171,12 @@ export class ProfileService {
       throw new BadRequestException('新密码不能与当前密码相同');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    const hashedPassword = await this.passwordService.hash(dto.newPassword);
     await this.prisma.user.update({
       where: { userId },
       data: { password: hashedPassword },
     });
+    await this.authCache.invalidateUser(userId);
   }
 
   async getSettings(userId: string) {

@@ -1,4 +1,5 @@
 import { Controller, Delete, Get, Query } from '@nestjs/common';
+import { toDto } from '@/shared/utils/transform.util';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -6,7 +7,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import {
@@ -44,9 +44,7 @@ export class MonitorController {
   })
   async getServerMetrics() {
     const data = await this.monitorService.getServerMetrics();
-    const dto = plainToInstance(ServerMetricsResponseDto, data, {
-      excludeExtraneousValues: true,
-    });
+    const dto = toDto(ServerMetricsResponseDto, data);
     return ResponseUtil.found(dto, '获取系统监控指标成功');
   }
 

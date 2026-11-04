@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { plainToInstance } from 'class-transformer';
+import { toDto } from '@/shared/utils/transform.util';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
@@ -12,6 +12,7 @@ import { QueryPositionDto } from './dto/query-position.dto';
 import { PositionResponseDto } from './dto/position-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
+import { OPTIONS_MAX_LIMIT } from '@/shared/constants/options.constant';
 
 @Injectable()
 export class PositionsService extends BaseService {
@@ -52,9 +53,7 @@ export class PositionsService extends BaseService {
       },
     });
 
-    return plainToInstance(PositionResponseDto, position, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(PositionResponseDto, position);
   }
 
   async findAll(
@@ -80,40 +79,24 @@ export class PositionsService extends BaseService {
         },
       },
     };
-    const state = this.getPaginationState(query);
-    const [items, total] = await Promise.all([
-      this.prisma.position.findMany({
-        where,
-        include,
-        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-        skip: state.skip,
-        take: state.take,
-      }),
-      this.prisma.position.count({ where }),
-    ]);
-    const transformedItems = plainToInstance(PositionResponseDto, items, {
-      excludeExtraneousValues: true,
-    });
-    return {
-      items: transformedItems,
-      total,
-      page: state.page,
-      pageSize: state.pageSize,
-    };
+    return this.paginateWith(
+      this.prisma.position,
+      query,
+      { where, orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }], include },
+      PositionResponseDto,
+    );
   }
 
   async findOne(id: string): Promise<PositionResponseDto> {
-    const position = await this.prisma.position.findFirst({
-      where: isNaN(Number(id)) ? { positionId: id } : { id: Number(id) },
+    const position = await this.prisma.position.findUnique({
+      where: { positionId: id },
     });
 
     if (!position) {
       throw new NotFoundException(`岗位ID ${id} 不存在`);
     }
 
-    return plainToInstance(PositionResponseDto, position, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(PositionResponseDto, position);
   }
 
   async update(
@@ -121,9 +104,8 @@ export class PositionsService extends BaseService {
     updatePositionDto: UpdatePositionDto,
     currentUserId?: string,
   ): Promise<PositionResponseDto> {
-    // 检查岗位是否存在
-    const existingPosition = await this.prisma.position.findFirst({
-      where: isNaN(Number(id)) ? { positionId: id } : { id: Number(id) },
+    const existingPosition = await this.prisma.position.findUnique({
+      where: { positionId: id },
     });
 
     if (!existingPosition) {
@@ -134,20 +116,11 @@ export class PositionsService extends BaseService {
     if (updatePositionDto.name || updatePositionDto.code) {
       const conflictPosition = await this.prisma.position.findFirst({
         where: {
-          AND: [
-            {
-              OR: [
-                { positionId: { not: existingPosition.positionId } },
-                { id: { not: existingPosition.id } },
-              ],
-            },
-            {
-              OR: [
-                updatePositionDto.name ? { name: updatePositionDto.name } : {},
-                updatePositionDto.code ? { code: updatePositionDto.code } : {},
-              ].filter((condition) => Object.keys(condition).length > 0),
-            },
-          ],
+          positionId: { not: existingPosition.positionId },
+          OR: [
+            updatePositionDto.name ? { name: updatePositionDto.name } : {},
+            updatePositionDto.code ? { code: updatePositionDto.code } : {},
+          ].filter((condition) => Object.keys(condition).length > 0),
         },
       });
 
@@ -168,21 +141,19 @@ export class PositionsService extends BaseService {
     }
 
     const position = await this.prisma.position.update({
-      where: { id: existingPosition.id },
+      where: { positionId: existingPosition.positionId },
       data: {
         ...updatePositionDto,
         updatedById: currentUserId,
       },
     });
 
-    return plainToInstance(PositionResponseDto, position, {
-      excludeExtraneousValues: true,
-    });
+    return toDto(PositionResponseDto, position);
   }
 
   async remove(id: string): Promise<void> {
-    const existingPosition = await this.prisma.position.findFirst({
-      where: isNaN(Number(id)) ? { positionId: id } : { id: Number(id) },
+    const existingPosition = await this.prisma.position.findUnique({
+      where: { positionId: id },
     });
 
     if (!existingPosition) {
@@ -190,25 +161,15 @@ export class PositionsService extends BaseService {
     }
 
     await this.prisma.position.delete({
-      where: { id: existingPosition.id },
+      where: { positionId: id },
     });
   }
 
   async removeMany(ids: string[]): Promise<void> {
-    const numericIds = ids
-      .map((x) => Number(x))
-      .filter((n) => Number.isInteger(n));
-    const stringIds = ids.filter((x) => isNaN(Number(x)) && x.length > 0);
-    if (numericIds.length > 0) {
-      await this.prisma.position.deleteMany({
-        where: { id: { in: numericIds } },
-      });
-    }
-    if (stringIds.length > 0) {
-      await this.prisma.position.deleteMany({
-        where: { positionId: { in: stringIds } },
-      });
-    }
+    if (ids.length === 0) return;
+    await this.prisma.position.deleteMany({
+      where: { positionId: { in: ids } },
+    });
   }
 
   async getOptions(): Promise<
@@ -228,7 +189,7 @@ export class PositionsService extends BaseService {
         sort: true,
       },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      take: 500,
+      take: OPTIONS_MAX_LIMIT,
     });
   }
 }
